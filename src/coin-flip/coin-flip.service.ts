@@ -22,13 +22,23 @@ export class CoinFlipService {
 
     calculateOdds(guesses: ('heads' | 'tails')[]): number {
         const numRounds = guesses.length
+        const counts = { heads: 0, tails: 0 }
+
+        guesses.forEach(guess => {
+            counts[guess]++
+        })
+
         const uniqueGuesses = new Set(guesses).size
 
-        if (uniqueGuesses === 1) {
-            return Math.pow(1.5, numRounds)
-        } else {
-            return numRounds + 0.5
+        let odds = uniqueGuesses === 1 ? Math.pow(1.5, numRounds) : numRounds + 0.5
+
+        for (const count of Object.values(counts)) {
+            if (count > 1) {
+                odds += (count - 1) * 0.5
+            }
         }
+
+        return odds
     }
 
     async createGame(

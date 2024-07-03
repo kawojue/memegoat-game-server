@@ -1,11 +1,11 @@
 import { Response } from 'express'
-import { Injectable } from '@nestjs/common'
 import { StatusCodes } from 'enums/StatusCodes'
 import { MiscService } from 'libs/misc.service'
 import { RandomService } from 'libs/random.service'
 import { AlgoType, DiceRound } from '@prisma/client'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { CreateDiceGameDTO, DiceRoundDTO } from './dto/dice.dto'
 
 @Injectable()
@@ -44,26 +44,46 @@ export class DiceService {
         return round.guess.every((guess, index) => guess === round.result[index].result)
     }
 
-    calculateOdds(roundsDto: DiceRoundDTO): number {
+    private isNotValidRound(roundsDto: DiceRoundDTO): boolean {
         const rounds = roundsDto.rounds
+
+        const isNotValid = rounds.some(round => {
+            if (round.numDice !== 1 && round.numDice !== 2) {
+                return true
+            }
+
+            if (round.numDice !== round.guess.length) {
+                return true
+            }
+        })
+
+        return isNotValid
+    }
+
+    calculateOdds(roundsDto: DiceRoundDTO): number {
         let odds = 1
+        const rounds = roundsDto.rounds
+
+        const isNotValidRounds = this.isNotValidRound({ rounds })
+        if (isNotValidRounds) {
+            throw new BadRequestException("Invalid guess or dice number")
+        }
 
         rounds.forEach(round => {
             if (round.numDice === 1) {
-                odds *= 6
+                odds *= 2.5
             } else if (round.numDice === 2) {
                 const uniqueGuesses = new Set(round.guess).size
                 if (uniqueGuesses === 1) {
-                    odds *= 36
+                    odds *= 4
                 } else {
-                    odds *= 18
+                    odds *= 3
                 }
             }
         })
 
         return odds
     }
-
 
     async createGame(
         res: Response,
@@ -76,6 +96,11 @@ export class DiceService {
             })
 
             // TODO: Check wallet balance
+
+            const isNotValidRounds = this.isNotValidRound({ rounds })
+            if (isNotValidRounds) {
+                return this.response.sendError(res, StatusCodes.BadRequest, "Invalid guess or dice number")
+            }
 
             const odds = this.calculateOdds({ rounds })
 
@@ -118,7 +143,7 @@ export class DiceService {
                         include: { results: true }
                     })
 
-                    return eachRound as DiceRound // Ensure it matches the type
+                    return eachRound
                 }))
             }
 
