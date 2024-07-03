@@ -32,7 +32,7 @@ export class RandomService {
 }
 
     randomize() {
-        const newSeed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}-${Date.now()}`)
+        const newSeed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}`)
         const random = seedrandom(newSeed)()
         return {
             random,
