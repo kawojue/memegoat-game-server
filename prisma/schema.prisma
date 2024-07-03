@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  address       String   @unique
+  username      String?  @unique
+  refresh_token String?
+  pin           String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  stat          Stat?
+  games         Game[]
+
+  @@index([refresh_token])
+}
+
+model Stat {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  total_wins    Int    @default(0)
+  total_losses  Int    @default(0)
+  total_earning Float  @default(0.00)
+  user          User   @relation(references: [id], fields: [userId])
+  userId        String @unique @db.ObjectId
+}
+
+model Game {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  stake            Float
+  totalOdds        Float
+  winAmount        Float
+  coin_flip_rounds CoinFlipRound[]
+  game_type        String
+  createdAt        DateTime        @default(now())
+  userId           String          @db.ObjectId
+  user             User            @relation(fields: [userId], references: [id])
+}
+
+model CoinFlipRound {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  gameId    String   @db.ObjectId
+  game      Game     @relation(fields: [gameId], references: [id])
+  guess     Coin
+  result    Coin
+  seed      String
+  algo_type AlgoType
+  createdAt DateTime @default(now())
+}
+
+enum AlgoType {
+  md5
+  sha256
+  sha512
+}
+
+enum Coin {
+  tails
+  heads
+}
