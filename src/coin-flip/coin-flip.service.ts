@@ -1,23 +1,23 @@
 import { Response } from 'express'
+import { AlgoType } from '@prisma/client'
 import { Injectable } from '@nestjs/common'
 import { StatusCodes } from 'enums/StatusCodes'
 import { MiscService } from 'libs/misc.service'
-import { FlipperService } from './flipper.service'
 import { CreateCoinGameDTO } from './dto/coin.dto'
+import { RandomService } from 'libs/random.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
-import { AlgoType, CoinFlipRound } from '@prisma/client'
 
 @Injectable()
 export class CoinFlipService {
-    private readonly flipper: FlipperService
+    private readonly flipper: RandomService
 
     constructor(
         private readonly misc: MiscService,
         private readonly prisma: PrismaService,
         private readonly response: ResponseService,
     ) {
-        this.flipper = new FlipperService(AlgoType.sha256)
+        this.flipper = new RandomService(AlgoType.sha256)
     }
 
     calculateOdds(guesses: ('heads' | 'tails')[]): number {
@@ -40,12 +40,13 @@ export class CoinFlipService {
             const user = await this.prisma.user.findUnique({
                 where: { id: sub }
             })
+
             //TODO: Gonna check wallet balance here to see if the stake amount is not greater than their balance
 
             const odds = this.calculateOdds(rounds.map(round => round.guess))
 
             const initRounds = rounds.map(round => {
-                const { result, seed, algo_type } = this.flipper.flipCoin()
+                const { result, seed, algo_type } = this.flipper.randomize()
                 return {
                     seed,
                     result,
@@ -64,20 +65,18 @@ export class CoinFlipService {
                     game_type: 'coin_flipper',
                     user: { connect: { id: sub } },
                     winAmount: isLost ? 0 : stake * odds,
+                    coin_flip_rounds: {
+                        createMany: {
+                            data: initRounds
+                        }
+                    }
                 },
+                include: {
+                    coin_flip_rounds: true,
+                }
             })
 
-            let newRounds: CoinFlipRound[] = []
-
-            if (game) {
-                for (const round of initRounds) {
-                    const newRound = await this.prisma.coinFlipRound.create({
-                        data: { ...round, game: { connect: { id: game.id } } }
-                    })
-
-                    newRounds.push(newRound)
-                }
-            }
+            // TODO: credit user's wallet if he/she wins - winAmount
 
             res.on('finish', async () => {
                 await this.prisma.stat.upsert({
@@ -96,7 +95,7 @@ export class CoinFlipService {
                 })
             })
 
-            this.response.sendSuccess(res, StatusCodes.OK, { data: { game, rounds: newRounds } })
+            this.response.sendSuccess(res, StatusCodes.OK, { data: game })
         } catch (err) {
             this.misc.handleServerError(res, err)
         }

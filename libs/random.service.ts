@@ -5,20 +5,21 @@ import { Injectable } from '@nestjs/common'
 import { AlgoType, Coin } from '@prisma/client'
 
 @Injectable()
-export class FlipperService {
+export class RandomService {
     private readonly algorithm: AlgoType
 
     constructor(algorithm: AlgoType) {
         this.algorithm = algorithm
     }
 
-    flipCoin() {
+    randomize() {
         const newSeed = this.hashSeed(`${process.env.GEN_KEY}-${uuidv4()}-${Date.now()}`)
-        const random = seedrandom(newSeed)
+        const random = seedrandom(newSeed)()
         return {
+            random,
             seed: newSeed,
             algo_type: this.algorithm,
-            result: random() < 0.5 ? 'heads' : 'tails' as Coin,
+            result: random < 0.5 ? 'heads' : 'tails' as Coin,
         }
     }
 

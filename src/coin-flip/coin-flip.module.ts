@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { JwtModule } from '@nestjs/jwt'
+import { JwtModule } from 'src/jwt/jwt.module'
 import { MiscService } from 'libs/misc.service'
 import { PassportModule } from '@nestjs/passport'
 import { CoinFlipService } from './coin-flip.service'

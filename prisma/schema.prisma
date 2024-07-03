@@ -37,6 +37,7 @@ model Game {
   totalOdds        Float
   winAmount        Float
   coin_flip_rounds CoinFlipRound[]
+  dice_rounds      DiceRound[]
   game_type        String
   createdAt        DateTime        @default(now())
   userId           String          @db.ObjectId
@@ -52,6 +53,26 @@ model CoinFlipRound {
   seed      String
   algo_type AlgoType
   createdAt DateTime @default(now())
+}
+
+model DiceRound {
+  id      String       @id @default(auto()) @map("_id") @db.ObjectId
+  gameId  String       @db.ObjectId
+  game    Game         @relation(fields: [gameId], references: [id])
+  numDice Int
+  guess   Int[]
+  results DiceResult[]
+
+  createdAt DateTime @default(now())
+}
+
+model DiceResult {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  seed      String
+  algo_type AlgoType
+  result    Int
+  round     DiceRound @relation(fields: [roundId], references: [id])
+  roundId   String    @db.ObjectId
 }
 
 enum AlgoType {

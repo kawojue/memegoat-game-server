@@ -1,10 +1,10 @@
-import { ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import {
   Body, Controller, Patch, Post, Req, Res, UseGuards
 } from '@nestjs/common'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
+import { ApiCookieAuth, ApiTags } from '@nestjs/swagger'
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 
 @ApiTags("Auth")
@@ -23,6 +23,7 @@ export class AuthController {
   }
 
   @Patch('/username')
+  @ApiCookieAuth()
   @UseGuards(JwtAuthGuard)
   async editUsername(
     @Req() req: IRequest,

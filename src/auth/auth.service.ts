@@ -31,7 +31,6 @@ export class AuthService {
             }
 
             if (user) {
-
                 if (!user.active) {
                     return this.response.sendError(res, StatusCodes.Forbidden, "Account has been suspended")
                 }
@@ -50,7 +49,6 @@ export class AuthService {
                 })
 
                 res.cookie('access_token', access_token, {
-                    httpOnly: true,
                     sameSite: this.isProd ? 'none' : 'lax',
                     secure: this.isProd,
                     maxAge: 10 * 60 * 1000,
@@ -88,7 +86,6 @@ export class AuthService {
 
             const access_token = await this.misc.generateNewAccessToken(refresh_token)
             res.cookie('access_token', access_token, {
-                httpOnly: true,
                 sameSite: this.isProd ? 'none' : 'lax',
                 secure: this.isProd,
                 maxAge: 10 * 60 * 1000,
