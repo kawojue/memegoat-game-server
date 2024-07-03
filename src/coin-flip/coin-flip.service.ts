@@ -85,13 +85,13 @@ export class CoinFlipService {
                     update: {
                         total_wins: isLost ? { increment: 0 } : { increment: 1 },
                         total_losses: isLost ? { increment: 1 } : { increment: 0 },
-                        total_earning: isLost ? { increment: 0 } : { increment: game.winAmount }
+                        total_earnings: isLost ? { increment: 0 } : { increment: game.winAmount }
                     },
                     create: {
                         user: { connect: { id: sub } },
                         total_wins: isLost ? 0 : 1,
                         total_losses: isLost ? 1 : 0,
-                        total_earning: isLost ? 0 : game.winAmount
+                        total_earnings: isLost ? 0 : game.winAmount
                     }
                 })
             })

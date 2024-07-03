@@ -23,12 +23,12 @@ model User {
 }
 
 model Stat {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  total_wins    Int    @default(0)
-  total_losses  Int    @default(0)
-  total_earning Float  @default(0.00)
-  user          User   @relation(references: [id], fields: [userId])
-  userId        String @unique @db.ObjectId
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  total_wins     Int    @default(0)
+  total_losses   Int    @default(0)
+  total_earnings Float  @default(0.00)
+  user           User   @relation(references: [id], fields: [userId])
+  userId         String @unique @db.ObjectId
 }
 
 model Game {
