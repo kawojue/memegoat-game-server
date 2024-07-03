@@ -1,5 +1,4 @@
 import * as crypto from 'crypto'
-import { v4 as uuidv4 } from 'uuid'
 import * as seedrandom from 'seedrandom'
 import { Injectable } from '@nestjs/common'
 import { AlgoType, Coin } from '@prisma/client'
