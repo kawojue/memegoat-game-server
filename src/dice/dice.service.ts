@@ -1,12 +1,12 @@
 import { Response } from 'express'
+import { AlgoType } from '@prisma/client'
 import { StatusCodes } from 'enums/StatusCodes'
 import { MiscService } from 'libs/misc.service'
+import { CreateDiceGameDTO } from './dto/dice.dto'
 import { RandomService } from 'libs/random.service'
-import { AlgoType, DiceRound } from '@prisma/client'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { CreateDiceGameDTO, DiceRoundDTO } from './dto/dice.dto'
 
 @Injectable()
 export class DiceService {
@@ -20,14 +20,14 @@ export class DiceService {
         this.random = new RandomService(AlgoType.sha256)
     }
 
-    private rollDice(numDice: 1 | 2) {
+    private rollDice(size: 1 | 2) {
         const results: {
             result: number
             seed: string
             algo_type: AlgoType,
         }[] = []
 
-        for (let i = 0; i < numDice; i++) {
+        for (let i = 0; i < size; i++) {
             const { algo_type, random, seed } = this.random.randomize()
 
             results.push({
@@ -40,47 +40,30 @@ export class DiceService {
         return results
     }
 
-    private isRoundWon(round: { numDice: 1 | 2, guess: number[], result: { result: number }[] }): boolean {
-        return round.guess.every((guess, index) => guess === round.result[index].result)
+    private isRoundWon(size: 1 | 2, guesses: number[], results: { result: number }[]): boolean {
+        return guesses.every((guess, index) => guess === results[index].result)
     }
 
-    private isNotValidRound(roundsDto: DiceRoundDTO): boolean {
-        const rounds = roundsDto.rounds
-
-        const isNotValid = rounds.some(round => {
-            if (round.numDice !== 1 && round.numDice !== 2) {
-                return true
-            }
-
-            if (round.numDice !== round.guess.length) {
-                return true
-            }
-        })
-
-        return isNotValid
+    private isNotValidRound(size: 1 | 2, guesses: number[]): boolean {
+        return size !== guesses.length
     }
 
-    calculateOdds(roundsDto: DiceRoundDTO): number {
-        let odds = 1
-        const rounds = roundsDto.rounds
-
-        const isNotValidRounds = this.isNotValidRound({ rounds })
-        if (isNotValidRounds) {
+    calculateOdds(size: 1 | 2, guesses: number[]): number {
+        if (this.isNotValidRound(size, guesses)) {
             throw new BadRequestException("Invalid guess or dice number")
         }
 
-        rounds.forEach(round => {
-            if (round.numDice === 1) {
-                odds *= 2.5
-            } else if (round.numDice === 2) {
-                const uniqueGuesses = new Set(round.guess).size
-                if (uniqueGuesses === 1) {
-                    odds *= 4
-                } else {
-                    odds *= 3
-                }
+        let odds = 1
+        if (size === 1) {
+            odds *= 2.5
+        } else if (size === 2) {
+            const uniqueGuesses = new Set(guesses).size
+            if (uniqueGuesses === 1) {
+                odds *= 4
+            } else {
+                odds *= 3
             }
-        })
+        }
 
         return odds
     }
@@ -88,7 +71,7 @@ export class DiceService {
     async createGame(
         res: Response,
         { sub }: ExpressUser,
-        { rounds, stake }: CreateDiceGameDTO
+        { size, guesses, stake }: CreateDiceGameDTO
     ) {
         try {
             const user = await this.prisma.user.findUnique({
@@ -97,24 +80,14 @@ export class DiceService {
 
             // TODO: Check wallet balance
 
-            const isNotValidRounds = this.isNotValidRound({ rounds })
-            if (isNotValidRounds) {
+            if (this.isNotValidRound(size, guesses)) {
                 return this.response.sendError(res, StatusCodes.BadRequest, "Invalid guess or dice number")
             }
 
-            const odds = this.calculateOdds({ rounds })
+            const odds = this.calculateOdds(size, guesses)
 
-            const initRounds = rounds.map(round => {
-                const result = this.rollDice(round.numDice as 1 | 2)
-                return {
-                    numDice: round.numDice as 1 | 2,
-                    guess: round.guess,
-                    result,
-                    createdAt: new Date(),
-                }
-            })
-
-            const isLost = initRounds.some(round => !this.isRoundWon(round))
+            const results = this.rollDice(size)
+            const isLost = !this.isRoundWon(size, guesses, results)
 
             const game = await this.prisma.game.create({
                 data: {
@@ -126,26 +99,18 @@ export class DiceService {
                 }
             })
 
-            let newRounds: DiceRound[] = []
-
-            if (game) {
-                newRounds = await Promise.all(initRounds.map(async (round) => {
-                    const eachRound = await this.prisma.diceRound.create({
-                        data: {
-                            game: { connect: { id: game.id } },
-                            createdAt: round.createdAt,
-                            numDice: round.numDice,
-                            guess: round.guess,
-                            results: {
-                                createMany: { data: round.result }
-                            }
-                        },
-                        include: { results: true }
-                    })
-
-                    return eachRound
-                }))
-            }
+            const round = await this.prisma.diceRound.create({
+                data: {
+                    game: { connect: { id: game.id } },
+                    createdAt: new Date(),
+                    numDice: size,
+                    guess: guesses,
+                    results: {
+                        createMany: { data: results }
+                    }
+                },
+                include: { results: true }
+            })
 
             res.on('finish', async () => {
                 await this.prisma.stat.upsert({
@@ -166,7 +131,7 @@ export class DiceService {
 
             // TODO: Credit user's wallet if they win - winAmount
 
-            this.response.sendSuccess(res, StatusCodes.OK, { data: { game, rounds: newRounds } })
+            this.response.sendSuccess(res, StatusCodes.OK, { data: { game, round } })
         } catch (err) {
             this.misc.handleServerError(res, err)
         }

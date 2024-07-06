@@ -20,22 +20,15 @@ export class CoinFlipService {
         this.flipper = new RandomService(AlgoType.sha256)
     }
 
-    calculateOdds(guesses: ('heads' | 'tails')[]): number {
-        const numRounds = guesses.length
-        const counts = { heads: 0, tails: 0 }
+    calculateOdds(guesses: { heads: number; tails: number }): number {
+        const totalGuesses = guesses.heads + guesses.tails
+        let odds = Math.pow(1.5, totalGuesses)
 
-        guesses.forEach(guess => {
-            counts[guess]++
-        })
-
-        const uniqueGuesses = new Set(guesses).size
-
-        let odds = uniqueGuesses === 1 ? Math.pow(1.5, numRounds) : numRounds + 0.5
-
-        for (const count of Object.values(counts)) {
-            if (count > 1) {
-                odds += (count - 1) * 0.5
-            }
+        if (guesses.heads > 1) {
+            odds += (guesses.heads - 1) * 0.5
+        }
+        if (guesses.tails > 1) {
+            odds += (guesses.tails - 1) * 0.5
         }
 
         return odds
@@ -44,27 +37,29 @@ export class CoinFlipService {
     async createGame(
         res: Response,
         { sub }: ExpressUser,
-        { rounds, stake }: CreateCoinGameDTO,
+        { heads, tails, stake }: CreateCoinGameDTO,
     ) {
         try {
             const user = await this.prisma.user.findUnique({
                 where: { id: sub }
             })
 
-            //TODO: Gonna check wallet balance here to see if the stake amount is not greater than their balance
+            // TODO: Check wallet balance here to see if the stake amount is not greater than their balance
 
-            const odds = this.calculateOdds(rounds.map(round => round.guess))
+            const guesses = { heads, tails }
+            const odds = this.calculateOdds(guesses)
 
-            const initRounds = rounds.map(round => {
+            const initRounds = []
+            for (let i = 0; i < heads + tails; i++) {
                 const { result, seed, algo_type } = this.flipper.randomize()
-                return {
+                initRounds.push({
                     seed,
                     result,
                     algo_type,
-                    guess: round.guess,
+                    guess: i < heads ? 'heads' : 'tails',
                     createdAt: new Date(),
-                }
-            })
+                })
+            }
 
             const isLost = initRounds.some(round => round.guess !== round.result)
 
@@ -86,7 +81,7 @@ export class CoinFlipService {
                 }
             })
 
-            // TODO: credit user's wallet if he/she wins - winAmount
+            // TODO: Credit user's wallet if they win - winAmount
 
             res.on('finish', async () => {
                 await this.prisma.stat.upsert({

@@ -3,51 +3,34 @@ import {
 } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
 
-export class DiceRoundDTO {
+export class Dice {
     @ApiProperty({
-        example: [
-            {
-                numDice: 1,
-                guess: [6],
-            },
-            {
-                numDice: 2,
-                guess: [6, 6],
-            },
-            {
-                numDice: 1,
-                guess: [5],
-            },
-        ]
+        example: 1,
+        description: `The size of the dice (1 or 2).`
+    })
+    @Min(1)
+    @Max(2)
+    @IsNumber()
+    @IsNotEmpty()
+    size: 1 | 2
+
+    @ApiProperty({
+        example: [6],
+        description: `Array of guesses for the dice rolls.`
     })
     @IsArray()
-    rounds: DiceRound[]
+    @IsNumber({}, { each: true })
+    @IsNotEmpty()
+    guesses: number[]
 }
 
-export class CreateDiceGameDTO extends DiceRoundDTO {
+export class CreateDiceGameDTO extends Dice {
     @ApiProperty({
-        example: 12
+        example: 12,
+        description: `The stake amount for the game.`
     })
     @Min(0)
     @IsNumber()
     @IsNotEmpty()
     stake: number
-}
-
-export class DiceRound {
-    @ApiProperty({
-        example: 2,
-        description: `Either 1 or 2 Dice`
-    })
-    @Min(1)
-    @Max(2)
-    @IsNumber()
-    numDice: 1 | 2
-
-    @ApiProperty({
-        example: [2, 3]
-    })
-    @IsArray()
-    @IsNumber({}, { each: true })
-    guess: number[]
 }

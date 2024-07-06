@@ -1,29 +1,23 @@
-import { Coin } from '@prisma/client'
 import { ApiProperty } from '@nestjs/swagger'
-import {
-    IsArray, IsEnum, IsNotEmpty, IsNumber, Min
-} from 'class-validator'
+import { IsNotEmpty, IsNumber, Min } from 'class-validator'
 
-export class CreateRoundDTO {
+export class TH {
     @ApiProperty({
-        enum: Coin
+        example: 2
     })
-    @IsEnum(Coin)
-    guess: Coin
+    @Min(0)
+    @IsNumber()
+    heads: number
+
+    @ApiProperty({
+        example: 1
+    })
+    @Min(0)
+    @IsNumber()
+    tails: number
 }
 
-export class CoinFlipRoundDTO {
-    @ApiProperty({
-        example: [
-            { guess: 'heads' },
-            { guess: 'tails' },
-        ]
-    })
-    @IsArray()
-    rounds: CreateRoundDTO[]
-}
-
-export class CreateCoinGameDTO extends CoinFlipRoundDTO {
+export class CreateCoinGameDTO extends TH {
     @ApiProperty({
         example: 12
     })

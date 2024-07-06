@@ -4,7 +4,7 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger'
-import { CreateDiceGameDTO, DiceRoundDTO } from './dto/dice.dto'
+import { CreateDiceGameDTO, Dice } from './dto/dice.dto'
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common'
 
 @ApiTags("Dice")
@@ -16,8 +16,8 @@ export class DiceController {
   ) { }
 
   @Post('/odds')
-  getOdds(@Res() res: Response, @Body() body: DiceRoundDTO) {
-    const odds = this.diceService.calculateOdds(body)
+  getOdds(@Res() res: Response, @Body() { size, guesses }: Dice) {
+    const odds = this.diceService.calculateOdds(size, guesses)
     this.response.sendSuccess(res, StatusCodes.OK, { data: { odds } })
   }
 

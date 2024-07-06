@@ -34,7 +34,6 @@ export class RandomService {
 
     randomize() {
         const newSeed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}-${uuidv4()}`)
-        console.log(newSeed)
         const random = seedrandom(newSeed)()
         return {
             random,

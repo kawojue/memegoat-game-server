@@ -2,9 +2,9 @@ import { Response } from 'express'
 import { StatusCodes } from 'enums/StatusCodes'
 import { CoinFlipService } from './coin-flip.service'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
+import { CreateCoinGameDTO, TH } from './dto/coin.dto'
 import { ResponseService } from 'libs/response.service'
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger'
-import { CoinFlipRoundDTO, CreateCoinGameDTO } from './dto/coin.dto'
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common'
 
 @ApiTags("Coin Flip")
@@ -27,8 +27,8 @@ export class CoinFlipController {
   }
 
   @Post('/odds')
-  getOdds(@Res() res: Response, @Body() { rounds }: CoinFlipRoundDTO) {
-    const odds = this.coinFlipService.calculateOdds(rounds.map(round => round.guess))
+  getOdds(@Res() res: Response, @Body() guesses: TH) {
+    const odds = this.coinFlipService.calculateOdds(guesses)
     this.response.sendSuccess(res, StatusCodes.OK, { data: { odds } })
   }
 }
