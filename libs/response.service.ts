@@ -1,6 +1,6 @@
 import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
-import { StatusCodes } from 'enums/statusCodes'
+import { StatusCodes } from 'enums/StatusCodes'
 
 @Injectable()
 export class ResponseService {
