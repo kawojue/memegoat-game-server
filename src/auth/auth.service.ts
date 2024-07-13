@@ -1,4 +1,5 @@
-import { Request, Response } from 'express'
+import { ObjectId } from 'mongodb'
+import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
 import { MiscService } from 'libs/misc.service'
 import { StatusCodes } from 'enums/StatusCodes'
@@ -25,9 +26,16 @@ export class AuthService {
             })
 
             if (!user) {
-                user = await this.prisma.user.create({
-                    data: { address }
-                })
+                const _id = new ObjectId().toString()
+
+                await this.prisma.$transaction([
+                    this.prisma.user.create({
+                        data: { id: _id, address }
+                    }),
+                    this.prisma.stat.create({
+                        data: { user: { connect: { id: _id } } }
+                    })
+                ])
             }
 
             if (user) {
@@ -41,12 +49,6 @@ export class AuthService {
                 }
 
                 const access_token = await this.misc.generateAccessToken(payload)
-                const refresh_token = await this.misc.generateRefreshToken(payload)
-
-                await this.prisma.user.update({
-                    where: { id: user.id },
-                    data: { refresh_token }
-                })
 
                 res.cookie('access_token', access_token, {
                     sameSite: this.isProd ? 'none' : 'lax',
@@ -54,44 +56,8 @@ export class AuthService {
                     maxAge: 10 * 60 * 1000,
                 })
 
-                res.cookie('refresh_token', refresh_token, {
-                    httpOnly: true,
-                    sameSite: this.isProd ? 'none' : 'lax',
-                    secure: this.isProd,
-                    maxAge: 120 * 24 * 60 * 60 * 1000,
-                })
-
-                res.redirect('http://localhost:3000/games')
+                res.redirect('http://localhost:5173/games')
             }
-        } catch (err) {
-            this.misc.handleServerError(res, err)
-        }
-    }
-
-    async refreshAccessToken(req: Request, res: Response) {
-        const refresh_token = req.cookies?.refresh_token
-
-        if (!refresh_token) {
-            return this.response.sendError(res, StatusCodes.Forbidden, "Refresh token does not exist")
-        }
-
-        try {
-            const user = await this.prisma.user.findFirst({
-                where: { refresh_token }
-            })
-
-            if (!user) {
-                return this.response.sendError(res, StatusCodes.NotFound, "User not found")
-            }
-
-            const access_token = await this.misc.generateNewAccessToken(refresh_token)
-            res.cookie('access_token', access_token, {
-                sameSite: this.isProd ? 'none' : 'lax',
-                secure: this.isProd,
-                maxAge: 10 * 60 * 1000,
-            })
-
-            this.response.sendSuccess(res, StatusCodes.OK, { access_token })
         } catch (err) {
             this.misc.handleServerError(res, err)
         }

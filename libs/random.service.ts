@@ -2,11 +2,10 @@ import * as crypto from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
 import * as seedrandom from 'seedrandom'
 import { Injectable } from '@nestjs/common'
-import { AlgoType, Coin } from '@prisma/client'
 
 @Injectable()
 export class RandomService {
-    private readonly algorithm: AlgoType
+    private algorithm: AlgoType
 
     constructor(algorithm: AlgoType) {
         this.algorithm = algorithm
@@ -33,13 +32,11 @@ export class RandomService {
     }
 
     randomize() {
-        const newSeed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}-${uuidv4()}`)
-        const random = seedrandom(newSeed)()
+        const seed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}-${uuidv4()}`)
+        const random = seedrandom(seed)()
         return {
-            random,
-            seed: newSeed,
+            random, seed,
             algo_type: this.algorithm,
-            result: random < 0.5 ? 'heads' : 'tails' as Coin,
         }
     }
 

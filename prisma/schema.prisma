@@ -8,80 +8,52 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  address       String   @unique
-  username      String?  @unique
-  refresh_token String?
-  pin           String?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  stat          Stat?
-  games         Game[]
-
-  @@index([refresh_token])
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  address   String   @unique
+  username  String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stat      Stat?
+  rounds    Round[]
 }
 
 model Stat {
-  id             String @id @default(auto()) @map("_id") @db.ObjectId
-  total_wins     Int    @default(0)
-  total_losses   Int    @default(0)
-  total_earnings Float  @default(0.00)
-  user           User   @relation(references: [id], fields: [userId])
-  userId         String @unique @db.ObjectId
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  tickets      Int      @default(0)
+  total_wins   Int      @default(0)
+  total_losses Int      @default(0)
+  total_points Float    @default(0.00)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user   User   @relation(references: [id], fields: [userId])
+  userId String @unique @db.ObjectId
+}
+
+model Round {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  point     Float    @default(0.00)
+  game_type GameType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(references: [id], fields: [userId])
+  userId String @unique @db.ObjectId
 }
 
 model Game {
-  id               String          @id @default(auto()) @map("_id") @db.ObjectId
-  stake            Float
-  totalOdds        Float
-  winAmount        Float
-  coin_flip_rounds CoinFlipRound[]
-  dice_rounds      DiceRound[]
-  game_type        String
-  createdAt        DateTime        @default(now())
-  userId           String          @db.ObjectId
-  user             User            @relation(fields: [userId], references: [id])
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  type        GameType
+  play_ticket Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model CoinFlipRound {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  gameId    String   @db.ObjectId
-  game      Game     @relation(fields: [gameId], references: [id])
-  guess     Coin
-  result    Coin
-  seed      String
-  algo_type AlgoType
-  createdAt DateTime @default(now())
-}
-
-model DiceRound {
-  id      String       @id @default(auto()) @map("_id") @db.ObjectId
-  gameId  String       @db.ObjectId
-  game    Game         @relation(fields: [gameId], references: [id])
-  numDice Int
-  guess   Int[]
-  results DiceResult[]
-
-  createdAt DateTime @default(now())
-}
-
-model DiceResult {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  seed      String
-  algo_type AlgoType
-  result    Int
-  round     DiceRound @relation(fields: [roundId], references: [id])
-  roundId   String    @db.ObjectId
-}
-
-enum AlgoType {
-  md5
-  sha256
-  sha512
-}
-
-enum Coin {
-  tails
-  heads
+enum GameType {
+  Dice
+  Poker
+  Roulette
+  CoinFlip
 }

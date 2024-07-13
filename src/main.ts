@@ -14,6 +14,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:5173',
       `http://localhost:${PORT}`,
+      `https://memegoat-game-server.onrender.com`,
     ],
     credentials: true,
     optionsSuccessStatus: 200,
@@ -27,8 +28,10 @@ async function bootstrap() {
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Memegoat Game')
     .setVersion('1.7.2')
+    .addServer(`https://memegoat-game-server.onrender.com`, 'Server')
     .addServer(`http://localhost:${PORT}`, 'Local')
     .addBearerAuth()
+    .addCookieAuth()
     .build()
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions)

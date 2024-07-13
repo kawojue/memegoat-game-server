@@ -1,3 +1,5 @@
+type AlgoType = 'sha256' | 'md5'
+
 interface JwtPayload {
     sub: string
     address: string
