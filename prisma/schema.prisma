@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  address   String   @unique
-  username  String?  @unique
-  avatar    String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stat      Stat?
-  rounds    Round[]
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  address      String        @unique
+  username     String?       @unique
+  avatar       String?
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  stat         Stat?
+  rounds       Round[]
+  pokerPlayers PokerPlayer[]
 }
 
 model Stat {
@@ -40,7 +41,7 @@ model Round {
   updatedAt DateTime @updatedAt
 
   user   User   @relation(references: [id], fields: [userId])
-  userId String @unique @db.ObjectId
+  userId String @db.ObjectId
 }
 
 model Game {
@@ -52,9 +53,63 @@ model Game {
   updatedAt   DateTime @updatedAt
 }
 
+model PokerGame {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  players        PokerPlayer[]
+  dealerIndex    Int           @default(0)
+  smallBlind     Int
+  bigBlind       Int
+  pot            Float         @default(0.00)
+  communityCards Card[]
+  gameState      GameState     @default(WAITING)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model PokerPlayer {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  user      User         @relation(fields: [userId], references: [id])
+  chips     Float        @default(0.00)
+  hand      Card[]
+  status    PlayerStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  userId String @db.ObjectId
+  gameId String @db.ObjectId
+
+  game PokerGame @relation(fields: [gameId], references: [id])
+}
+
+model Card {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  suit      String
+  rank      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pokerGameId   String? @db.ObjectId
+  pokerPlayerId String? @db.ObjectId
+
+  pokerGame   PokerGame?   @relation(fields: [pokerGameId], references: [id])
+  pokerPlayer PokerPlayer? @relation(fields: [pokerPlayerId], references: [id])
+}
+
 enum GameType {
   Dice
   Poker
   Roulette
   CoinFlip
+}
+
+enum GameState {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+}
+
+enum PlayerStatus {
+  ACTIVE
+  FOLDED
+  ALL_IN
 }

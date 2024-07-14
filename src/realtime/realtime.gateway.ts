@@ -102,6 +102,30 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     this.server.emit('online-user-count', onlineUserCount)
   }
 
+  private async updateOverallLeaderboard() {
+    const leaderboard = await this.prisma.user.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        stat: {
+          select: {
+            total_points: true,
+          }
+        },
+        avatar: true,
+        address: true,
+        username: true,
+      },
+      orderBy: {
+        stat: {
+          total_points: 'asc'
+        }
+      }
+    })
+
+    this.server.emit('overall-leaderboard', { leaderboard })
+  }
+
   @SubscribeMessage('coin-flip')
   async handleCoinFlip(
     @ConnectedSocket() client: Socket,
@@ -167,6 +191,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     ])
 
     client.emit('coin-flip-result', { round, win, outcome, stake: stake })
+
+    await this.updateOverallLeaderboard()
   }
 
   @SubscribeMessage('dice-roll')
@@ -242,6 +268,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     ])
 
     client.emit('dice-roll-result', { round, win, rolls, stake })
+
+    await this.updateOverallLeaderboard()
   }
 
   @SubscribeMessage('roulette-spin')
@@ -339,5 +367,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     ])
 
     client.emit('roulette-spin-result', { round, win, outcome, color, oddEven, stake, point })
+
+    await this.updateOverallLeaderboard()
   }
 }
