@@ -11,6 +11,7 @@ model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   address   String   @unique
   username  String?  @unique
+  avatar    String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
