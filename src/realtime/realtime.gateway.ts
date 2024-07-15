@@ -102,92 +102,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     this.server.emit('online-user-count', onlineUserCount)
   }
 
-  private async leaderboard() {
-    await Promise.all([
-      this.updateOverallLeaderboard(),
-      this.getCurrentTournamentLeaderboard()
-    ])
-  }
-
-  private async updateOverallLeaderboard() {
-    const leaderboard = await this.prisma.user.findMany({
-      where: { active: true },
-      select: {
-        id: true,
-        stat: {
-          select: {
-            total_points: true,
-          }
-        },
-        avatar: true,
-        address: true,
-        username: true,
-      },
-      orderBy: {
-        stat: {
-          total_points: 'desc'
-        }
-      }
-    })
-
-    this.server.emit('overall-leaderboard', { leaderboard })
-  }
-
-  private async getCurrentTournamentLeaderboard() {
-    const currentTournament = await this.prisma.tournament.findFirst({
-      where: {
-        start: { lte: new Date() },
-        end: { gte: new Date() },
-      },
-    })
-
-    if (!currentTournament) {
-      this.server.emit('error', {
-        status: StatusCodes.NotFound,
-        message: 'No active tournament found',
-      })
-      return
-    }
-
-    const leaderboard = await this.prisma.user.findMany({
-      where: {
-        rounds: {
-          some: {
-            createdAt: { gte: currentTournament.start, lte: currentTournament.end },
-          },
-        },
-      },
-      select: {
-        id: true,
-        avatar: true,
-        address: true,
-        username: true,
-        rounds: {
-          where: {
-            createdAt: { gte: currentTournament.start, lte: currentTournament.end },
-          },
-          select: {
-            point: true,
-          },
-        },
-      },
-    })
-
-    const sortedLeaderboard = leaderboard.map(user => {
-      const totalPoints = user.rounds.reduce((acc, round) => acc + round.point, 0)
-      return {
-        ...user,
-        totalRounds: user.rounds.length,
-        totalPoints,
-        rounds: undefined,
-      }
-    })
-
-    sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
-
-    this.server.emit('tournament-leaderboard', { leaderboard: sortedLeaderboard })
-  }
-
   @SubscribeMessage('coin-flip')
   async handleCoinFlip(
     @ConnectedSocket() client: Socket,
@@ -254,7 +168,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('coin-flip-result', { round, win, outcome, stake: stake })
 
-    await this.leaderboard()
+    await this.realtimeService.leaderboard()
   }
 
   @SubscribeMessage('dice-roll')
@@ -331,7 +245,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('dice-roll-result', { round, win, rolls, stake })
 
-    await this.leaderboard()
+    await this.realtimeService.leaderboard()
   }
 
   @SubscribeMessage('roulette-spin')
@@ -414,6 +328,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('roulette-spin-result', { round, win, outcome, stake })
 
-    await this.leaderboard()
+    await this.realtimeService.leaderboard()
   }
 }

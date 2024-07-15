@@ -1,9 +1,13 @@
 import { Server } from 'socket.io'
 import { Injectable } from '@nestjs/common'
+import { PrismaService } from 'prisma/prisma.service'
+import { StatusCodes } from 'enums/StatusCodes'
 
 @Injectable()
 export class RealtimeService {
     private server: Server
+
+    constructor(private readonly prisma: PrismaService) { }
 
     setServer(server: Server) {
         this.server = server
@@ -13,15 +17,89 @@ export class RealtimeService {
         return this.server
     }
 
-    validateBetValue(betType: string, betValue: any): boolean {
-        const validBetValues = {
-            single: (value: number) => typeof value === 'number' && value >= 0 && value <= 36,
-            red: (value: string) => value === 'red',
-            black: (value: string) => value === 'black',
-            odd: (value: string) => value === 'odd',
-            even: (value: string) => value === 'even',
-        } as const;
+    async leaderboard() {
+        await Promise.all([
+            this.updateOverallLeaderboard(),
+            this.getCurrentTournamentLeaderboard()
+        ])
+    }
 
-        return validBetValues[betType](betValue as any);
+    private async updateOverallLeaderboard() {
+        const leaderboard = await this.prisma.user.findMany({
+            where: { active: true },
+            select: {
+                id: true,
+                stat: {
+                    select: {
+                        total_points: true,
+                    }
+                },
+                avatar: true,
+                address: true,
+                username: true,
+            },
+            orderBy: {
+                stat: {
+                    total_points: 'desc'
+                }
+            }
+        })
+
+        this.getServer().emit('overall-leaderboard', { leaderboard })
+    }
+
+    private async getCurrentTournamentLeaderboard() {
+        const currentTournament = await this.prisma.tournament.findFirst({
+            where: {
+                start: { lte: new Date() },
+                end: { gte: new Date() },
+            },
+        })
+
+        if (!currentTournament) {
+            this.getServer().emit('error', {
+                status: StatusCodes.NotFound,
+                message: 'No active tournament found',
+            })
+            return
+        }
+
+        const leaderboard = await this.prisma.user.findMany({
+            where: {
+                rounds: {
+                    some: {
+                        createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+                    },
+                },
+            },
+            select: {
+                id: true,
+                avatar: true,
+                address: true,
+                username: true,
+                rounds: {
+                    where: {
+                        createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+                    },
+                    select: {
+                        point: true,
+                    },
+                },
+            },
+        })
+
+        const sortedLeaderboard = leaderboard.map(user => {
+            const totalPoints = user.rounds.reduce((acc, round) => acc + round.point, 0)
+            return {
+                ...user,
+                totalRounds: user.rounds.length,
+                totalPoints,
+                rounds: undefined,
+            }
+        })
+
+        sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
+
+        this.getServer().emit('tournament-leaderboard', { leaderboard: sortedLeaderboard })
     }
 }
