@@ -1,7 +1,6 @@
 import { Server } from 'socket.io'
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from 'prisma/prisma.service'
-import { StatusCodes } from 'enums/StatusCodes'
 
 @Injectable()
 export class RealtimeService {
@@ -57,10 +56,7 @@ export class RealtimeService {
         })
 
         if (!currentTournament) {
-            this.getServer().emit('error', {
-                status: StatusCodes.NotFound,
-                message: 'No active tournament found',
-            })
+            this.getServer().emit('tournament-leaderboard', { leaderboard: [] })
             return
         }
 
@@ -68,7 +64,10 @@ export class RealtimeService {
             where: {
                 rounds: {
                     some: {
-                        createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+                        createdAt: {
+                            gte: currentTournament.start,
+                            lte: currentTournament.end,
+                        },
                     },
                 },
             },
@@ -79,7 +78,10 @@ export class RealtimeService {
                 username: true,
                 rounds: {
                     where: {
-                        createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+                        createdAt: {
+                            gte: currentTournament.start,
+                            lte: currentTournament.end,
+                        },
                     },
                     select: {
                         point: true,
