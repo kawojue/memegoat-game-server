@@ -102,6 +102,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     this.server.emit('online-user-count', onlineUserCount)
   }
 
+  private async leaderboard() {
+    await Promise.all([
+      this.updateOverallLeaderboard(),
+      this.getCurrentTournamentLeaderboard()
+    ])
+  }
+
   private async updateOverallLeaderboard() {
     const leaderboard = await this.prisma.user.findMany({
       where: { active: true },
@@ -118,12 +125,67 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       },
       orderBy: {
         stat: {
-          total_points: 'asc'
+          total_points: 'desc'
         }
       }
     })
 
     this.server.emit('overall-leaderboard', { leaderboard })
+  }
+
+  private async getCurrentTournamentLeaderboard() {
+    const currentTournament = await this.prisma.tournament.findFirst({
+      where: {
+        start: { lte: new Date() },
+        end: { gte: new Date() },
+      },
+    })
+
+    if (!currentTournament) {
+      this.server.emit('error', {
+        status: StatusCodes.NotFound,
+        message: 'No active tournament found',
+      })
+      return
+    }
+
+    const leaderboard = await this.prisma.user.findMany({
+      where: {
+        rounds: {
+          some: {
+            createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+          },
+        },
+      },
+      select: {
+        id: true,
+        avatar: true,
+        address: true,
+        username: true,
+        rounds: {
+          where: {
+            createdAt: { gte: currentTournament.start, lte: currentTournament.end },
+          },
+          select: {
+            point: true,
+          },
+        },
+      },
+    })
+
+    const sortedLeaderboard = leaderboard.map(user => {
+      const totalPoints = user.rounds.reduce((acc, round) => acc + round.point, 0)
+      return {
+        ...user,
+        totalRounds: user.rounds.length,
+        totalPoints,
+        rounds: undefined,
+      }
+    })
+
+    sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
+
+    this.server.emit('tournament-leaderboard', { leaderboard: sortedLeaderboard })
   }
 
   @SubscribeMessage('coin-flip')
@@ -192,7 +254,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('coin-flip-result', { round, win, outcome, stake: stake })
 
-    await this.updateOverallLeaderboard()
+    await this.leaderboard()
   }
 
   @SubscribeMessage('dice-roll')
@@ -269,29 +331,29 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('dice-roll-result', { round, win, rolls, stake })
 
-    await this.updateOverallLeaderboard()
+    await this.leaderboard()
   }
 
   @SubscribeMessage('roulette-spin')
   async handleRouletteSpin(
     @ConnectedSocket() client: Socket,
-    @MessageBody() { betType, betValue, stake }: RouletteDTO
+    @MessageBody() { betType, number, stake }: RouletteDTO,
   ) {
-    const validBetTypes = ['single', 'red', 'black', 'odd', 'even'] as const
-
-    if (!validBetTypes.includes(betType)) {
+    if (!['number', 'color', 'parity'].includes(betType)) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
         message: 'Invalid bet type',
       })
+      client.disconnect()
       return
     }
 
-    if (!this.realtimeService.validateBetValue(betType, betValue)) {
+    if (betType === 'number' && (number < 0 || number > 36)) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
-        message: 'Invalid bet value',
+        message: 'Number must be between 0 and 36',
       })
+      client.disconnect()
       return
     }
 
@@ -301,13 +363,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.Unauthorized,
         message: 'User not connected',
       })
+      client.disconnect()
       return
     }
 
     const { sub } = user
 
     const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub }
+      where: { userId: sub },
     })
 
     if (stat.tickets < stake) {
@@ -315,59 +378,42 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
       })
+      client.disconnect()
       return
     }
 
     const outcome = Math.floor(this.random.randomize().random * 37)
-    const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
-    const color = outcome === 0 ? 'green' : redNumbers.includes(outcome) ? 'red' : 'black'
-    const oddEven = outcome % 2 === 0 ? 'even' : 'odd'
+    const outcomeColor = outcome === 0 ? 'green' : outcome % 2 === 0 ? 'red' : 'black'
+    const outcomeParity = outcome === 0 ? 'neither' : outcome % 2 === 0 ? 'even' : 'odd'
 
-    const win = betType === 'single'
-      ? outcome === betValue
-      : betType === 'red' || betType === 'black'
-        ? color === betValue
-        : oddEven === betValue
+    const win =
+      (betType === 'number' && number === outcome) ||
+      (betType === 'color' && number === (outcomeColor === 'red' ? 1 : outcomeColor === 'black' ? 2 : 0)) ||
+      (betType === 'parity' && number === (outcomeParity === 'even' ? 1 : outcomeParity === 'odd' ? 2 : 0))
 
-    let point = 0
-    if (win) {
-      switch (betType) {
-        case 'single':
-          point = stake * 36
-          break
-        case 'red':
-        case 'black':
-        case 'odd':
-        case 'even':
-          point = stake * 2
-          break
-      }
-    }
-
-    const updateData = win
-      ? { total_wins: { increment: 1 }, total_points: { increment: point } }
-      : { total_losses: { increment: 1 } }
+    const point = win ? stake * 35 : 0
+    const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
     const [round] = await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
           game_type: 'Roulette',
-          point: win ? point : 0,
-          user: { connect: { id: sub } }
-        }
+          point: point,
+          user: { connect: { id: sub } },
+        },
       }),
       this.prisma.stat.update({
         where: { userId: sub },
-        data: { tickets: { decrement: stake } }
+        data: { tickets: { decrement: stake } },
       }),
       this.prisma.stat.update({
         where: { userId: sub },
-        data: updateData
-      })
+        data: updateData,
+      }),
     ])
 
-    client.emit('roulette-spin-result', { round, win, outcome, color, oddEven, stake, point })
+    client.emit('roulette-spin-result', { round, win, outcome, stake })
 
-    await this.updateOverallLeaderboard()
+    await this.leaderboard()
   }
 }

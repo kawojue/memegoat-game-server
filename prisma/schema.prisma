@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tournament {
+  id    String   @id @default(auto()) @map("_id") @db.ObjectId
+  key   String   @unique
+  start DateTime
+  end   DateTime
+}
+
 model User {
   id           String        @id @default(auto()) @map("_id") @db.ObjectId
   address      String        @unique

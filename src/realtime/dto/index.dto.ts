@@ -1,24 +1,22 @@
-import { IsRouletteBetValue } from './custom-validators'
-import { IsArray, IsEnum, IsNotEmpty, IsNumber, Max, Min } from 'class-validator'
+import {
+    Min,
+    Max,
+    IsIn,
+    IsInt,
+    IsEnum,
+    IsArray,
+    IsNumber,
+    IsNotEmpty,
+} from 'class-validator'
 
 enum CoinFlip {
     tails = 'tails',
     heads = 'heads',
 }
 
-enum RouletteBetType {
-    single = 'single',
-    red = 'red',
-    black = 'black',
-    odd = 'odd',
-    even = 'even',
-}
-
-type RouletteBetValue = number | 'red' | 'black' | 'odd' | 'even'
-
 class StakeDTO {
     @Min(0)
-    @IsNumber()
+    @IsInt()
     stake: number
 }
 
@@ -39,9 +37,13 @@ export class DiceDTO extends StakeDTO {
 }
 
 export class RouletteDTO extends StakeDTO {
-    @IsEnum(RouletteBetType)
-    betType: RouletteBetType
+    @IsIn(['number', 'color', 'parity'], {
+        message: 'betType must be one of the following: number, color, parity',
+    })
+    betType: 'number' | 'color' | 'parity'
 
-    @IsRouletteBetValue({ message: 'Invalid bet value for the given bet type' })
-    betValue: RouletteBetValue
+    @IsInt()
+    @Min(0)
+    @Max(36)
+    number: number
 }
