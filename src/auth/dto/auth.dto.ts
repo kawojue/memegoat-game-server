@@ -1,4 +1,4 @@
-import { USER_REGEX } from 'utils/reqExp'
+import { USER_REGEX } from 'utils/regExp'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator'
 
@@ -21,6 +21,5 @@ export class UsernameDTO {
     })
     @IsString()
     @IsNotEmpty()
-    @MaxLength(15)
     username: string
 }
