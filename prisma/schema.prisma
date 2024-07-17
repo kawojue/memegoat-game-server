@@ -50,15 +50,6 @@ model Round {
   userId String @db.ObjectId
 }
 
-model Game {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  type        GameType
-  play_ticket Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 enum GameType {
   Dice
   Roulette

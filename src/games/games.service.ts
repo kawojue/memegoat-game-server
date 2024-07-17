@@ -1,6 +1,5 @@
 import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
-import { CanStakeDTO } from './dto/index.dto'
 import { MiscService } from 'libs/misc.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { PrismaService } from 'prisma/prisma.service'
@@ -25,21 +24,7 @@ export class GamesService {
             where: { userId: sub },
             data: { tickets: { increment: qty } }
         })
-    }
 
-    async canStake(
-        res: Response,
-        { sub }: ExpressUser,
-        { stake }: CanStakeDTO
-    ) {
-        const { tickets } = await this.prisma.stat.findUnique({
-            where: { userId: sub }
-        })
-
-        if (tickets < stake) {
-            return this.response.sendError(res, StatusCodes.UnprocessableEntity, "Out of ticket. Buy more tickets")
-        }
-
-        res.sendStatus(StatusCodes.OK)
+        this.response.sendSuccess(res, StatusCodes.OK, {})
     }
 }
