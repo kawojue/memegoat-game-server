@@ -1,12 +1,17 @@
 import { Server } from 'socket.io'
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from 'prisma/prisma.service'
+import { Cron, CronExpression } from '@nestjs/schedule'
+import { BlackjackService } from 'libs/blackJack.service'
 
 @Injectable()
 export class RealtimeService {
     private server: Server
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly blackjackService: BlackjackService
+    ) { }
 
     setServer(server: Server) {
         this.server = server
@@ -103,5 +108,57 @@ export class RealtimeService {
         sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
 
         this.getServer().emit('tournament-leaderboard', { currentTournament, leaderboard: sortedLeaderboard })
+    }
+
+    async forfeitGame(gameId: string, userId: string): Promise<void> {
+        const player = await this.prisma.player.findFirst({
+            where: { userId, gameId }
+        })
+
+        if (!player) return
+
+        await this.prisma.player.update({
+            where: {
+                id: player.id,
+            },
+            data: {
+                result: 'forfeit',
+            },
+        })
+
+        const remainingPlayers = await this.prisma.player.findMany({
+            where: {
+                gameId,
+                result: null,
+            },
+        })
+
+        if (remainingPlayers.length === 0) {
+            await this.blackjackService.endGame(gameId)
+        } else {
+            const gameState = await this.blackjackService.getGameState(gameId)
+            this.getServer().to(gameId).emit('game-state', gameState)
+        }
+
+        await this.leaderboard()
+    }
+
+    @Cron(CronExpression.EVERY_MINUTE)
+    async handleDisconnectionTimeouts() {
+        const gracePeriod = 1 * 60 * 1000
+
+        const players = await this.prisma.player.findMany({
+            where: {
+                disconnectedAt: {
+                    not: null,
+                },
+            },
+        })
+
+        for (const player of players) {
+            if (new Date().getTime() - new Date(player.disconnectedAt).getTime() > gracePeriod) {
+                await this.forfeitGame(player.gameId, player.userId)
+            }
+        }
     }
 }

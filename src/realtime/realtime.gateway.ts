@@ -1,4 +1,10 @@
 import {
+  DiceDTO,
+  GameIdDTO,
+  CoinFlipDTO,
+  RouletteDTO,
+} from './dto/index.dto'
+import {
   MessageBody,
   OnGatewayInit,
   ConnectedSocket,
@@ -15,8 +21,6 @@ import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { BlackjackService } from 'libs/blackJack.service'
-import { CoinFlipDTO, DiceDTO, GameIdDTO, RouletteDTO } from './dto/index.dto'
-import { Cron, CronExpression } from '@nestjs/schedule'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -502,55 +506,5 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     await this.realtimeService.leaderboard()
-  }
-
-  async forfeitGame(gameId: string, userId: string): Promise<void> {
-    const player = await this.prisma.player.findFirst({
-      where: { userId, gameId }
-    })
-
-    if (!player) return
-
-    await this.prisma.player.update({
-      where: {
-        id: player.id,
-      },
-      data: {
-        result: 'forfeit',
-      },
-    })
-
-    const remainingPlayers = await this.prisma.player.findMany({
-      where: {
-        gameId,
-        result: null,
-      },
-    })
-
-    if (remainingPlayers.length === 0) {
-      await this.blackjackService.endGame(gameId)
-    } else {
-      const gameState = await this.blackjackService.getGameState(gameId)
-      this.server.to(gameId).emit('game-state', gameState)
-    }
-  }
-
-  @Cron(CronExpression.EVERY_MINUTE)
-  async handleDisconnectionTimeouts() {
-    const gracePeriod = 1 * 60 * 1000
-
-    const players = await this.prisma.player.findMany({
-      where: {
-        disconnectedAt: {
-          not: null,
-        },
-      },
-    });
-
-    for (const player of players) {
-      if (new Date().getTime() - new Date(player.disconnectedAt).getTime() > gracePeriod) {
-        await this.forfeitGame(player.gameId, player.userId);
-      }
-    }
   }
 }
