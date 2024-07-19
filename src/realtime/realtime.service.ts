@@ -1,9 +1,9 @@
 import { Server } from 'socket.io'
 import { Injectable } from '@nestjs/common'
+import { RandomService } from 'libs/random.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { BlackjackService } from 'libs/blackJack.service'
-import { RandomService } from 'libs/random.service'
 
 @Injectable()
 export class RealtimeService {
