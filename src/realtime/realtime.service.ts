@@ -102,6 +102,6 @@ export class RealtimeService {
 
         sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
 
-        this.getServer().emit('tournament-leaderboard', { leaderboard: sortedLeaderboard })
+        this.getServer().emit('tournament-leaderboard', { currentTournament, leaderboard: sortedLeaderboard })
     }
 }

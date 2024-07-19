@@ -4,6 +4,7 @@ import { RandomService } from 'libs/random.service'
 import { RealtimeGateway } from './realtime.gateway'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
+import { BlackjackService } from 'libs/blackJack.service'
 
 @Module({
   providers: [
@@ -15,6 +16,7 @@ import { PrismaService } from 'prisma/prisma.service'
     },
     PrismaService,
     JwtService,
+    BlackjackService,
   ],
 })
 export class RealtimeModule { }

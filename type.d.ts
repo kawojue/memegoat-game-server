@@ -13,3 +13,8 @@ interface ExpressUser extends Express.User {
 interface IRequest extends Request {
     user: ExpressUser
 }
+
+interface Card {
+    suit: string
+    value: string
+}

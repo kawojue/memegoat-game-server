@@ -47,3 +47,11 @@ export class RouletteDTO extends StakeDTO {
     @Max(36)
     number: number
 }
+
+export class StartBlackjackDTO {
+    userId: string
+}
+
+export class GameIdDTO {
+    gameId: string
+}

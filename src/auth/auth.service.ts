@@ -11,7 +11,6 @@ import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 
 @Injectable()
 export class AuthService {
-    private isProd: boolean
     private randomService: RandomService
     private readonly avatarBaseUrl = "https://api.dicebear.com/9.x/bottts/svg"
 

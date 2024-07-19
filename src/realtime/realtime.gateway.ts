@@ -14,7 +14,8 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { CoinFlipDTO, DiceDTO, RouletteDTO } from './dto/index.dto'
+import { CoinFlipDTO, DiceDTO, GameIdDTO, RouletteDTO } from './dto/index.dto'
+import { BlackjackService } from 'libs/blackJack.service'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -34,6 +35,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     private readonly random: RandomService,
     private readonly jwtService: JwtService,
     private readonly realtimeService: RealtimeService,
+    private readonly blackjackService: BlackjackService,
   ) { }
 
   private clients: Map<Socket, JwtPayload> = new Map()
@@ -329,5 +331,143 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('roulette-spin-result', { round, win, outcome, stake })
 
     await this.realtimeService.leaderboard()
+  }
+
+  @SubscribeMessage('start-blackjack')
+  async handleStartBlackjack(@ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const gameId = this.blackjackService.startGame(user.sub)
+    client.emit('game-started', { gameId, player: user.sub })
+  }
+
+  @SubscribeMessage('join-blackjack')
+  async handleJoinBlackjack(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const joined = this.blackjackService.joinGame(data.gameId, user.sub)
+    if (joined) {
+      client.emit('game-joined', { gameId: data.gameId, player: user.sub })
+      const gameState = this.blackjackService.getGameState(data.gameId)
+      this.server.to(data.gameId).emit('game-state', gameState)
+    } else {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Game not found or already full',
+      })
+    }
+  }
+
+  @SubscribeMessage('hit')
+  async handleHit(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const player = this.blackjackService.hit(data.gameId, user.sub)
+    if (player) {
+      const gameState = this.blackjackService.getGameState(data.gameId)
+      this.server.to(data.gameId).emit('game-state', gameState)
+    } else {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Invalid move',
+      })
+    }
+  }
+
+  @SubscribeMessage('stand')
+  async handleStand(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const player = this.blackjackService.stand(data.gameId, user.sub)
+    if (player) {
+      const gameState = this.blackjackService.getGameState(data.gameId)
+      this.server.to(data.gameId).emit('game-state', gameState)
+    } else {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Invalid move',
+      })
+    }
+  }
+
+  @SubscribeMessage('place-bet')
+  async handlePlaceBet(@MessageBody() data: { gameId: string; bet: number }, @ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const betPlaced = await this.blackjackService.placeBet(data.gameId, user.sub, data.bet)
+    if (betPlaced) {
+      const gameState = this.blackjackService.getGameState(data.gameId)
+      this.server.to(data.gameId).emit('game-state', gameState)
+    } else {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Unable to place bet',
+      })
+    }
+  }
+
+  @SubscribeMessage('leave-blackjack')
+  async handleLeaveBlackjack(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not authenticated',
+      })
+      return
+    }
+
+    const left = this.blackjackService.leaveGame(data.gameId, user.sub)
+    if (left) {
+      client.emit('game-left', { gameId: data.gameId, player: user.sub })
+      const gameState = this.blackjackService.getGameState(data.gameId)
+      this.server.to(data.gameId).emit('game-state', gameState)
+    } else {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Unable to leave game',
+      })
+    }
+  }
+
+  @SubscribeMessage('dealer-play')
+  async handleDealerPlay(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+    const gameState = this.blackjackService.dealerPlay(data.gameId)
+    this.server.to(data.gameId).emit('game-state', gameState)
   }
 }
