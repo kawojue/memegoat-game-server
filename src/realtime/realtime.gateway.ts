@@ -3,6 +3,8 @@ import {
   GameIdDTO,
   CoinFlipDTO,
   RouletteDTO,
+  SelectBoxDTO,
+  StartBlindBoxGameDTO,
 } from './dto/index.dto'
 import {
   MessageBody,
@@ -45,6 +47,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   private clients: Map<Socket, JwtPayload> = new Map()
   private onlineUsers: Map<string, string> = new Map()
+  private games: Map<string, { board: string[][]; points: number }> = new Map()
 
   afterInit() {
     this.realtimeService.setServer(this.server)
@@ -504,6 +507,142 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       const gameState = await this.blackjackService.getGameState(gameId)
       this.server.to(gameId).emit('game-state', gameState)
     }
+
+    await this.realtimeService.leaderboard()
+  }
+
+  @SubscribeMessage('start-blindbox')
+  async handleStartGame(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { tickets }: StartBlindBoxGameDTO,
+  ) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    const { sub } = user
+    const stat = await this.prisma.stat.findUnique({
+      where: { userId: sub },
+    })
+
+    if (stat.tickets < tickets) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Out of ticket. Buy more tickets',
+      })
+      client.disconnect()
+      return
+    }
+
+    const board = this.realtimeService.createGameBoard()
+    this.games.set(sub, { board, points: 0 })
+
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: { tickets: { decrement: tickets } },
+    })
+
+    client.emit('blindbox-started', { boardSize: 4, tickets })
+  }
+
+  @SubscribeMessage('select-box')
+  async handleSelectBox(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { row, column }: SelectBoxDTO,
+  ) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    const { sub } = user
+    const game = this.games.get(sub)
+    if (!game) {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Game not started',
+      })
+      return
+    }
+
+    const { board } = game
+    const selected = board[row][column]
+    if (selected === 'bomb') {
+      this.games.delete(sub)
+      client.emit('blindbox-game-over', { points: 0 })
+      await this.prisma.stat.update({
+        where: { userId: sub },
+        data: { total_losses: { increment: 1 } }
+      })
+      return
+    }
+
+    game.points += 2
+    board[row][column] = 'selected'
+
+    const remainingGems = board.flat().filter(cell => cell === 'gem').length
+    if (remainingGems === 0) {
+      client.emit('blindbox-game-won', { points: game.points })
+      this.saveGameResult(sub, game.points)
+      this.games.delete(sub)
+    } else {
+      client.emit('box-selected', { points: game.points, remainingGems })
+    }
+  }
+
+  @SubscribeMessage('end-game')
+  async handleEndGame(@ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    const { sub } = user
+    const game = this.games.get(sub)
+    if (!game) {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Game not started',
+      })
+      return
+    }
+
+    this.saveGameResult(sub, game.points)
+    client.emit('game-ended', { points: game.points })
+    this.games.delete(sub)
+  }
+
+  private async saveGameResult(userId: string, points: number) {
+    await this.prisma.stat.update({
+      where: { userId },
+      data: {
+        total_points: { increment: points },
+      },
+    })
+
+    await this.prisma.round.create({
+      data: {
+        point: points,
+        game_type: 'BlindBox',
+        user: { connect: { id: userId } },
+      },
+    })
 
     await this.realtimeService.leaderboard()
   }

@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { BlackjackService } from 'libs/blackJack.service'
+import { RandomService } from 'libs/random.service'
 
 @Injectable()
 export class RealtimeService {
@@ -10,6 +11,7 @@ export class RealtimeService {
 
     constructor(
         private readonly prisma: PrismaService,
+        private readonly randomService: RandomService,
         private readonly blackjackService: BlackjackService
     ) { }
 
@@ -160,5 +162,19 @@ export class RealtimeService {
                 await this.forfeitGame(player.gameId, player.userId)
             }
         }
+    }
+
+    createGameBoard() {
+        const board = Array.from({ length: 4 }, () => Array(4).fill('gem'))
+        let bombsPlaced = 0
+        while (bombsPlaced < 5) {
+            const row = Math.floor(this.randomService.randomize().random * 4)
+            const column = Math.floor(this.randomService.randomize().random * 4)
+            if (board[row][column] === 'gem') {
+                board[row][column] = 'bomb'
+                bombsPlaced++
+            }
+        }
+        return board
     }
 }

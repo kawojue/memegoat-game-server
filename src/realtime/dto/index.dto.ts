@@ -55,3 +55,12 @@ export class StartBlackjackDTO {
 export class GameIdDTO {
     gameId: string
 }
+
+export class StartBlindBoxGameDTO {
+    tickets: number
+}
+
+export class SelectBoxDTO {
+    row: number
+    column: number
+}

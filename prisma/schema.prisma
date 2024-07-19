@@ -94,6 +94,7 @@ model Round {
 
 enum GameType {
   Dice
+  BlindBox
   Roulette
   CoinFlip
   BlackJack
