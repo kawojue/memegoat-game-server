@@ -601,7 +601,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
   }
 
-  @SubscribeMessage('end-game')
+  @SubscribeMessage('end-blindbox')
   async handleEndGame(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
     if (!user) {
@@ -624,7 +624,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     this.saveGameResult(sub, game.points)
-    client.emit('game-ended', { points: game.points })
+    client.emit('blindbox-ended', { points: game.points })
     this.games.delete(sub)
   }
 
