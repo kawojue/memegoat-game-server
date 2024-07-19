@@ -5,7 +5,9 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 
 @Injectable()
 export class TaskService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+    ) { }
 
     @Cron(CronExpression.EVERY_WEEK)
     async refreshTournament() {

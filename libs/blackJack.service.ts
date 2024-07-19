@@ -49,9 +49,17 @@ export class BlackjackService {
         return score
     }
 
-    async startGame(playerId: string): Promise<string> {
+    async startGame(playerId: string, stake: number): Promise<string> {
         const gameId = playerId + '-' + new Date().getTime()
         this.shuffleDeck()
+
+        const userStat = await this.prisma.stat.findUnique({
+            where: { userId: playerId },
+        })
+
+        if (userStat.tickets < stake) {
+            throw new Error('Not enough tickets')
+        }
 
         const dealer = await this.prisma.dealer.create({
             data: {
@@ -62,11 +70,12 @@ export class BlackjackService {
 
         const player = await this.prisma.player.create({
             data: {
-                user: { connect: { id: playerId } },
                 hand: [],
                 score: 0,
                 stand: false,
+                stake: stake,
                 game: { connect: { id: gameId } },
+                user: { connect: { id: playerId } },
             },
         })
 
@@ -105,7 +114,67 @@ export class BlackjackService {
             },
         })
 
+        await this.prisma.stat.update({
+            where: { userId: playerId },
+            data: { tickets: { decrement: stake } },
+        })
+
         return gameId
+    }
+
+    async endGame(gameId: string) {
+        const game = await this.prisma.game.findUnique({
+            where: { id: gameId },
+            include: { dealer: true, players: true },
+        })
+
+        if (!game) return
+
+        const dealerScore = game.dealer.score
+        for (const player of game.players) {
+            let result: string
+            let point = 0
+
+            if (player.score > 21) {
+                result = 'Bust'
+            } else if (dealerScore > 21 || player.score > dealerScore) {
+                result = 'Win'
+                point = player.stake * 2
+            } else if (player.score < dealerScore) {
+                result = 'Lose'
+            } else {
+                result = 'Push'
+                point = player.stake
+            }
+
+            await this.prisma.player.update({
+                where: { id: player.id },
+                data: { result },
+            })
+
+            if (result === 'Win') {
+                await this.prisma.stat.update({
+                    where: { userId: player.userId },
+                    data: {
+                        total_wins: { increment: 1 },
+                        total_points: { increment: point },
+                        tickets: { increment: point },
+                    },
+                })
+            } else if (result === 'Lose') {
+                await this.prisma.stat.update({
+                    where: { userId: player.userId },
+                    data: {
+                        total_losses: { increment: 1 },
+                    },
+                })
+            }
+        }
+
+        await this.prisma.game.update({
+            where: { id: game.id },
+            data: { status: 'completed' },
+        })
     }
 
     async joinGame(gameId: string, playerId: string): Promise<boolean> {
@@ -140,21 +209,6 @@ export class BlackjackService {
             return true
         }
         return false
-    }
-
-    async placeBet(gameId: string, playerId: string, bet: number): Promise<boolean> {
-        const player = await this.prisma.player.findFirst({
-            where: { gameId, userId: playerId },
-        })
-
-        if (!player) return false
-
-        await this.prisma.player.update({
-            where: { id: player.id },
-            data: { bet },
-        })
-
-        return true
     }
 
     async hit(gameId: string, playerId: string): Promise<Player | null> {
@@ -225,34 +279,7 @@ export class BlackjackService {
         return true
     }
 
-    async dealerPlay(gameId: string) {
-        const game = await this.prisma.game.findUnique({
-            where: { id: gameId },
-            include: { dealer: true },
-        })
-
-        const dealer = game.dealer
-
-        while (dealer.score < 17) {
-            // @ts-ignore
-            dealer.hand.push(this.decks.pop())
-            dealer.score = this.calculateScore(dealer.hand)
-        }
-        dealer.stand = true
-
-        await this.prisma.dealer.update({
-            where: { id: dealer.id },
-            data: {
-                hand: dealer.hand,
-                score: dealer.score,
-                stand: true,
-            },
-        })
-
-        await this.endGame(gameId)
-    }
-
-    private async endGame(gameId: string) {
+    async dealerPlay(gameId: string): Promise<void> {
         const game = await this.prisma.game.findUnique({
             where: { id: gameId },
             include: { dealer: true, players: true },
@@ -260,33 +287,36 @@ export class BlackjackService {
 
         if (!game) return
 
-        const dealerScore = game.dealer.score
-        for (const player of game.players) {
-            let result: string
+        let dealer = game.dealer
+        dealer.stand = false
 
-            if (player.score > 21) {
-                result = 'Bust'
-            } else if (dealerScore > 21 || player.score > dealerScore) {
-                result = 'Win'
-            } else if (player.score < dealerScore) {
-                result = 'Lose'
-            } else {
-                result = 'Push'
+        while (dealer.score < 17) {
+            const card = this.decks.pop()
+            // @ts-ignore
+            dealer.hand.push(card)
+            dealer.score = this.calculateScore(dealer.hand)
+
+            if (dealer.score >= 17) {
+                dealer.stand = true
             }
 
-            await this.prisma.player.update({
-                where: { id: player.id },
-                data: { result },
+            await this.prisma.dealer.update({
+                where: { id: dealer.id },
+                data: {
+                    hand: dealer.hand,
+                    score: dealer.score,
+                    stand: dealer.stand,
+                },
             })
         }
 
-        await this.prisma.game.update({
-            where: { id: game.id },
-            data: { status: 'completed' },
-        })
+        await this.endGame(gameId)
     }
 
-    async getGameState(gameId: string): Promise<{ dealer: Dealer; players: Player[] }> {
+    async getGameState(gameId: string): Promise<{
+        dealer: Dealer
+        players: Player[]
+    }> {
         const game = await this.prisma.game.findUnique({
             where: { id: gameId },
             include: { dealer: true, players: true },
