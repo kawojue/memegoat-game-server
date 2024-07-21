@@ -114,32 +114,25 @@ export class RealtimeService {
 
     async forfeitGame(gameId: string, userId: string): Promise<void> {
         const player = await this.prisma.player.findFirst({
-            where: { userId, gameId }
+            where: { userId, gameId },
         })
 
         if (!player) return
 
         await this.prisma.player.update({
-            where: {
-                id: player.id,
-            },
-            data: {
-                result: 'forfeit',
-            },
+            where: { id: player.id },
+            data: { result: 'forfeit' },
         })
 
         const remainingPlayers = await this.prisma.player.findMany({
-            where: {
-                gameId,
-                result: null,
-            },
+            where: { gameId, result: null },
         })
 
         if (remainingPlayers.length === 0) {
-            await this.blackjackService.endGame(gameId)
+            await this.blackjackService.leaveGame(gameId, userId)
         } else {
             const gameState = await this.blackjackService.getGameState(gameId)
-            this.getServer().to(gameId).emit('game-state', gameState)
+            this.getServer().to(gameId).emit('blackjack-state', gameState)
         }
 
         await this.leaderboard()
@@ -150,11 +143,7 @@ export class RealtimeService {
         const gracePeriod = 1 * 60 * 1000
 
         const players = await this.prisma.player.findMany({
-            where: {
-                disconnectedAt: {
-                    not: null,
-                },
-            },
+            where: { disconnectedAt: { not: null } },
         })
 
         for (const player of players) {
@@ -163,6 +152,7 @@ export class RealtimeService {
             }
         }
     }
+
 
     createGameBoard() {
         const board = Array.from({ length: 4 }, () => Array(4).fill('gem'))

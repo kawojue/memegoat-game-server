@@ -109,7 +109,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   private emitOnlineUserCount() {
     const onlineUserCount = this.onlineUsers.size
-    this.server.emit('online-user-count', onlineUserCount)
+    this.server.emit('online-user-count', { data: onlineUserCount })
   }
 
   @SubscribeMessage('coin-flip')
@@ -354,15 +354,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     try {
       const gameId = await this.blackjackService.startGame(user.sub, stake)
-      client.emit('game-started', { gameId, player: user.sub })
+      client.emit('blackjack-started', { gameId, player: user.sub })
+      await this.realtimeService.leaderboard()
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
         message: error.message,
       })
     }
-
-    await this.realtimeService.leaderboard()
   }
 
   @SubscribeMessage('join-blackjack')
@@ -376,23 +375,20 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const joined = await this.blackjackService.joinGame(data.gameId, user.sub)
-    if (joined) {
-      client.emit('game-joined', { gameId: data.gameId, player: user.sub })
-      const gameState = await this.blackjackService.getGameState(data.gameId)
-      this.server.to(data.gameId).emit('game-state', gameState)
-    } else {
+    try {
+      await this.blackjackService.joinGame(data.gameId, user.sub)
+      client.emit('blackjack-joined', { gameId: data.gameId, player: user.sub })
+      await this.realtimeService.leaderboard()
+    } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
-        message: 'Game not found or already full',
+        message: error.message,
       })
     }
-
-    await this.realtimeService.leaderboard()
   }
 
-  @SubscribeMessage('hit')
-  async handleHit(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+  @SubscribeMessage('hit-blackjack')
+  async handleHitBlackjack(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
     if (!user) {
       client.emit('error', {
@@ -402,22 +398,20 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const player = await this.blackjackService.hit(data.gameId, user.sub)
-    if (player) {
-      const gameState = await this.blackjackService.getGameState(data.gameId)
-      this.server.to(data.gameId).emit('game-state', gameState)
-    } else {
+    try {
+      const player = await this.blackjackService.hit(data.gameId, user.sub)
+      client.emit('player-hit', { gameId: data.gameId, player })
+      await this.realtimeService.leaderboard()
+    } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
-        message: 'Invalid move',
+        message: error.message,
       })
     }
-
-    await this.realtimeService.leaderboard()
   }
 
-  @SubscribeMessage('stand')
-  async handleStand(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
+  @SubscribeMessage('stand-blackjack')
+  async handleStandBlackjack(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
     if (!user) {
       client.emit('error', {
@@ -427,18 +421,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const player = await this.blackjackService.stand(data.gameId, user.sub)
-    if (player) {
-      const gameState = await this.blackjackService.getGameState(data.gameId)
-      this.server.to(data.gameId).emit('game-state', gameState)
-    } else {
+    try {
+      const player = await this.blackjackService.stand(data.gameId, user.sub)
+      client.emit('player-stand', { gameId: data.gameId, player })
+
+      if (await this.blackjackService.allPlayersStood(data.gameId)) {
+        await this.blackjackService.dealerPlay(data.gameId)
+        client.emit('dealer-played', { gameId: data.gameId })
+      }
+      await this.realtimeService.leaderboard()
+    } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
-        message: 'Invalid move',
+        message: error.message,
       })
     }
-
-    await this.realtimeService.leaderboard()
   }
 
   @SubscribeMessage('leave-blackjack')
@@ -452,63 +449,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    await this.blackjackService.leaveGame(data.gameId, user.sub)
-    client.emit('game-left', { gameId: data.gameId, player: user.sub })
-    const gameState = await this.blackjackService.getGameState(data.gameId)
-    this.server.to(data.gameId).emit('game-state', gameState)
-
-    await this.realtimeService.leaderboard()
-  }
-
-  @SubscribeMessage('dealer-play')
-  async handleDealerPlay(@MessageBody() data: GameIdDTO, @ConnectedSocket() client: Socket) {
-    const user = this.clients.get(client)
-    if (!user) {
+    try {
+      await this.blackjackService.leaveGame(data.gameId, user.sub)
+      client.emit('blackjack-game-left', { gameId: data.gameId, player: user.sub })
+      await this.realtimeService.leaderboard()
+    } catch (error) {
       client.emit('error', {
-        status: StatusCodes.Unauthorized,
-        message: 'User not authenticated',
+        status: StatusCodes.BadRequest,
+        message: error.message,
       })
-      return
     }
-
-    await this.blackjackService.dealerPlay(data.gameId)
-    const gameState = await this.blackjackService.getGameState(data.gameId)
-    this.server.to(data.gameId).emit('game-state', gameState)
-
-    await this.realtimeService.leaderboard()
-  }
-
-  async handleBlackJackDisconnect(client: Socket) {
-    const user = this.clients.get(client)
-    if (!user) return
-
-    await this.prisma.player.updateMany({
-      where: {
-        userId: user.sub,
-        disconnectedAt: null,
-      },
-      data: {
-        disconnectedAt: new Date(),
-      },
-    })
-
-    this.clients.delete(client)
-
-    const playerGames = await this.prisma.player.findMany({
-      where: {
-        userId: user.sub,
-      },
-      select: {
-        gameId: true,
-      },
-    })
-
-    for (const { gameId } of playerGames) {
-      const gameState = await this.blackjackService.getGameState(gameId)
-      this.server.to(gameId).emit('game-state', gameState)
-    }
-
-    await this.realtimeService.leaderboard()
   }
 
   @SubscribeMessage('start-blindbox')
@@ -626,6 +576,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     this.saveGameResult(sub, game.points)
     client.emit('blindbox-ended', { points: game.points })
     this.games.delete(sub)
+
+    await this.realtimeService.leaderboard()
   }
 
   private async saveGameResult(userId: string, points: number) {
@@ -643,7 +595,5 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         user: { connect: { id: userId } },
       },
     })
-
-    await this.realtimeService.leaderboard()
   }
 }
