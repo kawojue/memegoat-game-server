@@ -1,22 +1,23 @@
 import { Module } from '@nestjs/common'
-import { JwtService } from '@nestjs/jwt'
 import { AppService } from './app.service'
-import { JwtModule } from './jwt/jwt.module'
 import { TaskService } from 'libs/task.service'
-import { AuthModule } from './auth/auth.module'
 import { MiscService } from 'libs/misc.service'
 import { AppController } from './app.controller'
 import { ScheduleModule } from '@nestjs/schedule'
-import { GamesModule } from './games/games.module'
+import { AuthModule } from 'src/auth/auth.module'
+import { JwtModule, JwtService } from '@nestjs/jwt'
+import { GamesModule } from 'src/games/games.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
-import { RealtimeModule } from './realtime/realtime.module'
+import { WebhookModule } from 'src/webhook/webhook.module'
+import { RealtimeModule } from 'src/realtime/realtime.module'
 
 @Module({
   imports: [
     AuthModule,
     JwtModule,
     GamesModule,
+    WebhookModule,
     RealtimeModule,
     ScheduleModule.forRoot(),
   ],

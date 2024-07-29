@@ -14,9 +14,10 @@ import { BlackjackService } from 'libs/blackJack.service'
       provide: RandomService,
       useFactory: () => new RandomService('sha256')
     },
-    PrismaService,
     JwtService,
+    PrismaService,
     BlackjackService,
   ],
+  exports: [RealtimeService]
 })
 export class RealtimeModule { }
