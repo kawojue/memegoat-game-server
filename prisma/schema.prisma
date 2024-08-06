@@ -10,6 +10,7 @@ datasource db {
 model Tournament {
   id    String   @id @default(auto()) @map("_id") @db.ObjectId
   key   String   @unique
+  title String?
   start DateTime
   end   DateTime
 }
@@ -114,6 +115,10 @@ model Transaction {
   updatedAt DateTime  @updatedAt
 
   @@index([key, address])
+}
+
+model SportBet {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 }
 
 enum TxStatus {

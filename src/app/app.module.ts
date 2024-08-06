@@ -9,6 +9,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt'
 import { GamesModule } from 'src/games/games.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
+import { SportsModule } from 'src/sports/sports.module'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 
@@ -17,6 +18,7 @@ import { RealtimeModule } from 'src/realtime/realtime.module'
     AuthModule,
     JwtModule,
     GamesModule,
+    SportsModule,
     WebhookModule,
     RealtimeModule,
     ScheduleModule.forRoot(),
