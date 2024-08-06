@@ -49,7 +49,7 @@ export class WebhookController {
     }
   }
 
-  @Get('transations')
+  @Get('transactions')
   async fetchTransactions(@Res() res: Response, @Query() body: FetchTxDTO) {
     const transactions = await this.webhookService.fetchRecentTransactions(body)
     this.response.sendSuccess(res, StatusCodes.OK, { data: transactions })
