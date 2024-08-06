@@ -18,6 +18,5 @@ import { BlackjackService } from 'libs/blackJack.service'
     PrismaService,
     BlackjackService,
   ],
-  exports: [RealtimeService]
 })
 export class RealtimeModule { }

@@ -1,5 +1,4 @@
 import { Server } from 'socket.io'
-import { subDays } from 'date-fns'
 import { Injectable } from '@nestjs/common'
 import { RandomService } from 'libs/random.service'
 import { PrismaService } from 'prisma/prisma.service'
@@ -53,20 +52,6 @@ export class RealtimeService {
         })
 
         this.getServer().emit('overall-leaderboard', { leaderboard })
-    }
-
-    async fetchRecentTransactions() {
-        const thirtyDaysAgo = subDays(new Date(), 30);
-
-        const transactions = await this.prisma.transaction.findMany({
-            where: {
-                createdAt: {
-                    gte: thirtyDaysAgo
-                }
-            }
-        });
-
-        this.getServer().emit('transactions-update', transactions);
     }
 
     private async getCurrentTournamentLeaderboard() {
@@ -180,5 +165,22 @@ export class RealtimeService {
             }
         }
         return board
+    }
+
+    async saveGameResult(userId: string, points: number) {
+        await this.prisma.stat.update({
+            where: { userId },
+            data: {
+                total_points: { increment: points },
+            },
+        })
+
+        await this.prisma.round.create({
+            data: {
+                point: points,
+                game_type: 'BlindBox',
+                user: { connect: { id: userId } },
+            },
+        })
     }
 }

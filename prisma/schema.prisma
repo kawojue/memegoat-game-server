@@ -102,8 +102,9 @@ enum GameType {
 
 model Transaction {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  key       String
-  tag       String
+  key       String?
+  address   String?
+  tag       String?
   txID      String    @unique
   txStatus  TxStatus?
   txSender  String?
@@ -111,6 +112,8 @@ model Transaction {
   amount    Float     @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([key, address])
 }
 
 enum TxStatus {

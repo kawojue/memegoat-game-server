@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger'
+import { TxStatus } from '@prisma/client'
 import {
     Min,
     Max,

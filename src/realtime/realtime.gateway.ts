@@ -544,7 +544,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const remainingGems = board.flat().filter(cell => cell === 'gem').length
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
-      this.saveGameResult(sub, game.points)
+      this.realtimeService.saveGameResult(sub, game.points)
       this.games.delete(sub)
     } else {
       client.emit('box-selected', { points: game.points, remainingGems })
@@ -573,27 +573,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    this.saveGameResult(sub, game.points)
+    this.realtimeService.saveGameResult(sub, game.points)
     client.emit('blindbox-ended', { points: game.points })
     this.games.delete(sub)
 
     await this.realtimeService.leaderboard()
-  }
-
-  private async saveGameResult(userId: string, points: number) {
-    await this.prisma.stat.update({
-      where: { userId },
-      data: {
-        total_points: { increment: points },
-      },
-    })
-
-    await this.prisma.round.create({
-      data: {
-        point: points,
-        game_type: 'BlindBox',
-        user: { connect: { id: userId } },
-      },
-    })
   }
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { WebhookService } from './webhook.service'
 import { PrismaService } from 'prisma/prisma.service'
+import { ResponseService } from 'libs/response.service'
 import { WebhookController } from './webhook.controller'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 
@@ -10,7 +11,7 @@ import { RealtimeModule } from 'src/realtime/realtime.module'
   providers: [
     WebhookService,
     PrismaService,
+    ResponseService,
   ],
-  exports: [WebhookService]
 })
 export class WebhookModule { }
