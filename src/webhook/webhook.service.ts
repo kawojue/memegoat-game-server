@@ -62,19 +62,33 @@ export class WebhookService {
   }
 
 
-  async fetchRecentTransactions({ status, tag }: FetchTxDTO) {
+  async fetchRecentTransactions({ status, tag, address }: FetchTxDTO) {
     const thirtyDaysAgo = subDays(new Date(), 30)
 
-    const transactions = await this.prisma.transaction.findMany({
-      where: {
-        txStatus: status || undefined,
-        OR: [
-          { tag: { equals: tag, mode: 'insensitive' } },
-        ],
-        updatedAt: {
-          gte: thirtyDaysAgo
-        }
+    const whereClause: any = {
+      updatedAt: {
+        gte: thirtyDaysAgo,
+      },
+    }
+
+    if (status) {
+      whereClause.status = status
+    }
+
+    if (tag || address) {
+      whereClause.OR = []
+
+      if (tag) {
+        whereClause.OR.push({ tag: { equals: tag, mode: 'insensitive' } })
       }
+
+      if (address) {
+        whereClause.OR.push({ txSender: { equals: address, mode: 'insensitive' } })
+      }
+    }
+
+    const transactions = await this.prisma.transaction.findMany({
+      where: whereClause,
     })
 
     return transactions
