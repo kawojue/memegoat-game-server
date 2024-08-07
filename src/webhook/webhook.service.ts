@@ -42,7 +42,7 @@ export class WebhookService {
     const payload = {
       key: data.key,
       tag: data.tag,
-      txID: data.txID,
+      txId: data.txId,
       amount: data.amount,
       txSender: data.txSender,
       action: data.action,
@@ -50,14 +50,14 @@ export class WebhookService {
     }
 
     await this.prisma.transaction.upsert({
-      where: { txID: data.txID },
+      where: { txId: data.txId },
       create: payload,
       update: payload,
     })
   }
 
 
-  async fetchRecentTransactions({ address, status, tag }: FetchTxDTO) {
+  async fetchRecentTransactions({ status, tag }: FetchTxDTO) {
     const thirtyDaysAgo = subDays(new Date(), 30)
 
     const transactions = await this.prisma.transaction.findMany({
@@ -65,7 +65,6 @@ export class WebhookService {
         txStatus: status || undefined,
         OR: [
           { tag: { equals: tag, mode: 'insensitive' } },
-          { address: { contains: address, mode: 'insensitive' } }
         ],
         updatedAt: {
           gte: thirtyDaysAgo
