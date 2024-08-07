@@ -1,7 +1,7 @@
 import { Request } from 'express'
 import { subDays } from 'date-fns'
 import { TxStatus } from '@prisma/client'
-import { Injectable } from '@nestjs/common'
+import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { FetchTxDTO } from './dto/index.dto'
 import { PrismaService } from 'prisma/prisma.service'
 
@@ -37,23 +37,28 @@ export class WebhookService {
   }
 
   async handleEvent(req: Request) {
-    const data = req.body.data
+    switch (req.body.event) {
+      case 'transaction':
+        const data = req.body.data
 
-    const payload = {
-      key: data.key,
-      tag: data.tag,
-      txId: data.txId,
-      amount: data.amount,
-      txSender: data.txSender,
-      action: data.action,
-      txStatus: data.txStatus as TxStatus,
+        const payload = {
+          key: data.key,
+          tag: data.tag,
+          txId: data.txId,
+          amount: data.amount,
+          txSender: data.txSender,
+          action: data.action,
+          txStatus: data.txStatus as TxStatus,
+        }
+
+        await this.prisma.transaction.upsert({
+          where: { txId: data.txId },
+          create: payload,
+          update: payload,
+        })
+      default:
+        throw new UnauthorizedException("Unsupported Event")
     }
-
-    await this.prisma.transaction.upsert({
-      where: { txId: data.txId },
-      create: payload,
-      update: payload,
-    })
   }
 
 
