@@ -18,3 +18,5 @@ interface Card {
     suit: string
     value: string
 }
+
+type HiroChannel = 'mainnet' | 'testnet'

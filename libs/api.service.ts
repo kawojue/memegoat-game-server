@@ -29,4 +29,25 @@ export class ApiService {
             }
         }
     }
+
+    private ApiURLS = {
+        testnet: {
+            getTxnInfo: "https://api.testnet.hiro.so/extended/v1/tx/",
+        },
+        mainnet: {
+            getTxnInfo: "https://api.mainnet.hiro.so/extended/v1/tx/",
+        },
+    };
+
+    async fetchTransaction(network: HiroChannel, txnId: string) {
+        const response = this.httpService.get(`${this.ApiURLS[network].getTxnInfo}${txnId}`, {
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": process.env.HIRO_API_KEY
+            },
+        })
+        const result = await lastValueFrom(response)
+
+        return result.data
+    }
 }
