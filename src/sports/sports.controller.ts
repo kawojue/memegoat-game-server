@@ -11,9 +11,9 @@ export class SportsController {
     private readonly sportsService: SportsService,
   ) { }
 
-  @Get('/in-play')
+  @Get('/fixures')
   async inPlayLivescore(@Res() res: Response) {
-    const livescores = await this.sportsService.inPlayLivescore()
-    this.response.sendSuccess(res, StatusCodes.OK, { data: livescores })
+    const fixures = await this.sportsService.inPlayLivescore()
+    this.response.sendSuccess(res, StatusCodes.OK, { data: fixures })
   }
 }

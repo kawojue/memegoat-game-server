@@ -22,4 +22,13 @@ export class TaskService {
             update: { start, end }
         })
     }
+
+    // @Cron(CronExpression.EVERY_MINUTE)
+    // async getLiveScores() {
+    //     const bets = await this.prisma.bet.findMany({
+    //         where: {
+
+    //         }
+    //     })
+    // }
 }
