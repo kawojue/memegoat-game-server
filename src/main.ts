@@ -15,6 +15,8 @@ async function bootstrap() {
       'http://localhost:5173',
       `http://localhost:${PORT}`,
       `https://memegoat-game-server.onrender.com`,
+      'https://test-app.memegoat.io',
+      'https://app.memegoat.io'
     ],
     credentials: true,
     optionsSuccessStatus: 200,
