@@ -55,4 +55,16 @@ export class WebhookController {
       await this.webhookService.fetchRecentTransactions(body);
     this.response.sendSuccess(res, StatusCodes.OK, { data: transactions });
   }
+
+  @Get('uniqueAddresses')
+  async fetchUniqueAddresses(@Res() res: Response) {
+    const uniqueAddresses = await this.webhookService.countUniqueAddresses();
+    this.response.sendSuccess(res, StatusCodes.OK, { data: uniqueAddresses });
+  }
+
+  @Get('transactionCount')
+  async fetchTransactionCount(@Res() res: Response) {
+    const txCount = await this.webhookService.getTransactionCount();
+    this.response.sendSuccess(res, StatusCodes.OK, { data: txCount });
+  }
 }

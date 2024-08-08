@@ -101,4 +101,16 @@ export class WebhookService {
 
     return transactions;
   }
+
+  async countUniqueAddresses(): Promise<number> {
+    const uniqueAddresses = await this.prisma.transaction.groupBy({
+      by: ['txSender'],
+    });
+    return uniqueAddresses.length;
+  }
+
+  async getTransactionCount(): Promise<number> {
+    const count = await this.prisma.transaction.count();
+    return count;
+  }
 }
