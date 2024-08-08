@@ -64,7 +64,7 @@ export class TaskService {
           case 'pending':
             status = 'Pending';
             break;
-          case 'failed':
+          case 'abort_by_response':
             status = 'Failed';
             break;
           default:
