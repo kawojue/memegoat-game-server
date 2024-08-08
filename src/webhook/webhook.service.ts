@@ -59,6 +59,7 @@ export class WebhookService {
           create: payload,
           update: payload,
         });
+        break
       default:
         return this.response.sendError(
           res,
