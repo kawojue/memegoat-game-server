@@ -121,5 +121,5 @@ model SportBet {
 enum TxStatus {
   Failed
   Pending
-  Successful
+  Success
 }
