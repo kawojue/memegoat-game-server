@@ -26,7 +26,7 @@ export class WebhookController {
   ) { }
 
   @Post()
-  async receiveWebhook(@Req() req: Request) {
+  async receiveWebhook(@Res() res: Response, @Req() req: Request) {
     if (!req.body || !req.body?.event || !req.body?.data) {
       throw new BadRequestException('Invalid request body received')
     }
@@ -42,7 +42,7 @@ export class WebhookController {
     }
 
     try {
-      await this.webhookService.enqueueRequest(req)
+      await this.webhookService.enqueueRequest(res, req)
     } catch (err) {
       console.error(err)
       throw new InternalServerErrorException()

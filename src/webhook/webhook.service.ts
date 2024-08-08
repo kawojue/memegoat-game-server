@@ -1,25 +1,28 @@
-import { Request } from 'express'
 import { subDays } from 'date-fns'
 import { TxStatus } from '@prisma/client'
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
+import { Request, Response } from 'express'
 import { FetchTxDTO } from './dto/index.dto'
+import { StatusCodes } from 'enums/StatusCodes'
 import { PrismaService } from 'prisma/prisma.service'
+import { ResponseService } from 'libs/response.service'
 
 @Injectable()
 export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly response: ResponseService,
   ) { }
 
   private processing = false
   private requestQueue: Request[] = []
 
-  async enqueueRequest(req: Request) {
+  async enqueueRequest(res: Response, req: Request) {
     this.requestQueue.push(req)
-    this.processQueue()
+    this.processQueue(res)
   }
 
-  private async processQueue() {
+  private async processQueue(res: Response) {
     if (this.processing) {
       return
     }
@@ -29,14 +32,14 @@ export class WebhookService {
     while (this.requestQueue.length > 0) {
       const req = this.requestQueue.shift()
       if (req) {
-        await this.handleEvent(req)
+        await this.handleEvent(res, req)
       }
     }
 
     this.processing = false
   }
 
-  async handleEvent(req: Request) {
+  async handleEvent(res: Response, req: Request) {
     switch (req.body.event) {
       case 'transaction':
         const data = req.body.data
@@ -57,7 +60,7 @@ export class WebhookService {
           update: payload,
         })
       default:
-        throw new UnauthorizedException("Unsupported Event")
+        return this.response.sendError(res, StatusCodes.Unauthorized, "Unsupported Event")
     }
   }
 
