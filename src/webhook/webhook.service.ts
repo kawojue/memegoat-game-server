@@ -12,7 +12,7 @@ export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
-  ) {}
+  ) { }
 
   private processing = false;
   private requestQueue: Request[] = [];
@@ -72,32 +72,15 @@ export class WebhookService {
   async fetchRecentTransactions({ status, tag, address }: FetchTxDTO) {
     const thirtyDaysAgo = subDays(new Date(), 30);
 
-    const whereClause: any = {
-      updatedAt: {
-        gte: thirtyDaysAgo,
-      },
-    };
-
-    if (status) {
-      whereClause.status = status;
-    }
-
-    if (tag || address) {
-      whereClause.OR = [];
-
-      if (tag) {
-        whereClause.OR.push({ tag: { equals: tag, mode: 'insensitive' } });
-      }
-
-      if (address) {
-        whereClause.OR.push({
-          txSender: { equals: address, mode: 'insensitive' },
-        });
-      }
-    }
-
     const transactions = await this.prisma.transaction.findMany({
-      where: whereClause,
+      where: {
+        updatedAt: {
+          gte: thirtyDaysAgo,
+        },
+        txSender: address ? { equals: address, mode: 'insensitive' } : undefined,
+        txStatus: status ? status : undefined,
+        tag: tag ? { equals: tag, mode: 'insensitive' } : undefined
+      },
     });
 
     return transactions;
