@@ -8,9 +8,15 @@ import { HttpService } from '@nestjs/axios'
 
 @Injectable()
 export class ApiService {
-  constructor(private readonly httpService: HttpService) { }
+  private apiKey: string
+  private baseUrl: string
 
-  private async GET<T>(url: string, headers?: Record<string, string>): Promise<T> {
+  constructor(private readonly httpService: HttpService) {
+    this.apiKey = process.env.CLOUDFLARE_API_KEY
+    this.baseUrl = `https://api.cloudflare.com/client/v4`
+  }
+
+  async GET<T>(url: string, headers?: Record<string, string>): Promise<T> {
     const observable = this.httpService.get<T>(url, { headers }).pipe(
       map(response => response.data)
     )
@@ -56,5 +62,21 @@ export class ApiService {
         'x-api-key': process.env.HIRO_API_KEY,
       },
     )
+  }
+
+  async cloudflarePOST<T>(url: string, data: any) {
+    return await this.POST<T>(`${this.baseUrl}/${url}`, data, {
+      'X-Auth-Key': this.apiKey,
+      'X-Auth-Email': '',
+      'Content-Type': 'application/json'
+    })
+  }
+
+  async cloudflareGET<T>(url: string) {
+    return await this.GET<T>(`${this.baseUrl}/${url}`, {
+      'X-Auth-Key': this.apiKey,
+      'X-Auth-Email': 'goatcoinstx@gmail.com',
+      'Content-Type': 'application/json'
+    })
   }
 }

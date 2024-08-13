@@ -80,13 +80,4 @@ export class TaskService {
             usersProcessed += transactions.length
         }
     }
-
-    // @Cron(CronExpression.EVERY_MINUTE)
-    // async getLiveScores() {
-    //     const bets = await this.prisma.bet.findMany({
-    //         where: {
-
-    //         }
-    //     })
-    // }
 }

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common'
 import { AppService } from './app.service'
+import { HttpModule } from '@nestjs/axios'
+import { ApiService } from 'libs/api.service'
 import { TaskService } from 'libs/task.service'
 import { MiscService } from 'libs/misc.service'
 import { AppController } from './app.controller'
@@ -12,8 +14,7 @@ import { ResponseService } from 'libs/response.service'
 import { SportsModule } from 'src/sports/sports.module'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
-import { ApiService } from 'libs/api.service'
-import { HttpModule } from '@nestjs/axios'
+import { CloudflareModule } from 'src/cloudflare/cloudflare.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { HttpModule } from '@nestjs/axios'
     SportsModule,
     WebhookModule,
     RealtimeModule,
+    CloudflareModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
