@@ -51,7 +51,7 @@ export class TaskService {
             }
 
             for (const transaction of transactions) {
-                const txnInfo = await this.apiService.fetchTransaction(
+                const txnInfo = await this.apiService.fetchTransaction<any>(
                     process.env.HIRO_CHANNEL as HiroChannel,
                     transaction.txId,
                 )

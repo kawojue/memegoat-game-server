@@ -3,24 +3,33 @@ import {
   HttpException,
   BadGatewayException,
 } from '@nestjs/common'
-import { lastValueFrom } from 'rxjs'
+import { lastValueFrom, map } from 'rxjs'
 import { HttpService } from '@nestjs/axios'
 
 @Injectable()
 export class ApiService {
   constructor(private readonly httpService: HttpService) { }
 
-  async get(url: string) {
-    try {
-      const response = this.httpService.get(url, {
-        headers: {
-          'x-rapidapi-key': process.env.SPORT_API_KEY,
-          'x-rapidapi-host': 'v3.football.api-sports.io',
-        },
-      })
-      const result = await lastValueFrom(response)
+  private async GET<T>(url: string, headers?: Record<string, string>): Promise<T> {
+    const observable = this.httpService.get<T>(url, { headers }).pipe(
+      map(response => response.data)
+    )
+    return lastValueFrom(observable)
+  }
 
-      return result.data
+  async POST<T>(url: string, data: any, headers?: Record<string, string>): Promise<T> {
+    const observable = this.httpService.post<T>(url, data, { headers }).pipe(
+      map(response => response.data)
+    )
+    return lastValueFrom(observable)
+  }
+
+  async apiSportGET<T>(url: string) {
+    try {
+      return await this.GET<T>(url, {
+        'x-rapidapi-key': process.env.SPORT_API_KEY,
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+      })
     } catch (err) {
       if (err?.response?.data?.message) {
         throw new HttpException(err.response.data.message, err.response.status)
@@ -39,18 +48,13 @@ export class ApiService {
     },
   }
 
-  async fetchTransaction(network: HiroChannel, txnId: string) {
-    const response = this.httpService.get(
+  async fetchTransaction<T>(network: HiroChannel, txnId: string) {
+    return await this.GET<T>(
       `${this.ApiURLS[network].getTxnInfo}${txnId}`,
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.HIRO_API_KEY,
-        },
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.HIRO_API_KEY,
       },
     )
-    const result = await lastValueFrom(response)
-
-    return result.data
   }
 }

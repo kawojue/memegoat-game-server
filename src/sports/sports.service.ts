@@ -8,7 +8,7 @@ export class SportsService {
     ) { }
 
     async inPlayLivescore() {
-        const data = this.apiService.get(`https://v3.football.api-sports.io/fixtures?live=all`)
+        const data = this.apiService.apiSportGET(`https://v3.football.api-sports.io/fixtures?live=all`)
 
         return data
     }
