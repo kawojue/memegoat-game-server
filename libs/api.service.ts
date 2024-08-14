@@ -10,9 +10,19 @@ import { HttpService } from '@nestjs/axios'
 export class ApiService {
   private apiKey: string
   private baseUrl: string
+  private apiEmail: string
+  private ApiURLS = {
+    testnet: {
+      getTxnInfo: 'https://api.testnet.hiro.so/extended/v1/tx/',
+    },
+    mainnet: {
+      getTxnInfo: 'https://api.mainnet.hiro.so/extended/v1/tx/',
+    },
+  }
 
   constructor(private readonly httpService: HttpService) {
     this.apiKey = process.env.CLOUDFLARE_API_KEY
+    this.apiEmail = process.env.CLOUDFLARE_API_EMAIL
     this.baseUrl = `https://api.cloudflare.com/client/v4`
   }
 
@@ -30,9 +40,9 @@ export class ApiService {
     return lastValueFrom(observable)
   }
 
-  async apiSportGET<T>(url: string) {
+  apiSportGET<T>(url: string) {
     try {
-      return await this.GET<T>(url, {
+      return this.GET<T>(url, {
         'x-rapidapi-key': process.env.SPORT_API_KEY,
         'x-rapidapi-host': 'v3.football.api-sports.io',
       })
@@ -45,17 +55,8 @@ export class ApiService {
     }
   }
 
-  private ApiURLS = {
-    testnet: {
-      getTxnInfo: 'https://api.testnet.hiro.so/extended/v1/tx/',
-    },
-    mainnet: {
-      getTxnInfo: 'https://api.mainnet.hiro.so/extended/v1/tx/',
-    },
-  }
-
-  async fetchTransaction<T>(network: HiroChannel, txnId: string) {
-    return await this.GET<T>(
+  fetchTransaction<T>(network: HiroChannel, txnId: string) {
+    return this.GET<T>(
       `${this.ApiURLS[network].getTxnInfo}${txnId}`,
       {
         'Content-Type': 'application/json',
@@ -64,18 +65,18 @@ export class ApiService {
     )
   }
 
-  async cloudflarePOST<T>(url: string, data: any) {
-    return await this.POST<T>(`${this.baseUrl}/${url}`, data, {
+  cloudflarePOST<T>(url: string, data: any) {
+    return this.POST<T>(`${this.baseUrl}/${url}`, data, {
       'X-Auth-Key': this.apiKey,
-      'X-Auth-Email': '',
+      'X-Auth-Email': this.apiEmail,
       'Content-Type': 'application/json'
     })
   }
 
-  async cloudflareGET<T>(url: string) {
-    return await this.GET<T>(`${this.baseUrl}/${url}`, {
+  cloudflareGET<T>(url: string) {
+    return this.GET<T>(`${this.baseUrl}/${url}`, {
       'X-Auth-Key': this.apiKey,
-      'X-Auth-Email': 'goatcoinstx@gmail.com',
+      'X-Auth-Email': this.apiEmail,
       'Content-Type': 'application/json'
     })
   }
