@@ -34,7 +34,7 @@ export class WebhookController {
     const signature = req.headers['x-webhook-signature']
     const hashedSignature = crypto
       .createHmac('sha512', process.env.WEBHOOK_SECRET)
-      .update(JSON.stringify(req.body))
+      .update(JSON.stringify(req.body.data?.txId))
       .digest('hex')
 
     if (signature !== hashedSignature) {
