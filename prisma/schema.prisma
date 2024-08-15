@@ -26,6 +26,8 @@ model User {
   stat      Stat?
   rounds    Round[]
   players   Player[]
+
+  @@index([createdAt, updatedAt])
 }
 
 model Stat {
@@ -39,6 +41,8 @@ model Stat {
 
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique @db.ObjectId
+
+  @@index([createdAt, updatedAt])
 }
 
 model Game {
@@ -51,6 +55,8 @@ model Game {
   dealer   Dealer @relation(fields: [dealerId], references: [id])
 
   players Player[]
+
+  @@index([createdAt, updatedAt])
 }
 
 model Player {
@@ -69,6 +75,8 @@ model Player {
 
   gameId String @db.ObjectId
   game   Game   @relation(fields: [gameId], references: [id])
+
+  @@index([createdAt, updatedAt])
 }
 
 model Dealer {
@@ -80,6 +88,8 @@ model Dealer {
   updatedAt DateTime @updatedAt
 
   game Game?
+
+  @@index([createdAt, updatedAt])
 }
 
 model Round {
@@ -91,6 +101,8 @@ model Round {
 
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
+
+  @@index([createdAt, updatedAt])
 }
 
 enum GameType {
@@ -112,6 +124,10 @@ model Transaction {
   amount    Float     @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([tag])
+  @@index([txSender])
+  @@index([createdAt, updatedAt])
 }
 
 model SportBet {

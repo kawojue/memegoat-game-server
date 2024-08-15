@@ -65,7 +65,7 @@ export class ApiService {
     )
   }
 
-  cloudflarePOST<T>(url: string, data: any) {
+  cloudflarePOST<T>(url: string, data?: any) {
     return this.POST<T>(`${this.baseUrl}/${url}`, data, {
       'X-Auth-Key': this.apiKey,
       'X-Auth-Email': this.apiEmail,

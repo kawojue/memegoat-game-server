@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import { ApiService } from 'libs/api.service'
 
 @Injectable()
@@ -18,6 +18,16 @@ export class CloudflareService {
             return await this.apiService.cloudflareGET(`/accounts/${this.accountId}/pages/projects/${this.projectName}/deployments`)
         } catch (err) {
             console.error(err.response?.data)
+            throw new InternalServerErrorException(err.response.data)
+        }
+    }
+
+    async createDeployment() {
+        try {
+            return await this.apiService.cloudflarePOST(`/accounts/${this.accountId}/pages/projects/${this.projectName}/deployments`)
+        } catch (err) {
+            console.error(err.response?.data)
+            throw new InternalServerErrorException(err.response.data)
         }
     }
 }
