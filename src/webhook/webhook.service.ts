@@ -81,6 +81,7 @@ export class WebhookService {
         txStatus: status ? status : undefined,
         tag: tag ? { equals: tag, mode: 'insensitive' } : undefined
       },
+      orderBy: { createdAt: 'desc' }
     });
 
     return transactions;
