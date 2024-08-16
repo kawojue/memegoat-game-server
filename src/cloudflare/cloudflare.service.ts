@@ -15,7 +15,7 @@ export class CloudflareService {
 
     async getDeployments() {
         try {
-            return await this.apiService.cloudflareGET(`/accounts/${this.accountId}/pages/projects/${this.projectName}/deployments`)
+            return await this.apiService.cloudflareGET(`${this.accountId}/pages/projects/${this.projectName}/deployments`)
         } catch (err) {
             console.error(err.response?.data)
             throw new InternalServerErrorException(err.response.data)
@@ -24,7 +24,25 @@ export class CloudflareService {
 
     async createDeployment() {
         try {
-            return await this.apiService.cloudflarePOST(`/accounts/${this.accountId}/pages/projects/${this.projectName}/deployments`)
+            return await this.apiService.cloudflarePOST(`${this.accountId}/pages/projects/${this.projectName}/deployments`)
+        } catch (err) {
+            console.error(err.response?.data)
+            throw new InternalServerErrorException(err.response.data)
+        }
+    }
+
+    async getDeploymentInfo(deploymentId: string) {
+        try {
+            return await this.apiService.cloudflareGET(`${this.accountId}/pages/projects/${this.projectName}/deployments/${deploymentId}`)
+        } catch (err) {
+            console.error(err.response?.data)
+            throw new InternalServerErrorException(err.response.data)
+        }
+    }
+
+    async retryDeployment(deploymentId: string) {
+        try {
+            return await this.apiService.cloudflareGET(`${this.accountId}/pages/projects/${this.projectName}/deployments/${deploymentId}/retry`)
         } catch (err) {
             console.error(err.response?.data)
             throw new InternalServerErrorException(err.response.data)
