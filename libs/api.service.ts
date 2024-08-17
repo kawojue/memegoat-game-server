@@ -9,7 +9,7 @@ import { HttpService } from '@nestjs/axios'
 @Injectable()
 export class ApiService {
   private apiKey: string
-  private baseUrl: string
+  private cloudFlareBaseUrl: string
   private apiEmail: string
   private ApiURLS = {
     testnet: {
@@ -23,7 +23,7 @@ export class ApiService {
   constructor(private readonly httpService: HttpService) {
     this.apiKey = process.env.CLOUDFLARE_API_KEY
     this.apiEmail = process.env.CLOUDFLARE_API_EMAIL
-    this.baseUrl = `https://api.cloudflare.com/client/v4`
+    this.cloudFlareBaseUrl = `https://api.cloudflare.com/client/v4/accounts/`
   }
 
   async GET<T>(url: string, headers?: Record<string, string>): Promise<T> {
@@ -65,16 +65,16 @@ export class ApiService {
     )
   }
 
-  cloudflarePOST<T>(url: string, data?: any) {
-    return this.POST<T>(`${this.baseUrl}/${url}`, data, {
+  cloudflarePOST<T>(path: string, data?: any) {
+    return this.POST<T>(`${this.cloudFlareBaseUrl}/${path}`, data, {
       'X-Auth-Key': this.apiKey,
       'X-Auth-Email': this.apiEmail,
       'Content-Type': 'application/json'
     })
   }
 
-  cloudflareGET<T>(url: string) {
-    return this.GET<T>(`${this.baseUrl}/${url}`, {
+  cloudflareGET<T>(path: string) {
+    return this.GET<T>(`${this.cloudFlareBaseUrl}/${path}`, {
       'X-Auth-Key': this.apiKey,
       'X-Auth-Email': this.apiEmail,
       'Content-Type': 'application/json'

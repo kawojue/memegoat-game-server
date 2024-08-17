@@ -12,8 +12,8 @@ import { ResponseService } from 'libs/response.service'
 import { SignatureAuthGuard } from './cloudflare.guard'
 import { CloudflareService } from './cloudflare.service'
 
-UseGuards(SignatureAuthGuard)
 @Controller('cloudflare')
+@UseGuards(SignatureAuthGuard)
 export class CloudflareController {
   constructor(
     private readonly response: ResponseService,
