@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { AuthService } from './auth.service'
+import { StatusCodes } from 'enums/StatusCodes'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger'
@@ -7,7 +8,6 @@ import {
   Body, Controller, Get, Patch, Post, Req, Res, UseGuards
 } from '@nestjs/common'
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
-import { StatusCodes } from 'enums/StatusCodes'
 
 @ApiTags("Auth")
 @Controller('auth')
@@ -24,7 +24,7 @@ export class AuthController {
   @Post('/connect-wallet')
   async connectWallet(@Res() res: Response, @Body() body: ConnectWalletDTO) {
     try {
-      const data = await this.authService.connectWallet(res, body)
+      const data = await this.authService.connectWallet(body)
 
       res.cookie('access_token', data.access_token, {
         sameSite: this.isProd ? 'none' : 'lax',

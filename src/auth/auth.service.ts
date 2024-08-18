@@ -22,7 +22,7 @@ export class AuthService {
         this.randomService = new RandomService('md5')
     }
 
-    async connectWallet(res: Response, { address }: ConnectWalletDTO) {
+    async connectWallet({ address }: ConnectWalletDTO) {
         let user = await this.prisma.user.findUnique({
             where: { address }
         })
@@ -39,7 +39,10 @@ export class AuthService {
                     data: { id: _id, address, avatar: avatarUrl }
                 }),
                 this.prisma.stat.create({
-                    data: { user: { connect: { id: _id } } }
+                    data: {
+                        tickets: 1_000_000,
+                        user: { connect: { id: _id } }
+                    }
                 })
             ])
         }
