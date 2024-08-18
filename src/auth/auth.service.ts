@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { Response } from 'express'
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable } from '@nestjs/common'
 import { MiscService } from 'libs/misc.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { avatarSeeds } from 'utils/avatar-seeds'
@@ -46,16 +46,16 @@ export class AuthService {
 
         if (user) {
             if (!user.active) {
-                return this.response.sendError(res, StatusCodes.Forbidden, "Account has been suspended")
+                throw new ForbiddenException("Account has been suspended")
             }
-
-            const access_token = await this.misc.generateAccessToken({
-                sub: user.id,
-                address: user.address
-            })
-
-            return access_token
         }
+
+        const access_token = await this.misc.generateAccessToken({
+            sub: user.id,
+            address: user.address
+        })
+
+        return { access_token, user }
     }
 
     async editUsername(
