@@ -13,10 +13,11 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000',
       'http://localhost:5173',
+      'https://app.memegoat.io',
       `http://localhost:${PORT}`,
-      `https://memegoat-game-server.onrender.com`,
       'https://test-app.memegoat.io',
-      'https://app.memegoat.io'
+      'https://memegoat-games.vercel.app',
+      `https://memegoat-game-server.onrender.com`,
     ],
     credentials: true,
     optionsSuccessStatus: 200,
