@@ -12,9 +12,9 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:5173',
       'https://app.memegoat.io',
       `http://localhost:${PORT}`,
+      'https://games.memegoat.io',
       'https://test-app.memegoat.io',
       'https://memegoat-games.vercel.app',
       `https://memegoat-game-server.onrender.com`,
