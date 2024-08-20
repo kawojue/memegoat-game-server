@@ -590,6 +590,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.leaderboard(client)
   }
 
+  @SubscribeMessage('leaderboards')
   async leaderboard(@ConnectedSocket() client: Socket) {
     await Promise.all([
       this.overallLeaderboard(client),
