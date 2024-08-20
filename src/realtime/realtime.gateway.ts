@@ -137,6 +137,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const stat = await this.prisma.stat.findUnique({
       where: { userId: sub },
+      select: { tickets: true }
     })
 
     if (stat.tickets < stake) {
@@ -218,6 +219,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const stat = await this.prisma.stat.findUnique({
       where: { userId: sub },
+      select: { tickets: true }
     })
 
     if (stat.tickets < stake) {
@@ -232,7 +234,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const rolls = Array.from({ length: numDice }, () => Math.floor(this.random.randomize().random * 6) + 1)
 
     const win = rolls.every((roll, index) => roll === guesses[index])
-    const point = win ? stake * numDice * 2 : 0
+    const point = win ? stake * numDice * 6 : 0
     const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
     const round = {
@@ -298,6 +300,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const stat = await this.prisma.stat.findUnique({
       where: { userId: sub },
+      select: { tickets: true }
     })
 
     if (stat.tickets < stake) {
