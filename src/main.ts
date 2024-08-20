@@ -16,8 +16,8 @@ async function bootstrap() {
       `http://localhost:${PORT}`,
       'https://games.memegoat.io',
       'https://test-app.memegoat.io',
+      'https://games-server.memegoat.io',
       'https://memegoat-games.vercel.app',
-      `https://memegoat-game-server.onrender.com`,
     ],
     credentials: true,
     optionsSuccessStatus: 200,
@@ -31,7 +31,7 @@ async function bootstrap() {
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Memegoat Game')
     .setVersion('1.7.2')
-    .addServer(`https://memegoat-game-server.onrender.com`, 'Server')
+    .addServer('https://games-server.memegoat.io', 'Server')
     .addServer(`http://localhost:${PORT}`, 'Local')
     .addBearerAuth()
     .addCookieAuth()

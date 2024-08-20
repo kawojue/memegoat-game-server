@@ -23,101 +23,6 @@ export class RealtimeService {
     return this.server
   }
 
-  async leaderboard() {
-    await Promise.all([
-      this.overallLeaderboard(),
-      this.getCurrentTournamentLeaderboard(),
-    ])
-  }
-
-  private async overallLeaderboard() {
-    const leaderboard = await this.prisma.user.findMany({
-      where: { active: true },
-      select: {
-        id: true,
-        stat: {
-          select: {
-            total_points: true,
-          },
-        },
-        avatar: true,
-        address: true,
-        username: true,
-      },
-      orderBy: {
-        stat: {
-          total_points: 'desc',
-        },
-      },
-    })
-
-    this.server.emit('overall-leaderboard', { leaderboard })
-  }
-
-  private async getCurrentTournamentLeaderboard() {
-    const currentTournament = await this.prisma.tournament.findFirst({
-      where: {
-        start: { lte: new Date() },
-        end: { gte: new Date() },
-      },
-    })
-
-    if (!currentTournament) {
-      this.server.emit('tournament-leaderboard', { leaderboard: [] })
-      return
-    }
-
-    const leaderboard = await this.prisma.user.findMany({
-      where: {
-        rounds: {
-          some: {
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
-          },
-        },
-      },
-      select: {
-        id: true,
-        avatar: true,
-        address: true,
-        username: true,
-        rounds: {
-          where: {
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
-          },
-          select: {
-            point: true,
-          },
-        },
-      },
-    })
-
-    const sortedLeaderboard = leaderboard.map((user) => {
-      const totalPoints = user.rounds.reduce(
-        (acc, round) => acc + round.point,
-        0,
-      )
-      return {
-        ...user,
-        totalRounds: user.rounds.length,
-        totalPoints,
-        rounds: undefined,
-      }
-    })
-
-    sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
-
-    this.server.emit('tournament-leaderboard', {
-      currentTournament,
-      leaderboard: sortedLeaderboard,
-    })
-  }
-
   async forfeitGame(gameId: string, userId: string): Promise<void> {
     const player = await this.prisma.player.findFirst({
       where: { userId, gameId },
@@ -140,8 +45,6 @@ export class RealtimeService {
       const gameState = await this.blackjackService.getGameState(gameId)
       this.server.to(gameId).emit('blackjack-state', gameState)
     }
-
-    await this.leaderboard()
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

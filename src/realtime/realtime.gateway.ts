@@ -179,7 +179,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
     ])
 
-    await this.realtimeService.leaderboard()
+    await this.leaderboard(client)
   }
 
   @SubscribeMessage('dice-roll')
@@ -260,7 +260,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
     ])
 
-    await this.realtimeService.leaderboard()
+    await this.leaderboard(client)
   }
 
   @SubscribeMessage('roulette-spin')
@@ -347,7 +347,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
     ])
 
-    await this.realtimeService.leaderboard()
+    await this.leaderboard(client)
   }
 
   @SubscribeMessage('start-blackjack')
@@ -364,7 +364,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       const gameId = await this.blackjackService.startGame(user.sub, stake)
       client.emit('blackjack-started', { gameId, player: user.sub })
-      await this.realtimeService.leaderboard()
+      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -387,7 +387,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       await this.blackjackService.joinGame(data.gameId, user.sub)
       client.emit('blackjack-joined', { gameId: data.gameId, player: user.sub })
-      await this.realtimeService.leaderboard()
+      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -410,7 +410,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       const player = await this.blackjackService.hit(data.gameId, user.sub)
       client.emit('player-hit', { gameId: data.gameId, player })
-      await this.realtimeService.leaderboard()
+      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -438,7 +438,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         await this.blackjackService.dealerPlay(data.gameId)
         client.emit('dealer-played', { gameId: data.gameId })
       }
-      await this.realtimeService.leaderboard()
+      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -461,7 +461,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       await this.blackjackService.leaveGame(data.gameId, user.sub)
       client.emit('blackjack-game-left', { gameId: data.gameId, player: user.sub })
-      await this.realtimeService.leaderboard()
+      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -587,6 +587,126 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.realtimeService.saveGameResult(sub, game.points)
     this.games.delete(sub)
 
-    await this.realtimeService.leaderboard()
+    await this.leaderboard(client)
+  }
+
+  async leaderboard(@ConnectedSocket() client: Socket) {
+    await Promise.all([
+      this.overallLeaderboard(client),
+      this.getCurrentTournamentLeaderboard(client),
+    ])
+  }
+
+  private async overallLeaderboard(client: Socket) {
+    const user = this.clients.get(client)
+    const leaderboard = await this.prisma.user.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        stat: {
+          select: {
+            total_points: true,
+          },
+        },
+        avatar: true,
+        address: true,
+        username: true,
+      },
+      orderBy: {
+        stat: {
+          total_points: 'desc',
+        },
+      },
+      take: 100,
+    })
+
+    let userPosition: number | null = null
+
+    if (user?.sub) {
+      const userIndex = leaderboard.findIndex((u) => u.id === user.sub)
+
+      if (userIndex !== -1) {
+        userPosition = userIndex + 1
+      }
+    }
+
+    this.server.emit('overall-leaderboard', { leaderboard, userPosition })
+  }
+
+  private async getCurrentTournamentLeaderboard(client: Socket) {
+    const user = this.clients.get(client)
+
+    const currentTournament = await this.prisma.tournament.findFirst({
+      where: {
+        start: { lte: new Date() },
+        end: { gte: new Date() },
+      },
+    })
+
+    if (!currentTournament) {
+      this.server.emit('tournament-leaderboard', { leaderboard: [], userPosition: null })
+      return
+    }
+
+    const leaderboard = await this.prisma.user.findMany({
+      where: {
+        rounds: {
+          some: {
+            createdAt: {
+              gte: currentTournament.start,
+              lte: currentTournament.end,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        avatar: true,
+        address: true,
+        username: true,
+        rounds: {
+          where: {
+            createdAt: {
+              gte: currentTournament.start,
+              lte: currentTournament.end,
+            },
+          },
+          select: {
+            point: true,
+          },
+        },
+      },
+    })
+
+    const sortedLeaderboard = leaderboard.map((user) => {
+      const totalPoints = user.rounds.reduce(
+        (acc, round) => acc + round.point,
+        0,
+      )
+      return {
+        ...user,
+        totalRounds: user.rounds.length,
+        totalPoints,
+        rounds: undefined,
+      }
+    })
+
+    sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
+
+    let userPosition: number | null = null
+
+    if (user?.sub) {
+      const userIndex = sortedLeaderboard.findIndex((u) => u.id === user.sub)
+
+      if (userIndex !== -1) {
+        userPosition = userIndex + 1
+      }
+    }
+
+    this.server.emit('tournament-leaderboard', {
+      currentTournament,
+      leaderboard: sortedLeaderboard,
+      userPosition,
+    })
   }
 }
