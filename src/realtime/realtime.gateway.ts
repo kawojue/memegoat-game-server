@@ -176,11 +176,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
       this.prisma.stat.update({
         where: { userId: sub },
-        data: { tickets: { decrement: stake } },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: updateData,
+        data: {
+          tickets: { decrement: stake },
+          ...updateData,
+        },
       }),
     ])
 
@@ -257,11 +256,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
       this.prisma.stat.update({
         where: { userId: sub },
-        data: { tickets: { decrement: stake } },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: updateData,
+        data: {
+          tickets: { decrement: stake },
+          ...updateData
+        },
       }),
     ])
 
@@ -344,11 +342,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }),
       this.prisma.stat.update({
         where: { userId: sub },
-        data: { tickets: { decrement: stake } },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: updateData,
+        data: {
+          tickets: { decrement: stake },
+          ...updateData
+        },
       }),
     ])
 
