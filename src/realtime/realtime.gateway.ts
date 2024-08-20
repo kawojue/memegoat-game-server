@@ -57,47 +57,42 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   async handleConnection(client: Socket) {
     const token = client.handshake.headers['authorization']?.split('Bearer ')[1]
-    if (!token) {
-      client.emit('error', {
-        status: StatusCodes.Unauthorized,
-        message: 'Token does not exist',
-      })
-      client.disconnect()
-      return
-    }
 
-    try {
-      const { sub, address } = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
-        ignoreExpiration: false,
-      }) as JwtPayload
+    if (token) {
+      try {
+        const { sub, address } = await this.jwtService.verifyAsync(token, {
+          secret: process.env.JWT_SECRET,
+          ignoreExpiration: false,
+        }) as JwtPayload
 
-      const { active } = await this.prisma.user.findUnique({
-        where: { id: sub },
-        select: { active: true },
-      })
+        const { active } = await this.prisma.user.findUnique({
+          where: { id: sub },
+          select: { active: true },
+        })
 
-      if (!active) {
+        if (!active) {
+          client.emit('error', {
+            status: StatusCodes.Forbidden,
+            message: 'Account Suspended',
+          })
+          client.disconnect()
+          return
+        }
+
+        this.clients.set(client, { sub, address })
+        this.onlineUsers.set(sub, client.id)
+        this.emitOnlineUserCount()
+
+      } catch (err) {
         client.emit('error', {
-          status: StatusCodes.Forbidden,
-          message: 'Account Suspended',
+          status: StatusCodes.InternalServerError,
+          message: err.message,
         })
         client.disconnect()
-        return
       }
-
-      this.clients.set(client, { sub, address })
-      this.onlineUsers.set(sub, client.id)
-      this.emitOnlineUserCount()
-
-      client.emit('connected', { message: 'Connected' })
-    } catch (err) {
-      client.emit('error', {
-        status: StatusCodes.InternalServerError,
-        message: err.message,
-      })
-      client.disconnect()
     }
+
+    client.emit('connected', { message: 'Connected' })
   }
 
   handleDisconnect(client: Socket) {

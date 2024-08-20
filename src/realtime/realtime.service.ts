@@ -25,12 +25,12 @@ export class RealtimeService {
 
   async leaderboard() {
     await Promise.all([
-      this.updateOverallLeaderboard(),
+      this.overallLeaderboard(),
       this.getCurrentTournamentLeaderboard(),
     ])
   }
 
-  private async updateOverallLeaderboard() {
+  private async overallLeaderboard() {
     const leaderboard = await this.prisma.user.findMany({
       where: { active: true },
       select: {
@@ -51,7 +51,7 @@ export class RealtimeService {
       },
     })
 
-    this.getServer().emit('overall-leaderboard', { leaderboard })
+    this.server.emit('overall-leaderboard', { leaderboard })
   }
 
   private async getCurrentTournamentLeaderboard() {
@@ -63,7 +63,7 @@ export class RealtimeService {
     })
 
     if (!currentTournament) {
-      this.getServer().emit('tournament-leaderboard', { leaderboard: [] })
+      this.server.emit('tournament-leaderboard', { leaderboard: [] })
       return
     }
 
@@ -112,7 +112,7 @@ export class RealtimeService {
 
     sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
 
-    this.getServer().emit('tournament-leaderboard', {
+    this.server.emit('tournament-leaderboard', {
       currentTournament,
       leaderboard: sortedLeaderboard,
     })
@@ -138,7 +138,7 @@ export class RealtimeService {
       await this.blackjackService.leaveGame(gameId, userId)
     } else {
       const gameState = await this.blackjackService.getGameState(gameId)
-      this.getServer().to(gameId).emit('blackjack-state', gameState)
+      this.server.to(gameId).emit('blackjack-state', gameState)
     }
 
     await this.leaderboard()
