@@ -17,6 +17,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets'
 import { JwtService } from '@nestjs/jwt'
+import { GameType } from '@prisma/client'
 import { Server, Socket } from 'socket.io'
 import { StatusCodes } from 'enums/StatusCodes'
 import { RandomService } from 'libs/random.service'
@@ -159,11 +160,17 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const point = win ? stake * 2 : 0
     const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
-    const [round] = await this.prisma.$transaction([
+    const round = {
+      game_type: 'CoinFlip' as GameType,
+      point: point,
+    }
+
+    client.emit('coin-flip-result', { ...round, win, outcome, stake })
+
+    await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
-          game_type: 'CoinFlip',
-          point: point,
+          ...round,
           user: { connect: { id: sub } },
         },
       }),
@@ -176,8 +183,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         data: updateData,
       }),
     ])
-
-    client.emit('coin-flip-result', { round, win, outcome, stake: stake })
 
     await this.realtimeService.leaderboard()
   }
@@ -236,11 +241,17 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const point = win ? stake * numDice * 2 : 0
     const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
-    const [round] = await this.prisma.$transaction([
+    const round = {
+      game_type: 'Dice' as GameType,
+      point: point,
+    }
+
+    client.emit('dice-roll-result', { ...round, win, rolls, stake })
+
+    await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
-          game_type: 'Dice',
-          point: point,
+          ...round,
           user: { connect: { id: sub } },
         },
       }),
@@ -253,8 +264,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         data: updateData,
       }),
     ])
-
-    client.emit('dice-roll-result', { round, win, rolls, stake })
 
     await this.realtimeService.leaderboard()
   }
@@ -319,11 +328,17 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const point = win ? stake * 35 : 0
     const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
-    const [round] = await this.prisma.$transaction([
+    const round = {
+      game_type: 'Roulette' as GameType,
+      point: point,
+    }
+
+    client.emit('roulette-spin-result', { ...round, win, outcome, stake })
+
+    await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
-          game_type: 'Roulette',
-          point: point,
+          ...round,
           user: { connect: { id: sub } },
         },
       }),
@@ -336,8 +351,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         data: updateData,
       }),
     ])
-
-    client.emit('roulette-spin-result', { round, win, outcome, stake })
 
     await this.realtimeService.leaderboard()
   }
@@ -494,12 +507,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const board = this.realtimeService.createGameBoard()
     this.games.set(sub, { board, points: 0 })
 
+    client.emit('blindbox-started', { boardSize: 4, tickets })
+
     await this.prisma.stat.update({
       where: { userId: sub },
       data: { tickets: { decrement: tickets } },
     })
-
-    client.emit('blindbox-started', { boardSize: 4, tickets })
   }
 
   @SubscribeMessage('select-box')
@@ -574,8 +587,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    this.realtimeService.saveGameResult(sub, game.points)
     client.emit('blindbox-ended', { points: game.points })
+
+    await this.realtimeService.saveGameResult(sub, game.points)
     this.games.delete(sub)
 
     await this.realtimeService.leaderboard()
