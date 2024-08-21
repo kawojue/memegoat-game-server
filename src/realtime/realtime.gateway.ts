@@ -49,7 +49,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   private clients: Map<Socket, JwtPayload> = new Map()
   private onlineUsers: Map<string, string> = new Map()
-  private games: Map<string, { board: string[][]; points: number }> = new Map()
+  private blindBoxGames: Map<string, BlindBox> = new Map()
 
   afterInit() {
     this.realtimeService.setServer(this.server)
@@ -500,7 +500,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const board = this.realtimeService.createGameBoard()
-    this.games.set(sub, { board, points: 0 })
+    this.blindBoxGames.set(sub, { board, points: 0 })
 
     client.emit('blindbox-started', { boardSize: 4, tickets })
 
@@ -509,111 +509,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       data: { tickets: { decrement: tickets } },
     })
   }
-
-  // @SubscribeMessage('select-box')
-  // async handleSelectBox(
-  //   @ConnectedSocket() client: Socket,
-  //   @MessageBody() { row, column }: SelectBoxDTO,
-  // ) {
-  //   const user = this.clients.get(client)
-  //   if (!user) {
-  //     client.emit('error', {
-  //       status: StatusCodes.Unauthorized,
-  //       message: 'User not connected',
-  //     })
-  //     client.disconnect()
-  //     return
-  //   }
-
-  //   const { sub } = user
-  //   const game = this.games.get(sub)
-  //   if (!game) {
-  //     client.emit('error', {
-  //       status: StatusCodes.BadRequest,
-  //       message: 'Game not started',
-  //     })
-  //     return
-  //   }
-
-  //   const { board } = game
-  //   const selected = board[row][column]
-  //   if (selected === 'bomb') {
-  //     this.games.delete(sub)
-  //     client.emit('blindbox-game-over', { points: 0 })
-  //     await this.prisma.stat.update({
-  //       where: { userId: sub },
-  //       data: { total_losses: { increment: 1 } }
-  //     })
-  //     return
-  //   }
-
-  //   game.points += 2
-  //   board[row][column] = 'selected'
-
-  //   const remainingGems = board.flat().filter(cell => cell === 'gem').length
-  //   if (remainingGems === 0) {
-  //     client.emit('blindbox-game-won', { points: game.points })
-  //     this.realtimeService.saveGameResult(sub, game.points)
-  //     this.games.delete(sub)
-  //   } else {
-  //     client.emit('box-selected', { points: game.points, remainingGems })
-  //   }
-  // }
-
-  // @SubscribeMessage('select-box')
-  // async handleSelectBox(
-  //   @ConnectedSocket() client: Socket,
-  //   @MessageBody() { row, column }: SelectBoxDTO,
-  // ) {
-  //   const user = this.clients.get(client)
-  //   if (!user) {
-  //     client.emit('error', {
-  //       status: StatusCodes.Unauthorized,
-  //       message: 'User not connected',
-  //     })
-  //     client.disconnect()
-  //     return
-  //   }
-
-  //   const { sub } = user
-  //   const game = this.games.get(sub)
-  //   if (!game) {
-  //     client.emit('error', {
-  //       status: StatusCodes.BadRequest,
-  //       message: 'Game not started',
-  //     })
-  //     return
-  //   }
-
-  //   const { board } = game
-  //   const selected = board[row][column]
-  //   if (selected === 'bomb') {
-  //     this.games.delete(sub)
-  //     client.emit('blindbox-game-over', { points: 0 })
-  //     await this.prisma.stat.update({
-  //       where: { userId: sub },
-  //       data: { total_losses: { increment: 1 } }
-  //     })
-  //     return
-  //   }
-
-  //   const remainingGems = board.flat().filter(cell => cell === 'gem').length
-
-  //   const successfulSelections = remainingGems + 5
-
-  //   const pointsToAdd = (successfulSelections + 1) * 2
-  //   game.points += pointsToAdd
-
-  //   board[row][column] = 'selected'
-
-  //   if (remainingGems === 0) {
-  //     client.emit('blindbox-game-won', { points: game.points })
-  //     await this.realtimeService.saveGameResult(sub, game.points)
-  //     this.games.delete(sub)
-  //   } else {
-  //     client.emit('box-selected', { points: game.points, remainingGems })
-  //   }
-  // }
 
   @SubscribeMessage('select-box')
   async handleSelectBox(
@@ -631,7 +526,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-    const game = this.games.get(sub)
+    const game = this.blindBoxGames.get(sub)
     if (!game) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -643,7 +538,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const { board } = game
     const selected = board[row][column]
     if (selected === 'bomb') {
-      this.games.delete(sub)
+      this.blindBoxGames.delete(sub)
       client.emit('blindbox-game-over', { points: 0 })
       await this.prisma.stat.update({
         where: { userId: sub },
@@ -654,7 +549,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const successfulSelections = board.flat().filter(cell => cell === 'selected').length
 
-    const pointsToAdd = (successfulSelections + 1) * 2
+    const pointsToAdd = (successfulSelections + 1) * 1.5
     game.points += pointsToAdd
 
     board[row][column] = 'selected'
@@ -663,7 +558,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
       await this.realtimeService.saveGameResult(sub, game.points)
-      this.games.delete(sub)
+      this.blindBoxGames.delete(sub)
     } else {
       client.emit('box-selected', { points: game.points, remainingGems })
     }
@@ -683,7 +578,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-    const game = this.games.get(sub)
+    const game = this.blindBoxGames.get(sub)
     if (!game) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -695,7 +590,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('blindbox-ended', { points: game.points })
 
     await this.realtimeService.saveGameResult(sub, game.points)
-    this.games.delete(sub)
+    this.blindBoxGames.delete(sub)
 
     await this.leaderboard(client)
   }
