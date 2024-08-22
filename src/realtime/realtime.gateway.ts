@@ -604,7 +604,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     ])
   }
 
-  @SubscribeMessage('trigger-overall-leaderboards')
+  @SubscribeMessage('trigger-overall-leaderboard')
   async overallLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
 
@@ -613,7 +613,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('overall-leaderboard', { ...data })
   }
 
-  @SubscribeMessage('trigger-tournament-leaderboards')
+  @SubscribeMessage('trigger-tournament-leaderboard')
   async getCurrentTournamentLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
 
