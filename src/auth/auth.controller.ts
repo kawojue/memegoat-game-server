@@ -3,7 +3,7 @@ import { AuthService } from './auth.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger'
 import {
   Body, Controller, Get, Patch, Post, Req, Res, UseGuards
 } from '@nestjs/common'
@@ -41,6 +41,7 @@ export class AuthController {
   }
 
   @ApiCookieAuth()
+  @ApiBearerAuth()
   @Patch('/username')
   @UseGuards(JwtAuthGuard)
   async editUsername(
@@ -53,6 +54,7 @@ export class AuthController {
 
   @Get('/profile')
   @ApiCookieAuth()
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async profile(@Res() res: Response, @Req() req: IRequest) {
     await this.authService.profile(res, req.user)

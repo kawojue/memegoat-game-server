@@ -13,8 +13,10 @@ import { ResponseService } from 'libs/response.service'
   providers: [
     GamesService,
     MiscService,
+    GamesService,
     PrismaService,
     ResponseService,
   ],
+  exports: [GamesService]
 })
 export class GamesModule { }

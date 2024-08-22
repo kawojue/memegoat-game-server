@@ -24,6 +24,7 @@ import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { BlackjackService } from 'libs/blackJack.service'
+import { GamesService } from 'src/games/games.service'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -43,6 +44,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     private readonly prisma: PrismaService,
     private readonly random: RandomService,
     private readonly jwtService: JwtService,
+    private readonly gamesService: GamesService,
     private readonly realtimeService: RealtimeService,
     private readonly blackjackService: BlackjackService,
   ) { }
@@ -595,7 +597,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.leaderboard(client)
   }
 
-  @SubscribeMessage('leaderboards')
   async leaderboard(@ConnectedSocket() client: Socket) {
     await Promise.all([
       this.overallLeaderboard(client),
@@ -603,116 +604,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     ])
   }
 
-  private async overallLeaderboard(client: Socket) {
+  @SubscribeMessage('trigger-overall-leaderboards')
+  async overallLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
-    const leaderboard = await this.prisma.user.findMany({
-      where: { active: true },
-      select: {
-        id: true,
-        stat: {
-          select: {
-            total_points: true,
-          },
-        },
-        avatar: true,
-        address: true,
-        username: true,
-      },
-      orderBy: {
-        stat: {
-          total_points: 'desc',
-        },
-      },
-      take: 100,
-    })
 
-    let userPosition: number | null = null
+    const data = this.gamesService.overallLeaderboard(user?.sub)
 
-    if (user?.sub) {
-      const userIndex = leaderboard.findIndex((u) => u.id === user.sub)
-
-      if (userIndex !== -1) {
-        userPosition = userIndex + 1
-      }
-    }
-
-    this.server.emit('overall-leaderboard', { leaderboard, userPosition })
+    client.emit('overall-leaderboard', { ...data })
   }
 
-  private async getCurrentTournamentLeaderboard(client: Socket) {
+  @SubscribeMessage('trigger-tournament-leaderboards')
+  async getCurrentTournamentLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
 
-    const currentTournament = await this.prisma.tournament.findFirst({
-      where: {
-        start: { lte: new Date() },
-        end: { gte: new Date() },
-      },
-    })
+    const data = this.gamesService.getCurrentTournamentLeaderboard(user?.sub)
 
-    if (!currentTournament) {
-      this.server.emit('tournament-leaderboard', { leaderboard: [], userPosition: null })
-      return
-    }
-
-    const leaderboard = await this.prisma.user.findMany({
-      where: {
-        rounds: {
-          some: {
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
-          },
-        },
-      },
-      select: {
-        id: true,
-        avatar: true,
-        address: true,
-        username: true,
-        rounds: {
-          where: {
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
-          },
-          select: {
-            point: true,
-          },
-        },
-      },
-    })
-
-    const sortedLeaderboard = leaderboard.map((user) => {
-      const totalPoints = user.rounds.reduce(
-        (acc, round) => acc + round.point,
-        0,
-      )
-      return {
-        ...user,
-        totalRounds: user.rounds.length,
-        totalPoints,
-        rounds: undefined,
-      }
-    })
-
-    sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
-
-    let userPosition: number | null = null
-
-    if (user?.sub) {
-      const userIndex = sortedLeaderboard.findIndex((u) => u.id === user.sub)
-
-      if (userIndex !== -1) {
-        userPosition = userIndex + 1
-      }
-    }
-
-    this.server.emit('tournament-leaderboard', {
-      currentTournament,
-      leaderboard: sortedLeaderboard,
-      userPosition,
-    })
+    client.emit('tournament-leaderboard', { ...data })
   }
 }

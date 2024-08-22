@@ -1,4 +1,3 @@
-import { Module } from '@nestjs/common'
 import { AppService } from './app.service'
 import { HttpModule } from '@nestjs/axios'
 import { ApiService } from 'libs/api.service'
@@ -15,6 +14,8 @@ import { SportsModule } from 'src/sports/sports.module'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 import { CloudflareModule } from 'src/cloudflare/cloudflare.module'
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
+import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middleware'
 
 @Module({
   imports: [
@@ -39,4 +40,10 @@ import { CloudflareModule } from 'src/cloudflare/cloudflare.module'
     ResponseService,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(CustomAuthMiddlware)
+      .forRoutes('*')
+  }
+}
