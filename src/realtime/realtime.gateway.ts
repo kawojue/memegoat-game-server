@@ -23,8 +23,8 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { BlackjackService } from 'libs/blackJack.service'
 import { GamesService } from 'src/games/games.service'
+import { BlackjackService } from 'libs/blackJack.service'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -608,7 +608,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   async overallLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
 
-    const data = this.gamesService.overallLeaderboard(user?.sub)
+    const data = await this.gamesService.overallLeaderboard(user?.sub)
 
     client.emit('overall-leaderboard', { ...data })
   }
@@ -617,7 +617,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   async getCurrentTournamentLeaderboard(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
 
-    const data = this.gamesService.getCurrentTournamentLeaderboard(user?.sub)
+    const data = await this.gamesService.getCurrentTournamentLeaderboard(user?.sub)
 
     client.emit('tournament-leaderboard', { ...data })
   }
