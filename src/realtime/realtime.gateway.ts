@@ -145,7 +145,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (stat.tickets < stake) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
-        message: 'Out of ticket. Buy more tickets',
+        message: 'Out of tickets. Buy more tickets',
       })
       client.disconnect()
       return
@@ -227,7 +227,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (stat.tickets < stake) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
-        message: 'Out of ticket. Buy more tickets',
+        message: 'Out of tickets. Buy more tickets',
       })
       client.disconnect()
       return
@@ -235,9 +235,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const rolls = Array.from({ length: numDice }, () => Math.floor(this.random.randomize().random * 6) + 1)
 
-    const win = rolls.every((roll, index) => roll === guesses[index])
+    const sortedRolls = [...rolls].sort()
+    const sortedGuesses = [...guesses].sort()
+
+    const win = sortedRolls.every((roll, index) => roll === sortedGuesses[index])
     const point = win ? stake * numDice * 6 : 0
-    const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
+    const updateData = win
+      ? { total_wins: { increment: 1 }, total_points: { increment: point } }
+      : { total_losses: { increment: 1 } }
 
     const round = {
       game_type: 'Dice' as GameType,
@@ -257,7 +262,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         where: { userId: sub },
         data: {
           tickets: { decrement: stake },
-          ...updateData
+          ...updateData,
         },
       }),
     ])
@@ -495,7 +500,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (stat.tickets < tickets) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
-        message: 'Out of ticket. Buy more tickets',
+        message: 'Out of tickets. Buy more tickets',
       })
       client.disconnect()
       return
