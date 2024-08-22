@@ -1,4 +1,5 @@
 import { JwtService } from '@nestjs/jwt'
+import { env } from 'configs/env.config'
 import { NestMiddleware } from '@nestjs/common'
 import { NextFunction, Request, Response } from 'express'
 
@@ -9,7 +10,7 @@ export class CustomAuthMiddlware implements NestMiddleware {
         try {
             return await this.jwtService.verifyAsync(token, {
                 ignoreExpiration: false,
-                secret: process.env.JWT_SECRET
+                secret: env.jwt.secret
             })
         } catch {
             return null

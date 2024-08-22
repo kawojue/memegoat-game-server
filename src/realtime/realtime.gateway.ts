@@ -25,6 +25,7 @@ import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { GamesService } from 'src/games/games.service'
 import { BlackjackService } from 'libs/blackJack.service'
+import { env } from 'configs/env.config'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -63,7 +64,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (token) {
       try {
         const { sub, address } = await this.jwtService.verifyAsync(token, {
-          secret: process.env.JWT_SECRET,
+          secret: env.jwt.secret,
           ignoreExpiration: false,
         }) as JwtPayload
 

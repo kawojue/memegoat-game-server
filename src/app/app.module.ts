@@ -13,7 +13,6 @@ import { ResponseService } from 'libs/response.service'
 import { SportsModule } from 'src/sports/sports.module'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
-import { CloudflareModule } from 'src/cloudflare/cloudflare.module'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middleware'
 
@@ -26,7 +25,6 @@ import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middlewar
     SportsModule,
     WebhookModule,
     RealtimeModule,
-    CloudflareModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

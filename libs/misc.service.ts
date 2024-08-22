@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { JwtService } from '@nestjs/jwt'
+import { env } from 'configs/env.config'
 import { Injectable } from '@nestjs/common'
 import { StatusCodes } from 'enums/StatusCodes'
 import { ResponseService } from './response.service'
@@ -16,8 +17,8 @@ export class MiscService {
     return await this.jwtService.signAsync(
       { sub, address },
       {
-        expiresIn: '120d',
-        secret: process.env.JWT_SECRET,
+        expiresIn: env.jwt.expiry,
+        secret: env.jwt.secret,
       },
     )
   }

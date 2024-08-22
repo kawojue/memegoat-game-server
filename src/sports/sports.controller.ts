@@ -13,9 +13,15 @@ export class SportsController {
     private readonly sportsService: SportsService,
   ) { }
 
-  @Get('/fixures')
-  async inPlayLivescore(@Res() res: Response) {
-    const fixures = await this.sportsService.inPlayLivescore()
-    this.response.sendSuccess(res, StatusCodes.OK, { data: fixures })
+  @Get('/timezeones')
+  async getTimezones(@Res() res: Response) {
+    const fixures = await this.sportsService.getTimezones()
+    return this.response.sendSuccess(res, StatusCodes.OK, { data: fixures })
+  }
+
+  @Get('/countries')
+  async getCountries(@Res() res: Response) {
+    const fixures = await this.sportsService.getCountries()
+    return this.response.sendSuccess(res, StatusCodes.OK, { data: fixures })
   }
 }

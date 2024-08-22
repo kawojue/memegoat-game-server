@@ -7,8 +7,14 @@ export class SportsService {
         private readonly apiService: ApiService
     ) { }
 
-    async inPlayLivescore() {
-        const data = this.apiService.apiSportGET(`https://v3.football.api-sports.io/fixtures?live=all`)
+    async getTimezones() {
+        const data = this.apiService.apiSportGET(`timezones`)
+
+        return data
+    }
+
+    async getCountries() {
+        const data = this.apiService.apiSportGET(`countries`)
 
         return data
     }

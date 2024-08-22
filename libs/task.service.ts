@@ -1,5 +1,6 @@
 import { subDays } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
+import { env } from 'configs/env.config'
 import { TxStatus } from '@prisma/client'
 import { ApiService } from './api.service'
 import { Injectable } from '@nestjs/common'
@@ -52,7 +53,7 @@ export class TaskService {
 
             for (const transaction of transactions) {
                 const txnInfo = await this.apiService.fetchTransaction<any>(
-                    process.env.HIRO_CHANNEL as HiroChannel,
+                    env.hiro.channel,
                     transaction.txId,
                 )
 

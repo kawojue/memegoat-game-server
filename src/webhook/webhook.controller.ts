@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { env } from 'configs/env.config';
 import { ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { FetchTxDTO } from './dto/index.dto';
@@ -23,7 +24,7 @@ export class WebhookController {
   constructor(
     private readonly response: ResponseService,
     private readonly webhookService: WebhookService,
-  ) {}
+  ) { }
 
   @Post()
   async receiveWebhook(@Res() res: Response, @Req() req: Request) {
@@ -34,7 +35,7 @@ export class WebhookController {
     const signature = req.headers['x-webhook-signature'];
     const txId = req.body?.data.txId;
     const hashedSignature = crypto
-      .createHmac('sha512', process.env.WEBHOOK_SECRET)
+      .createHmac('sha512', env.webhook.secret)
       .update(txId)
       .digest('hex');
 

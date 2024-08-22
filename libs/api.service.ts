@@ -1,16 +1,13 @@
 import {
   Injectable,
   HttpException,
-  BadGatewayException,
 } from '@nestjs/common'
+import { env } from 'configs/env.config'
 import { lastValueFrom, map } from 'rxjs'
 import { HttpService } from '@nestjs/axios'
 
 @Injectable()
 export class ApiService {
-  private apiKey: string
-  private cloudFlareBaseUrl: string
-  private apiEmail: string
   private ApiURLS = {
     testnet: {
       getTxnInfo: 'https://api.testnet.hiro.so/extended/v1/tx/',
@@ -20,11 +17,7 @@ export class ApiService {
     },
   }
 
-  constructor(private readonly httpService: HttpService) {
-    this.apiKey = process.env.CLOUDFLARE_API_KEY
-    this.apiEmail = process.env.CLOUDFLARE_API_EMAIL
-    this.cloudFlareBaseUrl = `https://api.cloudflare.com/client/v4/accounts/`
-  }
+  constructor(private readonly httpService: HttpService) { }
 
   async GET<T>(url: string, headers?: Record<string, string>): Promise<T> {
     const observable = this.httpService.get<T>(url, { headers }).pipe(
@@ -40,17 +33,17 @@ export class ApiService {
     return lastValueFrom(observable)
   }
 
-  apiSportGET<T>(url: string) {
+  apiSportGET<T>(path: string) {
     try {
-      return this.GET<T>(url, {
-        'x-rapidapi-key': process.env.SPORT_API_KEY,
+      return this.GET<T>(`https://v3.football.api-sports.io/${path}`, {
+        'x-rapidapi-key': env.sport.apiKey,
         'x-rapidapi-host': 'v3.football.api-sports.io',
       })
     } catch (err) {
-      if (err?.response?.data?.message) {
+      if (err.response.data?.message) {
         throw new HttpException(err.response.data.message, err.response.status)
       } else {
-        throw new BadGatewayException('Something went wrong')
+        throw new HttpException('Something went wrong', 502)
       }
     }
   }
@@ -60,24 +53,8 @@ export class ApiService {
       `${this.ApiURLS[network].getTxnInfo}${txnId}`,
       {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.HIRO_API_KEY,
+        'x-api-key': env.hiro.apiKey,
       },
     )
-  }
-
-  cloudflarePOST<T>(path: string, data?: any) {
-    return this.POST<T>(`${this.cloudFlareBaseUrl}/${path}`, data, {
-      'X-Auth-Key': this.apiKey,
-      'X-Auth-Email': this.apiEmail,
-      'Content-Type': 'application/json'
-    })
-  }
-
-  cloudflareGET<T>(path: string) {
-    return this.GET<T>(`${this.cloudFlareBaseUrl}/${path}`, {
-      'X-Auth-Key': this.apiKey,
-      'X-Auth-Email': this.apiEmail,
-      'Content-Type': 'application/json'
-    })
   }
 }

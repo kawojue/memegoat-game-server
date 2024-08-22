@@ -1,5 +1,6 @@
 import * as crypto from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
+import { env } from 'configs/env.config'
 import * as seedrandom from 'seedrandom'
 import { Injectable } from '@nestjs/common'
 
@@ -32,7 +33,7 @@ export class RandomService {
     }
 
     randomize() {
-        const seed = this.hashSeed(`${process.env.GEN_KEY}-${this.uuidv0x()}-${uuidv4()}`)
+        const seed = this.hashSeed(`${env.genKey}-${this.uuidv0x()}-${uuidv4()}`)
         const random = seedrandom(seed)()
         return {
             random, seed,

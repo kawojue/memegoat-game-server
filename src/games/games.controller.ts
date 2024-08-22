@@ -2,8 +2,6 @@ import {
   Req,
   Res,
   Get,
-  Post,
-  Body,
   Controller,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'

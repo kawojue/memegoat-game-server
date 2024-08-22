@@ -4,9 +4,10 @@ import { AppModule } from './app/app.module'
 import * as cookieParser from 'cookie-parser'
 import { ValidationPipe } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { env } from 'configs/env.config'
 
 async function bootstrap() {
-  const PORT: number = parseInt(process.env.PORT, 10) || 2005
+  const PORT: number = env.port
   const app = await NestFactory.create(AppModule)
 
   app.enableCors({
