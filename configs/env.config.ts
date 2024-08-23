@@ -9,7 +9,6 @@ export const env = {
     db: {
         url: process.env.DATABASE_URL
     },
-    port: parseInt(process.env.PORT, 10) || 2005,
     jwt: {
         secret: process.env.JWT_SECRET,
         expiry: process.env.JWT_EXPIRY,
@@ -23,6 +22,12 @@ export const env = {
     hiro: {
         apiKey: process.env.HIRO_API_KEY,
         channel: process.env.HIRO_CHANNEL as HiroChannel,
+    },
+    redis: {
+        host: process.env.REDIS_HOST,
+        username: process.env.REDIS_USERNAME,
+        password: process.env.REDIS_PASSWORD,
+        port: parseInt(process.env.REDIS_PORT, 10),
     },
     genKey: process.env.GEN_KEY,
     redirectUrl: process.env.REDIRECT_URL,

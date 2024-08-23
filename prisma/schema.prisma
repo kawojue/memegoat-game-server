@@ -105,14 +105,6 @@ model Round {
   @@index([createdAt, updatedAt])
 }
 
-enum GameType {
-  Dice
-  BlindBox
-  Roulette
-  CoinFlip
-  BlackJack
-}
-
 model Transaction {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   key       String
@@ -138,4 +130,12 @@ enum TxStatus {
   Failed
   Pending
   Success
+}
+
+enum GameType {
+  Dice
+  BlindBox
+  Roulette
+  CoinFlip
+  BlackJack
 }

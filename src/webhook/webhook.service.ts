@@ -1,5 +1,7 @@
+import { Queue } from 'bull';
 import { subDays } from 'date-fns';
 import { TxStatus } from '@prisma/client';
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { FetchTxDTO } from './dto/index.dto';
@@ -7,11 +9,22 @@ import { StatusCodes } from 'enums/StatusCodes';
 import { PrismaService } from 'prisma/prisma.service';
 import { ResponseService } from 'libs/response.service';
 
+export interface WhTxPayload {
+  key: any;
+  tag: any;
+  txId: any;
+  amount: any;
+  txSender: any;
+  action: any;
+  txStatus: TxStatus;
+}
+
 @Injectable()
 export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
+    @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
   ) { }
 
   private processing = false;
@@ -52,13 +65,13 @@ export class WebhookService {
           txSender: data.txSender,
           action: data.action,
           txStatus: data.txStatus as TxStatus,
-        };
+        } as WhTxPayload;
 
-        await this.prisma.transaction.upsert({
-          where: { txId: data.txId },
-          create: payload,
-          update: payload,
-        });
+        await this.transactionQueue.add(
+          'wh.transaction',
+          { payload },
+          { attempts: 2 }
+        )
         break;
       default:
         return this.response.sendError(
@@ -77,9 +90,9 @@ export class WebhookService {
         updatedAt: {
           gte: thirtyDaysAgo,
         },
-        txSender: address ? { equals: address, mode: 'insensitive' } : undefined,
         txStatus: status ? status : undefined,
-        tag: tag ? { equals: tag, mode: 'insensitive' } : undefined
+        tag: tag ? { equals: tag, mode: 'insensitive' } : undefined,
+        txSender: address ? { equals: address, mode: 'insensitive' } : undefined,
       },
       orderBy: { createdAt: 'desc' }
     });
