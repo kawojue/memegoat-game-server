@@ -1,22 +1,23 @@
 import * as express from 'express'
-import { AppModule } from './app.module'
 import { NestFactory } from '@nestjs/core'
+import { AppModule } from './app/app.module'
 import * as cookieParser from 'cookie-parser'
 import { ValidationPipe } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 async function bootstrap() {
-  const PORT: number = parseInt(process.env.PORT, 10) || 2005
+  const PORT = parseInt(process.env.PORT, 10) || 2005
   const app = await NestFactory.create(AppModule)
 
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:5173',
+      'https://app.memegoat.io',
       `http://localhost:${PORT}`,
-      `https://memegoat-game-server.onrender.com`,
+      'https://games.memegoat.io',
       'https://test-app.memegoat.io',
-      'https://app.memegoat.io'
+      'https://games-server.memegoat.io',
+      'https://memegoat-games.vercel.app',
     ],
     credentials: true,
     optionsSuccessStatus: 200,
@@ -30,7 +31,7 @@ async function bootstrap() {
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Memegoat Game')
     .setVersion('1.7.2')
-    .addServer(`https://memegoat-game-server.onrender.com`, 'Server')
+    .addServer('https://games-server.memegoat.io', 'Server')
     .addServer(`http://localhost:${PORT}`, 'Local')
     .addBearerAuth()
     .addCookieAuth()

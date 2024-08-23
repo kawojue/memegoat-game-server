@@ -1,4 +1,5 @@
 import { Request } from 'express'
+import { env } from 'configs/env.config'
 import { Injectable } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
@@ -9,11 +10,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         super({
             jwtFromRequest: ExtractJwt.fromExtractors([
                 (request: Request) => {
-                    return request.cookies?.access_token
-                },
+                    const cookieToken = request.cookies?.access_token
+                    const authHeader = request.headers.authorization
+                    const bearerToken = authHeader?.startsWith('Bearer ')
+                        ? authHeader.substring(7)
+                        : null
+
+                    return cookieToken || bearerToken
+                }
             ]),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET,
+            secretOrKey: env.jwt.secret,
         })
     }
 

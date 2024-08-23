@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger'
+import { TxStatus } from '@prisma/client'
 import {
     Min,
     Max,
@@ -46,4 +48,21 @@ export class RouletteDTO extends StakeDTO {
     @Min(0)
     @Max(36)
     number: number
+}
+
+export class StartBlackjackDTO {
+    userId: string
+}
+
+export class GameIdDTO {
+    gameId: string
+}
+
+export class StartBlindBoxGameDTO {
+    tickets: number
+}
+
+export class SelectBoxDTO {
+    row: number
+    column: number
 }

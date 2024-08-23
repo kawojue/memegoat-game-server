@@ -10,6 +10,7 @@ datasource db {
 model Tournament {
   id    String   @id @default(auto()) @map("_id") @db.ObjectId
   key   String   @unique
+  title String?
   start DateTime
   end   DateTime
 }
@@ -24,6 +25,9 @@ model User {
   updatedAt DateTime @updatedAt
   stat      Stat?
   rounds    Round[]
+  players   Player[]
+
+  @@index([createdAt, updatedAt])
 }
 
 model Stat {
@@ -35,8 +39,57 @@ model Stat {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user   User   @relation(references: [id], fields: [userId])
+  user   User   @relation(fields: [userId], references: [id])
   userId String @unique @db.ObjectId
+
+  @@index([createdAt, updatedAt])
+}
+
+model Game {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dealerId String @unique @db.ObjectId
+  dealer   Dealer @relation(fields: [dealerId], references: [id])
+
+  players Player[]
+
+  @@index([createdAt, updatedAt])
+}
+
+model Player {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  hand           Json[]
+  score          Int
+  stand          Boolean
+  stake          Int?
+  result         String?
+  disconnectedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  gameId String @db.ObjectId
+  game   Game   @relation(fields: [gameId], references: [id])
+
+  @@index([createdAt, updatedAt])
+}
+
+model Dealer {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  hand      Json[]
+  score     Int
+  stand     Boolean?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  game Game?
+
+  @@index([createdAt, updatedAt])
 }
 
 model Round {
@@ -46,12 +99,43 @@ model Round {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(references: [id], fields: [userId])
   userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([createdAt, updatedAt])
+}
+
+model Transaction {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  key       String
+  tag       String?
+  txId      String    @unique
+  txStatus  TxStatus?
+  txSender  String?
+  action    String?
+  amount    Float     @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tag])
+  @@index([txSender])
+  @@index([createdAt, updatedAt])
+}
+
+model SportBet {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
+
+enum TxStatus {
+  Failed
+  Pending
+  Success
 }
 
 enum GameType {
   Dice
+  BlindBox
   Roulette
   CoinFlip
+  BlackJack
 }

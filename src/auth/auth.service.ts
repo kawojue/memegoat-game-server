@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { Response } from 'express'
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable } from '@nestjs/common'
 import { MiscService } from 'libs/misc.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { avatarSeeds } from 'utils/avatar-seeds'
@@ -11,7 +11,6 @@ import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 
 @Injectable()
 export class AuthService {
-    private isProd: boolean
     private randomService: RandomService
     private readonly avatarBaseUrl = "https://api.dicebear.com/9.x/bottts/svg"
 
@@ -23,7 +22,7 @@ export class AuthService {
         this.randomService = new RandomService('md5')
     }
 
-    async connectWallet(res: Response, { address }: ConnectWalletDTO) {
+    async connectWallet({ address }: ConnectWalletDTO) {
         let user = await this.prisma.user.findUnique({
             where: { address }
         })
@@ -40,23 +39,26 @@ export class AuthService {
                     data: { id: _id, address, avatar: avatarUrl }
                 }),
                 this.prisma.stat.create({
-                    data: { user: { connect: { id: _id } } }
+                    data: {
+                        tickets: 1_000_000,
+                        user: { connect: { id: _id } }
+                    }
                 })
             ])
         }
 
         if (user) {
             if (!user.active) {
-                return this.response.sendError(res, StatusCodes.Forbidden, "Account has been suspended")
+                throw new ForbiddenException("Account has been suspended")
             }
-
-            const access_token = await this.misc.generateAccessToken({
-                sub: user.id,
-                address: user.address
-            })
-
-            return access_token
         }
+
+        const access_token = await this.misc.generateAccessToken({
+            sub: user.id,
+            address: user.address
+        })
+
+        return { access_token, user }
     }
 
     async editUsername(
