@@ -1,8 +1,7 @@
+import { Queue } from 'bull'
 import { subDays } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { env } from 'configs/env.config'
-import { TxStatus } from '@prisma/client'
-import { ApiService } from './api.service'
+import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
@@ -11,7 +10,7 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 export class TaskService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly apiService: ApiService,
+        @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
     ) { }
 
     @Cron(CronExpression.EVERY_WEEK)
@@ -30,8 +29,8 @@ export class TaskService {
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async updateTransactions() {
-        const batchSize = 100
-        let usersProcessed = 0
+        const batchSize = 200
+        let transactionsProcessed = 0
         const thirtyDaysAgo = subDays(new Date(), 30)
 
         while (true) {
@@ -42,9 +41,9 @@ export class TaskService {
                         gte: thirtyDaysAgo,
                     },
                 },
-                select: { id: true, txId: true },
                 take: batchSize,
-                skip: usersProcessed,
+                skip: transactionsProcessed,
+                select: { id: true, txId: true },
             })
 
             if (transactions.length === 0) {
@@ -52,33 +51,10 @@ export class TaskService {
             }
 
             for (const transaction of transactions) {
-                const txnInfo = await this.apiService.fetchTransaction<any>(
-                    env.hiro.channel,
-                    transaction.txId,
-                )
-
-                let status = 'Pending'
-                switch (txnInfo.tx_status) {
-                    case 'success':
-                        status = 'Success'
-                        break
-                    case 'pending':
-                        status = 'Pending'
-                        break
-                    case 'abort_by_response':
-                        status = 'Failed'
-                        break
-                    default:
-                        break
-                }
-
-                await this.prisma.transaction.update({
-                    where: { id: transaction.id },
-                    data: { txStatus: status as TxStatus },
-                })
+                await this.transactionQueue.add('cron.transaction', { transaction })
             }
 
-            usersProcessed += transactions.length
+            transactionsProcessed += transactions.length
         }
     }
 }
