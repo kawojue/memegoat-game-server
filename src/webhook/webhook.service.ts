@@ -67,11 +67,7 @@ export class WebhookService {
           txStatus: data.txStatus as TxStatus,
         } as WhTxPayload;
 
-        await this.transactionQueue.add(
-          'wh.transaction',
-          { payload },
-          { attempts: 2 }
-        )
+        await this.transactionQueue.add('wh.transaction', { payload })
         break;
       default:
         return this.response.sendError(
