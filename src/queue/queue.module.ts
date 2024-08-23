@@ -12,14 +12,14 @@ const SharedModule = BullModule.registerQueue(
   {
     name: 'sports-queue',
     defaultJobOptions: {
-      removeOnFail: 2,
+      removeOnFail: true,
       removeOnComplete: true,
     }
   },
   {
     name: 'transactions-queue',
     defaultJobOptions: {
-      removeOnFail: 3,
+      removeOnFail: true,
       removeOnComplete: true,
     }
   },
