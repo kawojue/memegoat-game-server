@@ -27,7 +27,7 @@ export class TaskService {
         })
     }
 
-    @Cron(CronExpression.EVERY_MINUTE)
+    @Cron(CronExpression.EVERY_5_MINUTES)
     async updateTransactions() {
         const batchSize = 200
         let transactionsProcessed = 0
