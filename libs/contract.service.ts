@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { IsArray, IsNotEmpty, IsString } from 'class-validator';
-import { Cl } from '@stacks/transactions';
+import { Cl, cvToValue } from '@stacks/transactions';
 
 @Injectable()
 export class ContractService {
@@ -30,9 +30,9 @@ export class ContractService {
     );
     const data = response.data as apiResponse;
     if (data.result) {
-      console.log(Cl.deserialize(data.result));
+      return cvToValue(Cl.deserialize(data.result)).value;
     } else {
-      console.log(Cl.deserialize(data.cause));
+      return null;
     }
   }
 }

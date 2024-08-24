@@ -1,13 +1,30 @@
-import { Request } from 'express'
-import { AppService } from './app.service'
-import { Controller, Get, Req } from '@nestjs/common'
+import { Request } from 'express';
+import { AppService } from './app.service';
+import { Req, Get, Post, Controller } from '@nestjs/common';
+import { contractDTO, ContractService } from 'libs/contract.service';
+import { ResponseService } from 'libs/response.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) { }
+  constructor(
+    private readonly appService: AppService,
+    private readonly contractService: ContractService,
+    private readonly response: ResponseService,
+  ) {}
 
   @Get()
   base(@Req() req: Request) {
-    return this.appService.base(req)
+    return this.appService.base(req);
+  }
+
+  @Post('/rng')
+  async rng() {
+    const data: contractDTO = {
+      contract: 'memegoat-lottery-rng',
+      function: 'get-final-number',
+      arguments: [],
+    };
+    const rng = await this.contractService.readContract(data);
+    return rng;
   }
 }
