@@ -16,6 +16,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets'
+import { env } from 'configs/env.config'
 import { JwtService } from '@nestjs/jwt'
 import { GameType } from '@prisma/client'
 import { Server, Socket } from 'socket.io'
@@ -25,7 +26,6 @@ import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { GamesService } from 'src/games/games.service'
 import { BlackjackService } from 'libs/blackJack.service'
-import { env } from 'configs/env.config'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],
@@ -181,8 +181,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
-
-    await this.leaderboard(client)
   }
 
   @SubscribeMessage('dice-roll')
@@ -267,8 +265,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
-
-    await this.leaderboard(client)
   }
 
   @SubscribeMessage('roulette-spin')
@@ -354,8 +350,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
-
-    await this.leaderboard(client)
   }
 
   @SubscribeMessage('start-blackjack')
@@ -372,7 +366,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       const gameId = await this.blackjackService.startGame(user.sub, stake)
       client.emit('blackjack-started', { gameId, player: user.sub })
-      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -395,7 +388,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       await this.blackjackService.joinGame(data.gameId, user.sub)
       client.emit('blackjack-joined', { gameId: data.gameId, player: user.sub })
-      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -418,7 +410,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       const player = await this.blackjackService.hit(data.gameId, user.sub)
       client.emit('player-hit', { gameId: data.gameId, player })
-      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -446,7 +437,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         await this.blackjackService.dealerPlay(data.gameId)
         client.emit('dealer-played', { gameId: data.gameId })
       }
-      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -469,7 +459,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     try {
       await this.blackjackService.leaveGame(data.gameId, user.sub)
       client.emit('blackjack-game-left', { gameId: data.gameId, player: user.sub })
-      await this.leaderboard(client)
     } catch (error) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -599,8 +588,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     await this.realtimeService.saveGameResult(sub, game.points)
     this.blindBoxGames.delete(sub)
-
-    await this.leaderboard(client)
   }
 
   async leaderboard(@ConnectedSocket() client: Socket) {
