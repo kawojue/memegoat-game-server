@@ -122,7 +122,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.BadRequest,
         message: 'Coin face is either heads or tails',
       })
-      client.disconnect()
       return
     }
 
@@ -148,7 +147,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
       })
-      client.disconnect()
       return
     }
 
@@ -193,7 +191,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.BadRequest,
         message: 'Number of dice must be between 1 and 5',
       })
-      client.disconnect()
       return
     }
 
@@ -202,7 +199,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.BadRequest,
         message: 'Invalid guesses for the number of dice',
       })
-      client.disconnect()
       return
     }
 
@@ -228,7 +224,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
       })
-      client.disconnect()
       return
     }
 
@@ -277,7 +272,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.BadRequest,
         message: 'Invalid bet type',
       })
-      client.disconnect()
       return
     }
 
@@ -286,7 +280,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.BadRequest,
         message: 'Number must be between 0 and 36',
       })
-      client.disconnect()
       return
     }
 
@@ -312,12 +305,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
       })
-      client.disconnect()
       return
     }
 
     const outcome = Math.floor(this.random.randomize().random * 37)
-    const outcomeColor = outcome === 0 ? 'green' : outcome % 2 === 0 ? 'red' : 'black'
+    const outcomeColor = outcome === 0 ? 'green' : outcome % 2 === 0 ? 'black' : 'red'
     const outcomeParity = outcome === 0 ? 'neither' : outcome % 2 === 0 ? 'even' : 'odd'
 
     const win =
@@ -333,23 +325,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       point: point,
     }
 
-    client.emit('roulette-spin-result', { ...round, win, outcome, stake })
+    const result = betType === 'number' ? outcome : betType === 'color' ? outcomeColor : outcomeParity
 
-    await this.prisma.$transaction([
-      this.prisma.round.create({
-        data: {
-          ...round,
-          user: { connect: { id: sub } },
-        },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: {
-          tickets: { decrement: stake },
-          ...updateData
-        },
-      }),
-    ])
+    client.emit('roulette-spin-result', { ...round, win, outcome: result, stake })
+
+    if (outcome !== 0) {
+      await this.prisma.$transaction([
+        this.prisma.round.create({
+          data: {
+            ...round,
+            user: { connect: { id: sub } },
+          },
+        }),
+        this.prisma.stat.update({
+          where: { userId: sub },
+          data: {
+            tickets: { decrement: stake },
+            ...updateData
+          },
+        }),
+      ])
+    }
   }
 
   @SubscribeMessage('start-blackjack')
@@ -492,7 +488,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
       })
-      client.disconnect()
       return
     }
 
@@ -588,30 +583,5 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     await this.realtimeService.saveGameResult(sub, game.points)
     this.blindBoxGames.delete(sub)
-  }
-
-  async leaderboard(@ConnectedSocket() client: Socket) {
-    await Promise.all([
-      this.overallLeaderboard(client),
-      this.getCurrentTournamentLeaderboard(client),
-    ])
-  }
-
-  @SubscribeMessage('trigger-overall-leaderboard')
-  async overallLeaderboard(@ConnectedSocket() client: Socket) {
-    const user = this.clients.get(client)
-
-    const data = await this.gamesService.overallLeaderboard(user?.sub)
-
-    client.emit('overall-leaderboard', { ...data })
-  }
-
-  @SubscribeMessage('trigger-tournament-leaderboard')
-  async getCurrentTournamentLeaderboard(@ConnectedSocket() client: Socket) {
-    const user = this.clients.get(client)
-
-    const data = await this.gamesService.getCurrentTournamentLeaderboard(user?.sub)
-
-    client.emit('tournament-leaderboard', { ...data })
   }
 }
