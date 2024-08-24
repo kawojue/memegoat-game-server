@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 import { Cl } from '@stacks/transactions';
+
 @Injectable()
 export class ContractService {
   constructor(private readonly httpService: HttpService) {}
@@ -84,8 +85,20 @@ export class contractDTO {
 
 export type contractArgs = {
   arg: any;
-  type: string;
+  type: ArgType;
 };
+
+export type ArgType =
+  | 'uint'
+  | 'bool'
+  | 'buffer'
+  | 'int'
+  | 'principal'
+  | 'contract'
+  | 'option'
+  | 'none'
+  | 'list'
+  | 'tuple';
 
 type apiResponse = {
   ok?: boolean;
