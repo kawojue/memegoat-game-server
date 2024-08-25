@@ -170,6 +170,8 @@ export class GamesService {
     }
 
     async overallPosition(userId?: string) {
+        let userPosition: null | number = null
+
         if (userId) {
             const userStat = await this.prisma.user.findUnique({
                 where: { id: userId },
@@ -184,7 +186,7 @@ export class GamesService {
 
             const userTotalPoints = userStat.stat.total_points
 
-            const userPosition = await this.prisma.user.count({
+            userPosition = await this.prisma.user.count({
                 where: {
                     active: true,
                     stat: {
@@ -194,11 +196,9 @@ export class GamesService {
                     },
                 },
             })
-
-            return userPosition
-        } else {
-            return null
         }
+
+        return userPosition
     }
 
     async tournamentPosition(userId?: string): Promise<number | null> {
