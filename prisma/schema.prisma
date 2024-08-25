@@ -16,6 +16,7 @@ model Tournament {
   start  DateTime
   end    DateTime
 
+  @@index([stakes])
   @@index([start, end])
 }
 
