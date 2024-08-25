@@ -160,8 +160,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       point: point,
     }
 
-    client.emit('coin-flip-result', { ...round, win, outcome, stake })
-
     await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
@@ -177,6 +175,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
+
+    client.emit('coin-flip-result', { ...round, win, outcome, stake })
   }
 
   @SubscribeMessage('dice-roll')
@@ -241,8 +241,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       point: point,
     }
 
-    client.emit('dice-roll-result', { ...round, win, rolls, stake })
-
     await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
@@ -258,6 +256,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
+
+    client.emit('dice-roll-result', { ...round, win, rolls, stake })
   }
 
   @SubscribeMessage('roulette-spin')
@@ -325,8 +325,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const result = betType === 'number' ? outcome : betType === 'color' ? outcomeColor : outcomeParity
 
-    client.emit('roulette-spin-result', { ...round, win, outcome, result, stake })
-
     await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
@@ -342,6 +340,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         },
       }),
     ])
+
+    client.emit('roulette-spin-result', { ...round, win, outcome, result, stake })
   }
 
   @SubscribeMessage('start-blackjack')
