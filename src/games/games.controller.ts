@@ -31,7 +31,7 @@ export class GamesController {
   @Get('/overall-leaderboard/position')
   async overallPosition(@Req() req: Request, @Res() res: Response) {
     // @ts-ignore
-    const position = await this.gamesService.overallPosition(req.user?.userId)
+    const position = await this.gamesService.overallPosition(req.user?.sub)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: position })
   }
 
@@ -44,7 +44,7 @@ export class GamesController {
   @Get('/tournament-leaderboard/position')
   async tournamentPosition(@Req() req: Request, @Res() res: Response) {
     // @ts-ignore
-    const position = await this.gamesService.tournamentPosition(req.user?.userId)
+    const position = await this.gamesService.tournamentPosition(req.user?.sub)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: position })
   }
 }
