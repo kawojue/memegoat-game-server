@@ -231,7 +231,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const sortedGuesses = [...guesses].sort()
 
     const win = sortedRolls.every((roll, index) => roll === sortedGuesses[index])
-    const point = win ? stake * numDice * 6 : 0
+    const point = this.realtimeService.calculateDicePoint(stake, numDice, win)
     const updateData = win
       ? { total_wins: { increment: 1 }, total_points: { increment: point } }
       : { total_losses: { increment: 1 } }
