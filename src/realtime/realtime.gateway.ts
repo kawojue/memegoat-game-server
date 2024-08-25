@@ -541,9 +541,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     let remainingGems = board.flat().filter(cell => cell === 'gem').length
     const successfulSelections = board.flat().filter(cell => cell === 'selected').length
+    const remainingCells = 16 - successfulSelections
+    const probability = remainingGems / remainingCells
+    const odds = (1 / probability) - 1
+    const pointsToAdd = stake * odds + stake
 
-    const pointsToAdd = 1 / ((remainingGems) / (16 - successfulSelections))
-    game.points += pointsToAdd + stake
+    game.points += pointsToAdd
 
     board[row][column] = 'selected'
 

@@ -65,13 +65,13 @@ export class RealtimeService {
     }
   }
 
-  calculateDicePoint (stake, numDice, win) {
-     if (!win) return 0
+  calculateDicePoint(stake: number, numDice: number, win: boolean) {
+    if (!win) return 0
 
-     const probability = Math.pow(1/6, numDice);
-     const odds = (1 / probability) - 1
+    const probability = Math.pow(1 / 6, numDice);
+    const odds = (1 / probability) - 1
 
-     return stake * odds + stake
+    return stake * odds + stake
   }
 
   createGameBoard() {
