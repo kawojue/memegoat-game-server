@@ -9,6 +9,7 @@ import {
     IsArray,
     IsNumber,
     IsNotEmpty,
+    IsOptional,
 } from 'class-validator'
 
 enum CoinFlip {
@@ -47,6 +48,7 @@ export class RouletteDTO extends StakeDTO {
     @IsInt()
     @Min(0)
     @Max(36)
+    @IsOptional()
     number: number
 }
 
