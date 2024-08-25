@@ -535,14 +535,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const successfulSelections = board.flat().filter(cell => cell === 'selected').length
+let remainingGems = board.flat().filter(cell => cell === 'gem').length
+const successfulSelections = board.flat().filter(cell => cell === 'selected').length
 
-    const pointsToAdd = 1 / ((successfulSelections + 1) / (16 - successfulSelections))
-    game.points += pointsToAdd 
+const pointsToAdd = 1 / ((remainingGems) / (16 - successfulSelections))
+game.points += pointsToAdd 
 
-    board[row][column] = 'selected'
+board[row][column] = 'selected'
 
-    const remainingGems = board.flat().filter(cell => cell === 'gem').length
+remainingGems = board.flat().filter(cell => cell === 'gem').length
+
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
       await this.realtimeService.saveGameResult(sub, game.points)
