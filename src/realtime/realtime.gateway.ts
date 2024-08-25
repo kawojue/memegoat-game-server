@@ -33,7 +33,7 @@ import { BlackjackService } from 'libs/blackJack.service'
       'http://localhost:3000',
       'https://games.memegoat.io',
       'https://memegoat-games.vercel.app',
-      'https://memegoat-game-server.onrender.com',
+      'https://games-server.memegoat.io',
     ],
   },
 })
