@@ -19,7 +19,7 @@ import { ContractService } from 'libs/contract.service'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middleware'
+import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.guard.middleware'
 
 @Module({
   imports: [
@@ -62,7 +62,7 @@ import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middlewar
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(CustomAuthMiddlware)
+      .apply(CustomAuthMiddleware)
       .forRoutes('*')
   }
 }
