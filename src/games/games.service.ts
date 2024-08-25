@@ -246,7 +246,5 @@ export class GamesService {
         }
 
         return position
-    } else {
-        return null
     }
 }
