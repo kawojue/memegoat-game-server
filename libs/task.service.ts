@@ -29,7 +29,7 @@ export class TaskService {
         if (!currentTournament) {
             const start = new Date()
             const end = new Date(start)
-            end.setDate(start.getDate() + 7)
+            end.setDate(start.getDate() + 3)
 
             await this.prisma.tournament.create({
                 data: { key: uuidv4(), start, end },

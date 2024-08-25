@@ -16,6 +16,9 @@ model Tournament {
   start  DateTime
   end    DateTime
 
+  user   User   @relation(references: [id], fields: [userId])
+  userId String @db.ObjectId
+
   @@index([stakes])
   @@index([start, end])
 }
@@ -31,6 +34,8 @@ model User {
   stat      Stat?
   rounds    Round[]
   players   Player[]
+
+  tournament Tournament[]
 
   @@index([createdAt, updatedAt])
 }
