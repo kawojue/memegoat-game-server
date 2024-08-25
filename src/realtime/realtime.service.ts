@@ -89,19 +89,20 @@ export class RealtimeService {
   }
 
   async saveGameResult(userId: string, points: number) {
-    await this.prisma.stat.update({
-      where: { userId },
-      data: {
-        total_points: { increment: points },
-      },
-    })
-
-    await this.prisma.round.create({
-      data: {
-        point: points,
-        game_type: 'BlindBox',
-        user: { connect: { id: userId } },
-      },
-    })
+    await this.prisma.$transaction([
+      this.prisma.stat.update({
+        where: { userId },
+        data: {
+          total_points: { increment: points },
+        },
+      }),
+      this.prisma.round.create({
+        data: {
+          point: points,
+          game_type: 'BlindBox',
+          user: { connect: { id: userId } },
+        },
+      })
+    ])
   }
 }

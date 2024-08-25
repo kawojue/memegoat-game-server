@@ -37,6 +37,11 @@ export class GamesService {
             where: { active: true },
         })
 
+        const { _sum } = await this.prisma.stat.aggregate({
+            where: { user: { active: true } },
+            _sum: { total_points: true }
+        })
+
         const leaderboard = await this.prisma.user.findMany({
             where: { active: true },
             select: {
@@ -64,6 +69,7 @@ export class GamesService {
         const hasPrev = page > 1
 
         return {
+            totalPoints: _sum,
             leaderboard,
             totalPages,
             hasNext,
@@ -133,13 +139,15 @@ export class GamesService {
             },
         })
 
+        let totalTournamentPoints = 0
         const sortedLeaderboard = leaderboard
             .map((user) => {
                 const totalPoints = user.rounds.reduce((acc, round) => acc + round.point, 0)
+                totalTournamentPoints += totalPoints
                 return {
                     ...user,
-                    totalRounds: user.rounds.length,
                     totalPoints,
+                    totalRounds: user.rounds.length,
                     rounds: undefined,
                 }
             })
@@ -151,11 +159,13 @@ export class GamesService {
         const hasPrev = page > 1
 
         return {
-            currentTournament,
-            leaderboard: sortedLeaderboard,
-            totalPages,
             hasNext,
             hasPrev,
+            totalUsers,
+            totalPages,
+            currentTournament,
+            totalTournamentPoints,
+            leaderboard: sortedLeaderboard,
         }
     }
 

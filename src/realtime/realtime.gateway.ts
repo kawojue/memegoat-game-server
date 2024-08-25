@@ -562,7 +562,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
   }
 
-
   @SubscribeMessage('end-blindbox')
   async handleEndGame(@ConnectedSocket() client: Socket) {
     const user = this.clients.get(client)
