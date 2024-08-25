@@ -13,18 +13,24 @@ export class TaskService {
         @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
     ) { }
 
-    @Cron(CronExpression.EVERY_WEEK)
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
     async refreshTournament() {
-        const key = uuidv4()
-        const start = new Date()
-        const end = new Date(start)
-        end.setDate(start.getDate() + 7)
-
-        await this.prisma.tournament.upsert({
-            where: { key },
-            create: { key, start, end },
-            update: { start, end },
+        const currentTournament = await this.prisma.tournament.findFirst({
+            where: {
+                start: { lte: new Date() },
+                end: { gte: new Date() },
+            }
         })
+
+        if (!currentTournament) {
+            const start = new Date()
+            const end = new Date(start)
+            end.setDate(start.getDate() + 7)
+
+            await this.prisma.tournament.create({
+                data: { key: uuidv4(), start, end },
+            })
+        }
     }
 
     @Cron(CronExpression.EVERY_5_MINUTES)

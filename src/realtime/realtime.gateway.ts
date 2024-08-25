@@ -24,7 +24,6 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { GamesService } from 'src/games/games.service'
 import { BlackjackService } from 'libs/blackJack.service'
 
 @WebSocketGateway({
@@ -45,7 +44,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     private readonly prisma: PrismaService,
     private readonly random: RandomService,
     private readonly jwtService: JwtService,
-    private readonly gamesService: GamesService,
     private readonly realtimeService: RealtimeService,
     private readonly blackjackService: BlackjackService,
   ) { }
@@ -317,7 +315,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       (betType === 'color' && number === (outcomeColor === 'red' ? 1 : outcomeColor === 'black' ? 2 : 0)) ||
       (betType === 'parity' && number === (outcomeParity === 'even' ? 1 : outcomeParity === 'odd' ? 2 : 0))
 
-    const point = win ? stake * 35 : 0
+    const point = win ? betType === 'number' ? stake * 35 : stake * 2 : 0
     const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
 
     const round = {
@@ -329,23 +327,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('roulette-spin-result', { ...round, win, outcome: result, stake })
 
-    if (outcome !== 0) {
-      await this.prisma.$transaction([
-        this.prisma.round.create({
-          data: {
-            ...round,
-            user: { connect: { id: sub } },
-          },
-        }),
-        this.prisma.stat.update({
-          where: { userId: sub },
-          data: {
-            tickets: { decrement: stake },
-            ...updateData
-          },
-        }),
-      ])
-    }
+    await this.prisma.$transaction([
+      this.prisma.round.create({
+        data: {
+          ...round,
+          user: { connect: { id: sub } },
+        },
+      }),
+      this.prisma.stat.update({
+        where: { userId: sub },
+        data: {
+          tickets: { decrement: stake },
+          ...updateData
+        },
+      }),
+    ])
   }
 
   @SubscribeMessage('start-blackjack')

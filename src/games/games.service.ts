@@ -1,14 +1,13 @@
 import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
-import { MiscService } from 'libs/misc.service'
 import { StatusCodes } from 'enums/StatusCodes'
+import { PaginationDTO } from './dto/pagination'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
 
 @Injectable()
 export class GamesService {
     constructor(
-        private readonly misc: MiscService,
         private readonly prisma: PrismaService,
         private readonly response: ResponseService,
     ) { }
@@ -28,7 +27,12 @@ export class GamesService {
         this.response.sendSuccess(res, StatusCodes.OK, {})
     }
 
-    async overallLeaderboard(userId?: string) {
+    async overallLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
+        page = Number(page)
+        limit = Number(limit)
+
+        const offset = (page - 1) * limit
+
         const leaderboard = await this.prisma.user.findMany({
             where: { active: true },
             select: {
@@ -47,23 +51,19 @@ export class GamesService {
                     total_points: 'desc',
                 },
             },
-            take: 100,
+            take: limit,
+            skip: offset,
         })
 
-        let userPosition: number | null = null
-
-        if (userId) {
-            const userIndex = leaderboard.findIndex((u) => u.id === userId)
-
-            if (userIndex !== -1) {
-                userPosition = userIndex + 1
-            }
-        }
-
-        return { leaderboard, userPosition }
+        return leaderboard
     }
 
-    async getCurrentTournamentLeaderboard(userId?: string) {
+    async getCurrentTournamentLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
+        page = Number(page)
+        limit = Number(limit)
+
+        const offset = (page - 1) * limit
+
         const currentTournament = await this.prisma.tournament.findFirst({
             where: {
                 start: { lte: new Date() },
@@ -72,7 +72,7 @@ export class GamesService {
         })
 
         if (!currentTournament) {
-            return { leaderboard: [], userPosition: null }
+            return { leaderboard: [] }
         }
 
         const leaderboard = await this.prisma.user.findMany({
@@ -105,35 +105,99 @@ export class GamesService {
             },
         })
 
-        const sortedLeaderboard = leaderboard.map((user) => {
-            const totalPoints = user.rounds.reduce(
-                (acc, round) => acc + round.point,
-                0,
-            )
-            return {
-                ...user,
-                totalRounds: user.rounds.length,
-                totalPoints,
-                rounds: undefined,
-            }
-        })
-
-        sortedLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints)
-
-        let userPosition: number | null = null
-
-        if (userId) {
-            const userIndex = sortedLeaderboard.findIndex((u) => u.id === userId)
-
-            if (userIndex !== -1) {
-                userPosition = userIndex + 1
-            }
-        }
+        const sortedLeaderboard = leaderboard
+            .map((user) => {
+                const totalPoints = user.rounds.reduce((acc, round) => acc + round.point, 0)
+                return {
+                    ...user,
+                    totalRounds: user.rounds.length,
+                    totalPoints,
+                    rounds: undefined,
+                }
+            })
+            .sort((a, b) => b.totalPoints - a.totalPoints)
+            .slice(offset, offset + limit)
 
         return {
             currentTournament,
             leaderboard: sortedLeaderboard,
-            userPosition,
         }
+    }
+
+    async overallPosition(userId?: string) {
+        if (userId) {
+            const userStat = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    stat: {
+                        select: {
+                            total_points: true,
+                        },
+                    },
+                },
+            })
+
+            const userTotalPoints = userStat.stat.total_points
+
+            const userPosition = await this.prisma.user.count({
+                where: {
+                    active: true,
+                    stat: {
+                        total_points: {
+                            gte: userTotalPoints,
+                        },
+                    },
+                },
+            })
+
+            return userPosition
+        }
+    }
+
+    async tournamentPosition(userId?: string): Promise<number | null> {
+        let position: null | number = null
+
+        if (userId) {
+            const currentTournament = await this.prisma.tournament.findFirst({
+                where: {
+                    start: { lte: new Date() },
+                    end: { gte: new Date() },
+                },
+            })
+
+            if (!currentTournament) {
+                return null
+            }
+
+            const userPoints = await this.prisma.round.groupBy({
+                by: ['userId'],
+                _sum: {
+                    point: true,
+                },
+                where: {
+                    user: {
+                        rounds: {
+                            some: {
+                                createdAt: {
+                                    gte: currentTournament.start,
+                                    lte: currentTournament.end,
+                                },
+                            },
+                        },
+                    },
+                },
+                orderBy: {
+                    _sum: {
+                        point: 'desc',
+                    },
+                },
+            })
+
+            position = userPoints.findIndex((user) => user.userId === userId) + 1
+
+            position = position > 0 ? position : null
+        }
+
+        return position
     }
 }
