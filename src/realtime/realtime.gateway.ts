@@ -488,14 +488,18 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const board = this.realtimeService.createGameBoard()
-    this.blindBoxGames.set(sub, { board, points: 0 })
-
-    client.emit('blindbox-started', { boardSize: 4, tickets })
+    this.blindBoxGames.set(sub, {
+      points: 0,
+      board: board,
+      stake: tickets
+    })
 
     await this.prisma.stat.update({
       where: { userId: sub },
       data: { tickets: { decrement: tickets } },
     })
+
+    client.emit('blindbox-started', { boardSize: 4, tickets })
   }
 
   @SubscribeMessage('select-box')
@@ -523,7 +527,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const { board } = game
+    const { board, stake } = game
     const selected = board[row][column]
     if (selected === 'bomb') {
       this.blindBoxGames.delete(sub)
@@ -535,15 +539,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-let remainingGems = board.flat().filter(cell => cell === 'gem').length
-const successfulSelections = board.flat().filter(cell => cell === 'selected').length
+    let remainingGems = board.flat().filter(cell => cell === 'gem').length
+    const successfulSelections = board.flat().filter(cell => cell === 'selected').length
 
-const pointsToAdd = 1 / ((remainingGems) / (16 - successfulSelections))
-game.points += pointsToAdd 
+    const pointsToAdd = 1 / ((remainingGems) / (16 - successfulSelections))
+    game.points += pointsToAdd + stake
 
-board[row][column] = 'selected'
+    board[row][column] = 'selected'
 
-remainingGems = board.flat().filter(cell => cell === 'gem').length
+    remainingGems = board.flat().filter(cell => cell === 'gem').length
 
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
