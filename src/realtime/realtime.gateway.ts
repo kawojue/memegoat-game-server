@@ -545,6 +545,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const remainingCells = 16 - successfulSelections
     const probability = remainingGems / remainingCells
     const odds = (1 / probability) - 1
+
     let pointsToAdd = stake * odds
     if (remainingCells <= 13) {
       pointsToAdd = stake * odds + stake
