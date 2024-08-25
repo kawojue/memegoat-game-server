@@ -33,6 +33,10 @@ export class GamesService {
 
         const offset = (page - 1) * limit
 
+        const totalUsers = await this.prisma.user.count({
+            where: { active: true },
+        })
+
         const leaderboard = await this.prisma.user.findMany({
             where: { active: true },
             select: {
@@ -55,7 +59,16 @@ export class GamesService {
             skip: offset,
         })
 
-        return leaderboard
+        const totalPages = Math.ceil(totalUsers / limit)
+        const hasNext = page < totalPages
+        const hasPrev = page > 1
+
+        return {
+            leaderboard,
+            totalPages,
+            hasNext,
+            hasPrev,
+        }
     }
 
     async getCurrentTournamentLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
@@ -72,11 +85,26 @@ export class GamesService {
         })
 
         if (!currentTournament) {
-            return { leaderboard: [] }
+            return { leaderboard: [], totalPages: 0, hasNext: false, hasPrev: false }
         }
+
+        const totalUsers = await this.prisma.user.count({
+            where: {
+                active: true,
+                rounds: {
+                    some: {
+                        createdAt: {
+                            gte: currentTournament.start,
+                            lte: currentTournament.end,
+                        },
+                    },
+                },
+            },
+        })
 
         const leaderboard = await this.prisma.user.findMany({
             where: {
+                active: true,
                 rounds: {
                     some: {
                         createdAt: {
@@ -118,9 +146,16 @@ export class GamesService {
             .sort((a, b) => b.totalPoints - a.totalPoints)
             .slice(offset, offset + limit)
 
+        const totalPages = Math.ceil(totalUsers / limit)
+        const hasNext = page < totalPages
+        const hasPrev = page > 1
+
         return {
             currentTournament,
             leaderboard: sortedLeaderboard,
+            totalPages,
+            hasNext,
+            hasPrev,
         }
     }
 
