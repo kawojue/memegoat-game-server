@@ -8,11 +8,15 @@ datasource db {
 }
 
 model Tournament {
-  id    String   @id @default(auto()) @map("_id") @db.ObjectId
-  key   String   @unique
-  title String?
-  start DateTime
-  end   DateTime
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  key    String   @unique
+  stakes Int?     @default(0)
+  title  String?
+  paused Boolean? @default(false)
+  start  DateTime
+  end    DateTime
+
+  @@index([start, end])
 }
 
 model User {

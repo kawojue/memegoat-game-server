@@ -22,6 +22,10 @@ export class TaskService {
             }
         })
 
+        if (currentTournament && currentTournament.paused) {
+            return
+        }
+
         if (!currentTournament) {
             const start = new Date()
             const end = new Date(start)

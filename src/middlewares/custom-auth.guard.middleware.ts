@@ -1,11 +1,15 @@
+import {
+    Injectable,
+    NestMiddleware,
+    UnauthorizedException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { env } from 'configs/env.config'
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common'
 import { NextFunction, Request, Response } from 'express'
 
 @Injectable()
 export class CustomAuthMiddleware implements NestMiddleware {
-    constructor(private readonly jwtService: JwtService) {}
+    constructor(private readonly jwtService: JwtService) { }
 
     private async validateAndDecodeToken(token: string) {
         try {

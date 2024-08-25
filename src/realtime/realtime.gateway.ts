@@ -83,7 +83,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         this.clients.set(client, { sub, address })
         this.onlineUsers.set(sub, client.id)
         this.emitOnlineUserCount()
-
       } catch (err) {
         client.emit('error', {
           status: StatusCodes.InternalServerError,
@@ -148,6 +147,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
     const { random } = this.random.randomize()
     const outcome = random < 0.5 ? 'heads' : 'tails'
 
@@ -173,6 +181,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
           tickets: { decrement: stake },
           ...updateData,
         },
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { stakes: { increment: stake } }
       }),
     ])
 
@@ -225,6 +237,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
     const rolls = Array.from({ length: numDice }, () => Math.floor(this.random.randomize().random * 6) + 1)
 
     const sortedRolls = [...rolls].sort()
@@ -254,6 +275,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
           tickets: { decrement: stake },
           ...updateData,
         },
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { stakes: { increment: stake } }
       }),
     ])
 
@@ -306,6 +331,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
     const outcome = Math.floor(this.random.randomize().random * 37)
     const outcomeColor = outcome === 0 ? 'green' : outcome % 2 === 0 ? 'black' : 'red'
     const outcomeParity = outcome === 0 ? 'neither' : outcome % 2 === 0 ? 'even' : 'odd'
@@ -338,6 +372,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
           tickets: { decrement: stake },
           ...updateData
         },
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { stakes: { increment: stake } }
       }),
     ])
 
@@ -487,6 +525,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
     const board = this.realtimeService.createGameBoard()
     this.blindBoxGames.set(sub, {
       points: 0,
@@ -494,10 +541,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       stake: tickets
     })
 
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: { tickets: { decrement: tickets } },
-    })
+    await this.prisma.$transaction([
+      this.prisma.stat.update({
+        where: { userId: sub },
+        data: { tickets: { decrement: tickets } },
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { stakes: { increment: tickets } }
+      })
+    ])
 
     client.emit('blindbox-started', { boardSize: 4, tickets })
   }
