@@ -537,7 +537,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const successfulSelections = board.flat().filter(cell => cell === 'selected').length
 
-    const pointsToAdd = 1 / ((successfulSelections + 1) / 16)
+    const pointsToAdd = 1 / ((successfulSelections + 1) / (16 - successfulSelections))
     game.points += pointsToAdd 
 
     board[row][column] = 'selected'
