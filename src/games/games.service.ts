@@ -196,6 +196,8 @@ export class GamesService {
             })
 
             return userPosition
+        } else {
+            return null
         }
     }
 
@@ -244,5 +246,7 @@ export class GamesService {
         }
 
         return position
+    } else {
+        return null
     }
 }
