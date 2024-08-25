@@ -541,6 +541,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     let remainingGems = board.flat().filter(cell => cell === 'gem').length
     const successfulSelections = board.flat().filter(cell => cell === 'selected').length
+
     const remainingCells = 16 - successfulSelections
     const probability = remainingGems / remainingCells
     const odds = (1 / probability) - 1
