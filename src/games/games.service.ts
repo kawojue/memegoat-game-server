@@ -170,7 +170,8 @@ export class GamesService {
     }
 
     async overallPosition(userId?: string) {
-        let userPosition: null | number = null
+        let userPosition = 0
+        let userTotalPoints = 0
 
         if (userId) {
             const userStat = await this.prisma.user.findUnique({
@@ -184,7 +185,7 @@ export class GamesService {
                 },
             })
 
-            const userTotalPoints = userStat.stat.total_points
+            userTotalPoints = userStat.stat.total_points
 
             userPosition = await this.prisma.user.count({
                 where: {
@@ -198,11 +199,12 @@ export class GamesService {
             })
         }
 
-        return userPosition
+        return { userPosition, userTotalPoints }
     }
 
-    async tournamentPosition(userId?: string): Promise<number | null> {
-        let position: null | number = null
+    async tournamentPosition(userId?: string) {
+        let position = 0
+        let userPoints = 0
 
         if (userId) {
             const currentTournament = await this.prisma.tournament.findFirst({
@@ -216,7 +218,7 @@ export class GamesService {
                 return null
             }
 
-            const userPoints = await this.prisma.round.groupBy({
+            const userScores = await this.prisma.round.groupBy({
                 by: ['userId'],
                 _sum: {
                     point: true,
@@ -240,11 +242,16 @@ export class GamesService {
                 },
             })
 
-            position = userPoints.findIndex((user) => user.userId === userId) + 1
+            const userEntry = userScores.find((user) => user.userId === userId)
+
+            if (userEntry) {
+                userPoints = userEntry._sum.point
+                position = userScores.findIndex((user) => user.userId === userId) + 1
+            }
 
             position = position > 0 ? position : null
         }
 
-        return position
+        return { position, userPoints }
     }
 }
