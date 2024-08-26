@@ -666,9 +666,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    client.emit('blindbox-ended', { points: game.points })
+    if (game.points > game.stake) {
+      game.points = game.points - game.stake
+    }
 
     await this.realtimeService.saveGameResult(sub, game)
+
+    client.emit('blindbox-ended', { points: game.points })
     this.blindBoxGames.delete(sub)
   }
 }
