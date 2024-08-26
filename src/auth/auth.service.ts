@@ -40,7 +40,7 @@ export class AuthService {
                 }),
                 this.prisma.stat.create({
                     data: {
-                        tickets: 1_000_000,
+                        tickets: 1_000,
                         user: { connect: { id: _id } }
                     }
                 })
