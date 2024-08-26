@@ -31,12 +31,10 @@ export class AuthService {
 
   async verifySignature(receivedSignature: string, receivedTimestamp: string) {
     const clientSecret = env.auth.key;
-
     const expectedSignature = HmacSHA256(receivedTimestamp, clientSecret);
-    console.log(receivedTimestamp);
     const encodedExpectedSignature = enc.Base64.stringify(expectedSignature);
-    console.log(encodedExpectedSignature);
-    console.log(receivedSignature);
+    console.log('db', encodedExpectedSignature);
+    console.log('fe', receivedSignature);
 
     if (encodedExpectedSignature !== receivedSignature) {
       throw new Error('Invalid signature');
