@@ -49,8 +49,8 @@ model Stat {
   userId String @unique @db.ObjectId
 
   @@index([tickets])
-  @@index([total_points])
   @@index([createdAt, updatedAt])
+  @@index([total_points, total_losses, total_wins])
 }
 
 model Round {

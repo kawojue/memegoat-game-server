@@ -32,8 +32,9 @@ import { BlackjackService } from 'libs/blackJack.service'
     origin: [
       'http://localhost:3000',
       'https://games.memegoat.io',
-      'https://memegoat-games.vercel.app',
+      'https://beta-games.memegoat.io',
       'https://games-server.memegoat.io',
+      'https://memegoat-games.vercel.app',
     ],
   },
 })
