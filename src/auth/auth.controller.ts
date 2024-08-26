@@ -23,10 +23,10 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly response: ResponseService,
-  ) {}
+  ) { }
 
   @Post('/connect-wallet')
-  async connectWallet(@Res() res: Response, @Body() body: ConnectWalletDTO) {
+  async connectWallet(@Res({ passthrough: true }) res: Response, @Body() body: ConnectWalletDTO) {
     try {
       const data = await this.authService.connectWallet(body);
 
