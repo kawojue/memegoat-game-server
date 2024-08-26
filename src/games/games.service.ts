@@ -170,8 +170,8 @@ export class GamesService {
     }
 
     async overallPosition(userId?: string) {
-        let userPosition = 0
         let userTotalPoints = 0
+        let userPosition: null | number = null
 
         if (userId) {
             const userStat = await this.prisma.user.findUnique({
@@ -209,6 +209,7 @@ export class GamesService {
         if (userId) {
             const currentTournament = await this.prisma.tournament.findFirst({
                 where: {
+                    paused: false,
                     start: { lte: new Date() },
                     end: { gte: new Date() },
                 },

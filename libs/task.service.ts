@@ -13,7 +13,7 @@ export class TaskService {
         @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
     ) { }
 
-    @Cron(CronExpression.EVERY_MINUTE)
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
     async refreshTournament() {
         const currentTournament = await this.prisma.tournament.findFirst({
             where: {
