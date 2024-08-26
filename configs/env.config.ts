@@ -29,6 +29,9 @@ export const env = {
         password: process.env.REDIS_PASSWORD,
         port: parseInt(process.env.REDIS_PORT, 10),
     },
+    auth: {
+        key: process.env.AUTH_SECRET_KEY
+    },
     genKey: process.env.GEN_KEY,
     redirectUrl: process.env.REDIRECT_URL,
     isProd: process.env.NODE_ENV === "production",
