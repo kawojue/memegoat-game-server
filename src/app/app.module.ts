@@ -15,10 +15,11 @@ import { GamesModule } from 'src/games/games.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
 import { SportsModule } from 'src/sports/sports.module'
+import { ContractService } from 'libs/contract.service'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middleware'
+import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.guard.middleware'
 
 @Module({
   imports: [
@@ -54,13 +55,14 @@ import { CustomAuthMiddlware } from 'src/middlewares/custom-auth.guard.middlewar
     TaskService,
     PrismaService,
     ResponseService,
+    ContractService,
   ],
   exports: [AppService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(CustomAuthMiddlware)
+      .apply(CustomAuthMiddleware)
       .forRoutes('*')
   }
 }

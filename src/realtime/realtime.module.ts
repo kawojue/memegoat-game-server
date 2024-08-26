@@ -5,7 +5,6 @@ import { RandomService } from 'libs/random.service'
 import { RealtimeGateway } from './realtime.gateway'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { GamesService } from 'src/games/games.service'
 import { ResponseService } from 'libs/response.service'
 import { BlackjackService } from 'libs/blackJack.service'
 
@@ -19,7 +18,6 @@ import { BlackjackService } from 'libs/blackJack.service'
     },
     JwtService,
     MiscService,
-    GamesService,
     PrismaService,
     ResponseService,
     BlackjackService,

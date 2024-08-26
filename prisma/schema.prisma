@@ -8,11 +8,17 @@ datasource db {
 }
 
 model Tournament {
-  id    String   @id @default(auto()) @map("_id") @db.ObjectId
-  key   String   @unique
-  title String?
-  start DateTime
-  end   DateTime
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  title       String?
+  start       DateTime
+  end         DateTime
+  totalStakes Int      @default(0)
+  uniqueUsers Int      @default(0)
+  paused      Boolean  @default(false)
+
+  @@index([totalStakes])
+  @@index([start, end])
 }
 
 model User {
@@ -42,6 +48,24 @@ model Stat {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique @db.ObjectId
 
+  @@index([tickets])
+  @@index([createdAt, updatedAt])
+  @@index([total_points, total_losses, total_wins])
+}
+
+model Round {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  stake     Int
+  point     Float    @default(0.00)
+  game_type GameType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([game_type])
+  @@index([point, stake])
   @@index([createdAt, updatedAt])
 }
 
@@ -88,19 +112,6 @@ model Dealer {
   updatedAt DateTime @updatedAt
 
   game Game?
-
-  @@index([createdAt, updatedAt])
-}
-
-model Round {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  point     Float    @default(0.00)
-  game_type GameType
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id])
 
   @@index([createdAt, updatedAt])
 }

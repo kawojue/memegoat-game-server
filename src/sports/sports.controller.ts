@@ -27,9 +27,21 @@ export class SportsController {
     return this.response.sendSuccess(res, StatusCodes.OK, { data: countries })
   }
 
-  @Get('seasons')
+  @Get('/leagues')
+  async getCurrentLeagues(@Res() res: Response) {
+    const leagues = await this.apiService.apiSportGET(`leagues?current=true`)
+    return this.response.sendSuccess(res, StatusCodes.OK, { data: leagues })
+  }
+
+  @Get('/seasons')
   async getSeasons(@Res() res: Response) {
     const seasons = await this.apiService.apiSportGET(`leagues/seasons`)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: seasons })
+  }
+
+  @Get('/fixtures')
+  async getFixtures(@Res() res: Response) {
+    const fixtures = await this.apiService.apiSportGET(`/fixtures`)
+    return this.response.sendSuccess(res, StatusCodes.OK, { data: fixtures })
   }
 }

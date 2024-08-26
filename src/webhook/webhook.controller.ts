@@ -24,7 +24,7 @@ export class WebhookController {
   constructor(
     private readonly response: ResponseService,
     private readonly webhookService: WebhookService,
-  ) { }
+  ) {}
 
   @Post()
   async receiveWebhook(@Res() res: Response, @Req() req: Request) {

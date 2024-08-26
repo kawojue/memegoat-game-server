@@ -15,6 +15,7 @@ interface IRequest extends Request {
 }
 
 interface BlindBox {
+    stake: number
     points: number
     board: string[][]
 }

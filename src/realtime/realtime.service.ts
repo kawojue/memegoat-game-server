@@ -23,6 +23,44 @@ export class RealtimeService {
     return this.server
   }
 
+  async currentTournament() {
+    return await this.prisma.tournament.findFirst({
+      where: {
+        paused: false,
+        start: { lte: new Date() },
+        end: { gte: new Date() },
+      }
+    })
+  }
+
+  async updateUniqueUsersForCurrentTournament(
+    tournamentId: string,
+    userId: string,
+    start: Date,
+    end: Date,
+  ) {
+    const rounds = await this.prisma.round.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: start,
+          lte: end,
+        }
+      }
+    })
+
+    /*
+    Used less than or equal-to one because
+    I am saving it after the first round has been saved.
+    */
+    if (rounds <= 1) {
+      await this.prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { uniqueUsers: { increment: 1 } }
+      })
+    }
+  }
+
   async forfeitGame(gameId: string, userId: string): Promise<void> {
     const player = await this.prisma.player.findFirst({
       where: { userId, gameId },
@@ -65,6 +103,15 @@ export class RealtimeService {
     }
   }
 
+  calculateDicePoint(stake: number, numDice: number, win: boolean) {
+    if (!win) return 0
+
+    const probability = Math.pow(1 / 6, numDice)
+    const odds = (1 / probability) - 1
+
+    return stake * odds + stake
+  }
+
   createGameBoard() {
     const board = Array.from({ length: 4 }, () => Array(4).fill('gem'))
     let bombsPlaced = 0
@@ -79,20 +126,22 @@ export class RealtimeService {
     return board
   }
 
-  async saveGameResult(userId: string, points: number) {
-    await this.prisma.stat.update({
-      where: { userId },
-      data: {
-        total_points: { increment: points },
-      },
-    })
-
-    await this.prisma.round.create({
-      data: {
-        point: points,
-        game_type: 'BlindBox',
-        user: { connect: { id: userId } },
-      },
-    })
+  async saveGameResult(userId: string, game: BlindBox) {
+    await this.prisma.$transaction([
+      this.prisma.stat.update({
+        where: { userId },
+        data: {
+          total_points: { increment: game.points },
+        },
+      }),
+      this.prisma.round.create({
+        data: {
+          stake: game.stake,
+          point: game.points,
+          game_type: 'BlindBox',
+          user: { connect: { id: userId } },
+        },
+      }),
+    ])
   }
 }
