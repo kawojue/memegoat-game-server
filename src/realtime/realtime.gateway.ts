@@ -667,7 +667,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     if (game.points > game.stake) {
-      game.points = game.points - game.stake
+      const newPoints = game.points - game.stake
+      if (newPoints > 0) {
+        game.points = newPoints
+      }
     }
 
     await this.realtimeService.saveGameResult(sub, game)
