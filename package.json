@@ -39,6 +39,8 @@
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/websockets": "^10.3.10",
     "@prisma/client": "^5.16.1",
+    "@stacks/common": "^6.16.0",
+    "@stacks/encryption": "^6.16.1",
     "@stacks/transactions": "^6.16.1",
     "@types/passport-jwt": "^4.0.1",
     "@types/seedrandom": "^3.0.8",
