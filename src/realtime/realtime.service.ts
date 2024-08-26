@@ -33,6 +33,34 @@ export class RealtimeService {
     })
   }
 
+  async updateUniqueUsersForCurrentTournament(
+    tournamentId: string,
+    userId: string,
+    start: Date,
+    end: Date,
+  ) {
+    const rounds = await this.prisma.round.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: start,
+          lte: end,
+        }
+      }
+    })
+
+    /*
+    Used less than or equal-to one because
+    I am saving it after the first round has been saved.
+    */
+    if (rounds <= 1) {
+      await this.prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { uniqueUsers: { increment: 1 } }
+      })
+    }
+  }
+
   async forfeitGame(gameId: string, userId: string): Promise<void> {
     const player = await this.prisma.player.findFirst({
       where: { userId, gameId },
@@ -98,21 +126,22 @@ export class RealtimeService {
     return board
   }
 
-  async saveGameResult(userId: string, points: number) {
+  async saveGameResult(userId: string, game: BlindBox) {
     await this.prisma.$transaction([
       this.prisma.stat.update({
         where: { userId },
         data: {
-          total_points: { increment: points },
+          total_points: { increment: game.points },
         },
       }),
       this.prisma.round.create({
         data: {
-          point: points,
+          stake: game.stake,
+          point: game.points,
           game_type: 'BlindBox',
           user: { connect: { id: userId } },
         },
-      })
+      }),
     ])
   }
 }

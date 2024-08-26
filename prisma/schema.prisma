@@ -8,18 +8,16 @@ datasource db {
 }
 
 model Tournament {
-  id     String   @id @default(auto()) @map("_id") @db.ObjectId
-  key    String   @unique
-  stakes Int?     @default(0)
-  title  String?
-  paused Boolean? @default(false)
-  start  DateTime
-  end    DateTime
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  title       String?
+  start       DateTime
+  end         DateTime
+  totalStakes Int      @default(0)
+  uniqueUsers Int      @default(0)
+  paused      Boolean  @default(false)
 
-  user   User   @relation(references: [id], fields: [userId])
-  userId String @db.ObjectId
-
-  @@index([stakes])
+  @@index([totalStakes])
   @@index([start, end])
 }
 
@@ -34,8 +32,6 @@ model User {
   stat      Stat?
   rounds    Round[]
   players   Player[]
-
-  tournament Tournament[]
 
   @@index([createdAt, updatedAt])
 }
@@ -59,6 +55,7 @@ model Stat {
 
 model Round {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  stake     Int
   point     Float    @default(0.00)
   game_type GameType
   createdAt DateTime @default(now())
@@ -67,8 +64,8 @@ model Round {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
 
-  @@index([point])
   @@index([game_type])
+  @@index([point, stake])
   @@index([createdAt, updatedAt])
 }
 

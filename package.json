@@ -12,6 +12,8 @@
     "build": "npx prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "seed": "ts-node prisma/seeder.ts",
+    "postbuild": "npm run seed",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
