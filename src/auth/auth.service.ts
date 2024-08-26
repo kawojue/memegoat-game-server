@@ -33,10 +33,10 @@ export class AuthService {
     const clientSecret = env.auth.key;
 
     const expectedSignature = HmacSHA256(receivedTimestamp, clientSecret);
-    console.log(expectedSignature);
-
+    console.log(receivedTimestamp);
     const encodedExpectedSignature = enc.Base64.stringify(expectedSignature);
     console.log(encodedExpectedSignature);
+    console.log(receivedSignature);
 
     if (encodedExpectedSignature !== receivedSignature) {
       throw new Error('Invalid signature');
