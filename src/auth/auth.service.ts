@@ -36,7 +36,7 @@ export class AuthService {
     console.log('db', encodedExpectedSignature);
     console.log('fe', receivedSignature);
 
-    if (encodedExpectedSignature !== receivedSignature) {
+    if (encodedExpectedSignature.trim() !== receivedSignature.trim()) {
       throw new Error('Invalid signature');
     }
 
