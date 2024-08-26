@@ -33,8 +33,6 @@ export class AuthService {
     const clientSecret = env.auth.key;
     const expectedSignature = HmacSHA256(receivedTimestamp, clientSecret);
     const encodedExpectedSignature = enc.Base64.stringify(expectedSignature);
-    console.log('db', encodedExpectedSignature);
-    console.log('fe', receivedSignature);
 
     if (encodedExpectedSignature.trim() !== receivedSignature.trim()) {
       throw new Error('Invalid signature');
@@ -106,7 +104,7 @@ export class AuthService {
 
       const signatureVerified = await this.verifySignature(requestId, issuedAt);
 
-      if (signatureVerified) {
+      if (!signatureVerified) {
         throw new UnauthorizedException('Invalid Signature');
       }
 
