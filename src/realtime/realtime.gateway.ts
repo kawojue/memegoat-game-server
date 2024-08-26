@@ -81,7 +81,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
           return
         }
 
-        if (!userData?.active) {
+        if (!userData.active) {
           client.emit('error', {
             status: StatusCodes.Forbidden,
             message: 'Account Suspended',
