@@ -22,34 +22,56 @@ model Tournament {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  address   String   @unique
-  username  String?  @unique
-  avatar    String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stat      Stat?
-  rounds    Round[]
-  players   Player[]
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  address     String       @unique
+  username    String?      @unique
+  avatar      String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  stat        Stat?
+  rounds      Round[]
+  players     Player[]
+  sportBets   SportBet[]
+  sportRounds SportRound[]
 
   @@index([createdAt, updatedAt])
 }
 
+model SportTournament {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  title       String?
+  start       DateTime
+  end         DateTime
+  totalStakes Int      @default(0)
+  uniqueUsers Int      @default(0)
+  paused      Boolean  @default(false)
+
+  @@index([totalStakes])
+  @@index([start, end])
+}
+
 model Stat {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  tickets      Int      @default(0)
-  total_wins   Int      @default(0)
-  total_losses Int      @default(0)
-  total_points Float    @default(0.00)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  tickets      Int    @default(0)
+  total_wins   Int    @default(0)
+  total_losses Int?   @default(0)
+  total_points Float? @default(0.00)
+
+  total_sport_wins   Int    @default(0)
+  total_sport_losses Int    @default(0)
+  total_sport_points Float? @default(0.00)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique @db.ObjectId
 
   @@index([tickets])
   @@index([createdAt, updatedAt])
+  @@index([total_sport_points])
   @@index([total_points, total_losses, total_wins])
 }
 
@@ -65,6 +87,25 @@ model Round {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([game_type])
+  @@index([point, stake])
+  @@index([createdAt, updatedAt])
+}
+
+model SportRound {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  stake      Int
+  sport_type SportType
+  point      Float     @default(0.00)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  bet   SportBet @relation(fields: [betId], references: [id])
+  betId String   @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([sport_type])
   @@index([point, stake])
   @@index([createdAt, updatedAt])
 }
@@ -134,7 +175,25 @@ model Transaction {
 }
 
 model SportBet {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  fixureId        String
+  status          BetStatus
+  stake           Int
+  potentialWin    Int
+  placebetOutcome PlacebetOutcome
+  outcome         SportbetOutcome
+  goals           Goals
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sportRounds     SportRound[]
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([fixureId, userId])
+  @@index([fixureId])
+  @@index([createdAt, updatedAt])
+  @@index([status, placebetOutcome, outcome])
 }
 
 enum TxStatus {
@@ -149,4 +208,37 @@ enum GameType {
   Roulette
   CoinFlip
   BlackJack
+}
+
+enum BetStatus {
+  ONGOING
+  FINISHED
+}
+
+enum SportbetOutcome {
+  WIN
+  LOSE
+  REFUNDED
+  CANCELLED
+  NOT_DECIDED
+}
+
+enum PlacebetOutcome {
+  home
+  away
+  draw
+}
+
+type Goals {
+  home Int?
+  away Int?
+}
+
+enum TournamentType {
+  GAME
+  SPORT
+}
+
+enum SportType {
+  FOOTBALL
 }

@@ -14,7 +14,7 @@ export const env = {
         expiry: process.env.JWT_EXPIRY,
     },
     sport: {
-        apiKey: process.env.SPORT_API_KEY
+        apiKey: process.env.SPORT_API_KEY,
     },
     webhook: {
         secret: process.env.WEBHOOK_SECRET

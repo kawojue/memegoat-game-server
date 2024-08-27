@@ -13,8 +13,8 @@ export class TaskService {
         @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
     ) { }
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async refreshTournament() {
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    async refreshGameTournament() {
         const currentTournament = await this.prisma.tournament.findFirst({
             where: {
                 start: { lte: new Date() },
@@ -38,6 +38,30 @@ export class TaskService {
     }
 
     @Cron(CronExpression.EVERY_5_MINUTES)
+    async refreshSportTournament() {
+        const currentTournament = await this.prisma.sportTournament.findFirst({
+            where: {
+                start: { lte: new Date() },
+                end: { gte: new Date() },
+            }
+        })
+
+        if (currentTournament && currentTournament.paused) {
+            return
+        }
+
+        if (!currentTournament) {
+            const start = new Date()
+            const end = new Date(start)
+            end.setDate(start.getDate() + 7)
+
+            await this.prisma.sportTournament.create({
+                data: { key: uuidv4(), start, end },
+            })
+        }
+    }
+
+    // @Cron(CronExpression.EVERY_5_MINUTES)
     async updateTransactions() {
         const batchSize = 200
         let transactionsProcessed = 0
