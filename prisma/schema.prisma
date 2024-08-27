@@ -22,16 +22,17 @@ model Tournament {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  address   String   @unique
-  username  String?  @unique
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  address   String     @unique
+  username  String?    @unique
   avatar    String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   stat      Stat?
   rounds    Round[]
   players   Player[]
+  sportBets SportBet[]
 
   @@index([createdAt, updatedAt])
 }
@@ -134,7 +135,24 @@ model Transaction {
 }
 
 model SportBet {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  fixureId        String
+  status          BetStatus
+  stake           Int
+  potentialWin    Int
+  placebetOutcome PlacebetOutcome
+  outcome         SportbetOutcome
+  goals           Goals
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([fixureId, userId])
+  @@index([fixureId])
+  @@index([createdAt, updatedAt])
+  @@index([status, placebetOutcome, outcome])
 }
 
 enum TxStatus {
@@ -149,4 +167,28 @@ enum GameType {
   Roulette
   CoinFlip
   BlackJack
+}
+
+enum BetStatus {
+  ONGOING
+  FINISHED
+}
+
+enum SportbetOutcome {
+  WIN
+  LOSE
+  REFUNDED
+  CANCELLED
+  NOT_DECIDED
+}
+
+enum PlacebetOutcome {
+  home
+  away
+  draw
+}
+
+type Goals {
+  home Int?
+  away Int?
 }

@@ -3,8 +3,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { ApiService } from 'libs/api.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { SportsService } from './sports.service'
-import { Controller, Get, Res } from '@nestjs/common'
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common'
 import { ResponseService } from 'libs/response.service'
+import { PlacebetDTO } from './sports.dto'
 
 @ApiTags('Sports')
 @Controller('sports')
@@ -41,7 +42,17 @@ export class SportsController {
 
   @Get('/fixtures')
   async getFixtures(@Res() res: Response) {
-    const fixtures = await this.apiService.apiSportGET(`/fixtures`)
+    const fixtures = await this.apiService.apiSportGET(`/fixtures?id=1252428`)
+    // const fixtures = await this.apiService.apiSportGET(`/fixtures?live=all&timezone=Europe/London&status=1H`)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: fixtures })
+  }
+
+  @Post('/place-bet')
+  async placeBet(
+    @Req() req: IRequest,
+    @Res() res: Response,
+    @Body() body: PlacebetDTO
+  ) {
+
   }
 }
