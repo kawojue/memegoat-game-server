@@ -5,12 +5,11 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { FetchFixturesDTO, PlacebetDTO } from './sports.dto'
 import { SportRound } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
-import { env } from 'configs/env.config'
+import { FetchFixturesDTO, PlacebetDTO } from './sports.dto'
 
 @Injectable()
 export class SportsService {
@@ -19,7 +18,7 @@ export class SportsService {
         private readonly apiService: ApiService,
     ) { }
 
-    async currentTournament() {
+    private async currentTournament() {
         return await this.prisma.sportTournament.findFirst({
             where: {
                 paused: false,
@@ -29,7 +28,7 @@ export class SportsService {
         })
     }
 
-    paginateArray<T>(array: Array<T>, page = 1, limit = 10) {
+    private paginateArray<T>(array: Array<T>, page = 1, limit = 10) {
         const offset = (page - 1) * limit
         const paginatedItems = array.slice(offset, offset + limit)
 
@@ -39,6 +38,34 @@ export class SportsService {
             totalItems: array.length,
             totalPages: Math.ceil(array.length / limit),
             items: paginatedItems
+        }
+    }
+
+    private async updateUniqueUsersForCurrentTournament(
+        tournamentId: string,
+        userId: string,
+        start: Date,
+        end: Date,
+    ) {
+        const rounds = await this.prisma.sportRound.count({
+            where: {
+                userId,
+                createdAt: {
+                    gte: start,
+                    lte: end,
+                }
+            }
+        })
+
+        /*
+        Used less than or equal-to one because
+        I am saving it after the first round has been saved.
+        */
+        if (rounds <= 1) {
+            await this.prisma.sportTournament.update({
+                where: { id: tournamentId },
+                data: { uniqueUsers: { increment: 1 } }
+            })
         }
     }
 
@@ -138,6 +165,20 @@ export class SportsService {
                     },
                     potentialWin,
                     placebetOutcome,
+                    teams: {
+                        home: {
+                            name: game.teams.home.name,
+                            logo: game.teams.home.logo,
+                            winner: game.teams.home.winner,
+                            id: game.teams.home.id.toString(),
+                        },
+                        away: {
+                            name: game.teams.away.name,
+                            logo: game.teams.away.logo,
+                            winner: game.teams.away.winner,
+                            id: game.teams.away.id.toString(),
+                        }
+                    },
                     user: { connect: { id: userId } }
                 }
             }),
@@ -160,6 +201,14 @@ export class SportsService {
                     user: { connect: { id: userId } },
                 }
             })
+        }
+
+        if (round) {
+            await this.updateUniqueUsersForCurrentTournament(
+                currentTournament.id, userId,
+                currentTournament.start,
+                currentTournament.end,
+            )
         }
 
         return { bet, round }
@@ -199,7 +248,12 @@ export class SportsService {
         })
 
         const leaderboard = await this.prisma.user.findMany({
-            where: { active: true },
+            where: {
+                active: true,
+                stat: {
+                    total_sport_points: { gte: 1 }
+                }
+            },
             select: {
                 id: true,
                 stat: {
