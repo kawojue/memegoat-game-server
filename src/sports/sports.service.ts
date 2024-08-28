@@ -165,6 +165,7 @@ export class SportsService {
                     },
                     potentialWin,
                     placebetOutcome,
+                    elapsed: game.fixture.status.elapsed,
                     teams: {
                         home: {
                             name: game.teams.home.name,

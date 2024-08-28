@@ -180,6 +180,7 @@ model SportBet {
   status          BetStatus
   stake           Int
   potentialWin    Int
+  elapsed         Int
   placebetOutcome PlacebetOutcome
   outcome         SportbetOutcome
   goals           Goals
