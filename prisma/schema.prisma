@@ -186,6 +186,7 @@ model SportBet {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   sportRounds     SportRound[]
+  teams           SportTeams
 
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
@@ -241,4 +242,16 @@ enum TournamentType {
 
 enum SportType {
   FOOTBALL
+}
+
+type SportTeams {
+  home SportTeam
+  away SportTeam
+}
+
+type SportTeam {
+  id     String
+  name   String
+  logo   String
+  winner Boolean?
 }
