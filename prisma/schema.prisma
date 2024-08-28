@@ -100,7 +100,7 @@ model SportRound {
   updatedAt  DateTime  @updatedAt
 
   bet   SportBet @relation(fields: [betId], references: [id])
-  betId String   @db.ObjectId
+  betId String   @unique @db.ObjectId
 
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
@@ -180,13 +180,13 @@ model SportBet {
   status          BetStatus
   stake           Int
   potentialWin    Int
-  elapsed         Int
+  elapsed         Int?
   placebetOutcome PlacebetOutcome
   outcome         SportbetOutcome
   goals           Goals
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  sportRounds     SportRound[]
+  sportRound      SportRound?
   teams           SportTeams
 
   userId String @db.ObjectId
@@ -220,7 +220,6 @@ enum BetStatus {
 enum SportbetOutcome {
   WIN
   LOSE
-  REFUNDED
   CANCELLED
   NOT_DECIDED
 }

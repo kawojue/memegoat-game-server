@@ -69,16 +69,19 @@ export class SportsService {
         }
     }
 
-    async fetchFixtures({ page = 1, limit = 20, timezone }: FetchFixturesDTO) {
+    async fetchFixtures({ page = 1, limit = 20, timezone, leagueId }: FetchFixturesDTO) {
         page = Number(page)
         limit = Number(limit)
 
         let fixtures: FootballMatchResponse[] = []
 
-        if (timezone) {
+        if (leagueId) {
+            const data = await this.apiService.apiSportGET<any>(`/fixtures?league=${leagueId}&season=${new Date().getFullYear()}`)
+            fixtures = data.response
+        } else if (timezone) {
             const data = await this.apiService.apiSportGET<any>(`/fixtures?live=all&timezone=${timezone}`)
             fixtures = data.response
-        } {
+        } else {
             const data = await this.apiService.apiSportGET<any>(`/fixtures?live=all`)
             fixtures = data.response
         }
@@ -126,7 +129,7 @@ export class SportsService {
         const now = new Date()
         const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
 
-        if (timeLeft <= 90) {
+        if (timeLeft <= 120) {
             throw new UnprocessableEntityException(`The current tournament will end in ${Math.ceil(timeLeft)} minutes. You can't place a bet.`)
         }
 
@@ -142,30 +145,29 @@ export class SportsService {
         }
 
         const fixture = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
+        const game = fixture.response as FootballMatchResponse
 
-        if (!fixture) {
+        if (!game) {
             throw new NotFoundException("Fixture not found")
         }
 
-        const game = fixture.response as FootballMatchResponse
-        if (game.fixture.status.elapsed > 20) {
+        const elapsed = game.fixture.status.elapsed || 0
+        if (elapsed > 20) {
             throw new UnprocessableEntityException("The match has started already")
         }
 
         const [bet] = await this.prisma.$transaction([
             this.prisma.sportBet.create({
                 data: {
-                    stake,
-                    status: 'ONGOING',
+                    stake, status: 'ONGOING',
                     fixureId: fixtureId.toString(),
-                    outcome: 'NOT_DECIDED',
+                    outcome: 'NOT_DECIDED', elapsed,
                     goals: {
                         away: game.goals.away,
                         home: game.goals.away,
                     },
                     potentialWin,
                     placebetOutcome,
-                    elapsed: game.fixture.status.elapsed,
                     teams: {
                         home: {
                             name: game.teams.home.name,
@@ -180,7 +182,16 @@ export class SportsService {
                             id: game.teams.away.id.toString(),
                         }
                     },
-                    user: { connect: { id: userId } }
+                    sportRound: {
+                        create: {
+                            stake, sport_type: 'FOOTBALL',
+                            user: { connect: { id: userId } }
+                        }
+                    },
+                    user: { connect: { id: userId } },
+                },
+                include: {
+                    sportRound: true
                 }
             }),
             this.prisma.stat.update({
@@ -191,20 +202,7 @@ export class SportsService {
             }),
         ])
 
-        let round: SportRound
-
         if (bet) {
-            round = await this.prisma.sportRound.create({
-                data: {
-                    point: 0, stake,
-                    sport_type: 'FOOTBALL',
-                    bet: { connect: { id: bet.id } },
-                    user: { connect: { id: userId } },
-                }
-            })
-        }
-
-        if (round) {
             await this.updateUniqueUsersForCurrentTournament(
                 currentTournament.id, userId,
                 currentTournament.start,
@@ -212,7 +210,7 @@ export class SportsService {
             )
         }
 
-        return { bet, round }
+        return bet
     }
 
     async fetchUserBets(

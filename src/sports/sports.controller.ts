@@ -47,7 +47,7 @@ export class SportsController {
   @UseGuards(JwtAuthGuard)
   @Get('/leagues')
   async getCurrentLeagues(@Res() res: Response) {
-    const leagues = await this.apiService.apiSportGET(`leagues?current=true`)
+    const leagues = await this.apiService.apiSportGET(`leagues?current=true&season=${new Date().getFullYear()}`)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: leagues })
   }
 
@@ -63,8 +63,6 @@ export class SportsController {
   @Get('/fixtures')
   @UseGuards(JwtAuthGuard)
   async fetchFixtures(@Res() res: Response, @Query() q: FetchFixturesDTO) {
-    // const fixtures = await this.apiService.apiSportGET(`/fixtures?id=1252428`)
-
     const data = await this.sportsService.fetchFixtures(q)
     return this.response.sendSuccess(res, StatusCodes.OK, { data })
   }
@@ -99,8 +97,7 @@ export class SportsController {
   }
 
   @Get('/overall-leaderboard/position')
-  async overallLeaderboardPosition(@Req() req: Request, @Res() res: Response) {
-    // @ts-ignore
+  async overallLeaderboardPosition(@Req() req: IRequest, @Res() res: Response) {
     const position = await this.sportsService.overallLeaderboardPosition(req.user?.sub)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: position })
   }
@@ -112,8 +109,7 @@ export class SportsController {
   }
 
   @Get('/tournament-leaderboard/position')
-  async tournamentPosition(@Req() req: Request, @Res() res: Response) {
-    // @ts-ignore
+  async tournamentPosition(@Req() req: IRequest, @Res() res: Response) {
     const position = await this.sportsService.tournamentPosition(req.user?.sub)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: position })
   }
