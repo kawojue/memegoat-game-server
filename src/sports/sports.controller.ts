@@ -8,6 +8,11 @@ import {
   UseGuards,
   Controller,
 } from '@nestjs/common'
+import {
+  PlaceNFLBetDTO,
+  FetchFixturesDTO,
+  PlaceFootballBetDTO,
+} from './sports.dto'
 import { Response } from 'express'
 import { ApiService } from 'libs/api.service'
 import { StatusCodes } from 'enums/StatusCodes'
@@ -16,7 +21,6 @@ import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PaginationDTO } from 'src/games/dto/pagination'
-import { FetchFixturesDTO, PlacebetDTO } from './sports.dto'
 
 @ApiTags('Sports')
 @Controller('sports')
@@ -70,12 +74,24 @@ export class SportsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('football/place-bet')
-  async placeBet(
+  async placeFootballBet(
     @Req() req: IRequest,
     @Res() res: Response,
-    @Body() body: PlacebetDTO
+    @Body() body: PlaceFootballBetDTO
   ) {
-    const data = await this.sportsService.placeBet(req.user, body)
+    const data = await this.sportsService.placeFootballBet(req.user, body)
+    return this.response.sendSuccess(res, StatusCodes.Created, { data })
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('nfl/place-bet')
+  async fetchNFLGames(
+    @Req() req: IRequest,
+    @Res() res: Response,
+    @Body() body: PlaceNFLBetDTO
+  ) {
+    const data = await this.sportsService.placeNFLBet(req.user, body)
     return this.response.sendSuccess(res, StatusCodes.Created, { data })
   }
 

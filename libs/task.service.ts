@@ -63,7 +63,7 @@ export class TaskService {
     }
 
     @Cron(CronExpression.EVERY_5_MINUTES)
-    async SPORT() {
+    async triggerFootballBets() {
         const batchSize = 17 // max is 20, I am just being skeptical
         let betsProcessed = 0
 
@@ -82,6 +82,7 @@ export class TaskService {
             const bets = await this.prisma.sportBet.findMany({
                 where: {
                     outcome: 'NOT_DECIDED',
+                    fixureId: { not: null },
                     status: { in: ['ONGOING', 'NOT_STARTED'] },
                 },
                 take: batchSize,

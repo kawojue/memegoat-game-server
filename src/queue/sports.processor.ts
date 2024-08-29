@@ -70,7 +70,7 @@ export class SportsQueueProcessor {
                             home: fixture.goals.home,
                             away: fixture.goals.away,
                         },
-                        elapsed: fixture.fixture.status.elapsed,
+                        elapsed: fixture.fixture.status.elapsed.toString(),
                     },
                     include: {
                         sportRound: true,

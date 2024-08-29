@@ -176,12 +176,13 @@ model Transaction {
 
 model SportBet {
   id              String          @id @default(auto()) @map("_id") @db.ObjectId
-  fixureId        String
+  gameId          String?
+  fixureId        String?
   status          BetStatus
   sport_type      SportType
   stake           Int
   potentialWin    Int
-  elapsed         Int?
+  elapsed         String?
   placebetOutcome PlacebetOutcome
   outcome         SportbetOutcome
   goals           Goals
@@ -194,8 +195,8 @@ model SportBet {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
 
-  @@unique([fixureId, userId])
   @@index([fixureId])
+  @@index([gameId])
   @@index([createdAt, updatedAt])
   @@index([status, placebetOutcome, outcome])
 }

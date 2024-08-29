@@ -4,13 +4,13 @@ import { PlacebetOutcome } from "@prisma/client"
 import { PaginationDTO } from "src/games/dto/pagination"
 import { IsEnum, IsNotEmpty, IsNumber, IsOptional } from "class-validator"
 
-export class PlacebetDTO {
+export class BetDTO {
     @ApiProperty({
-        example: 9999
+        example: 1
     })
     @IsNumber()
     @IsNotEmpty()
-    fixtureId: number
+    stake: number
 
     @ApiProperty({
         enum: PlacebetOutcome
@@ -18,13 +18,24 @@ export class PlacebetDTO {
     @IsNotEmpty()
     @IsEnum(PlacebetOutcome)
     placebetOutcome: PlacebetOutcome
+}
 
+export class PlaceFootballBetDTO extends BetDTO {
+    @ApiProperty({
+        example: 9999
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    fixtureId: number
+}
+
+export class PlaceNFLBetDTO extends BetDTO {
     @ApiProperty({
         example: 1
     })
     @IsNumber()
     @IsNotEmpty()
-    stake: number
+    gameId: number
 }
 
 export class FetchFixturesDTO extends PaginationDTO {

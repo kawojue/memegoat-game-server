@@ -1,4 +1,9 @@
 import {
+    PlaceNFLBetDTO,
+    FetchFixturesDTO,
+    PlaceFootballBetDTO,
+} from './sports.dto'
+import {
     Injectable,
     ConflictException,
     NotFoundException,
@@ -9,7 +14,6 @@ import { SportType } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
-import { FetchFixturesDTO, PlacebetDTO } from './sports.dto'
 
 @Injectable()
 export class SportsService {
@@ -104,16 +108,29 @@ export class SportsService {
         return this.paginateArray<FootballMatchResponse>(fixtures, page, limit)
     }
 
-    async placeBet(
+    async fetchNFLGames({ page = 0, limit = 0 }: PaginationDTO) {
+        let fixtures: NFLResponse[] = []
+        const data = await this.apiService.apiSportGET<any>(`/games?league=1&season=${new Date().getFullYear()}`)
+        fixtures = data.response
+
+        fixtures = fixtures.filter((fixture) => {
+            const status = fixture.game.status.short
+            if (status === "NS ") {
+                return fixture
+            }
+        })
+
+        return this.paginateArray<NFLResponse>(fixtures, page, limit)
+    }
+
+    async placeFootballBet(
         { sub: userId }: ExpressUser,
-        { stake, placebetOutcome, fixtureId }: PlacebetDTO
+        { stake, placebetOutcome, fixtureId }: PlaceFootballBetDTO
     ) {
-        const placedBetAlready = await this.prisma.sportBet.findUnique({
+        const placedBetAlready = await this.prisma.sportBet.findFirst({
             where: {
-                fixureId_userId: {
-                    userId,
-                    fixureId: fixtureId.toString(),
-                }
+                fixureId: fixtureId.toString(),
+                userId,
             }
         })
 
@@ -180,14 +197,14 @@ export class SportsService {
         const [bet] = await this.prisma.$transaction([
             this.prisma.sportBet.create({
                 data: {
-                    stake, elapsed,
                     outcome: 'NOT_DECIDED',
                     fixureId: fixtureId.toString(),
                     sport_type: SportType.FOOTBALL,
+                    stake, elapsed: elapsed.toString(),
                     status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
                     goals: {
                         away: game.goals.away,
-                        home: game.goals.away,
+                        home: game.goals.home,
                     },
                     potentialWin,
                     placebetOutcome,
@@ -216,6 +233,140 @@ export class SportsService {
                     sportRound: {
                         create: {
                             stake, sport_type: 'FOOTBALL',
+                            user: { connect: { id: userId } }
+                        }
+                    },
+                    user: { connect: { id: userId } },
+                },
+                include: {
+                    sportRound: true
+                }
+            }),
+            this.prisma.stat.update({
+                where: { userId },
+                data: {
+                    tickets: { decrement: stake }
+                }
+            }),
+        ])
+
+        if (bet) {
+            await this.updateUniqueUsersForCurrentTournament(
+                currentTournament.id, userId,
+                currentTournament.start,
+                currentTournament.end,
+            )
+        }
+
+        return bet
+    }
+
+    async placeNFLBet(
+        { sub: userId }: ExpressUser,
+        { stake, placebetOutcome, gameId }: PlaceNFLBetDTO
+    ) {
+        const placedBetAlready = await this.prisma.sportBet.findFirst({
+            where: {
+                gameId: gameId.toString(),
+                userId,
+            }
+        })
+
+        if (placedBetAlready) {
+            throw new ConflictException("Same bet placed already")
+        }
+
+        let potentialWin = 0
+        switch (placebetOutcome) {
+            case 'away':
+            case 'home':
+                potentialWin = stake * 2
+                break
+
+            case 'draw':
+                potentialWin = stake * 10
+                break
+            default:
+                throw new BadRequestException("Invalid bet outcome")
+        }
+
+        const currentTournament = await this.currentTournament()
+
+        if (!currentTournament) {
+            throw new UnprocessableEntityException("No ongoing tournament")
+        }
+
+        const now = new Date()
+        const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
+
+        const THRESHOLD = 300
+
+        let formattedTime = timeLeft > 60 ? `${Math.floor(timeLeft / 60)} Hrs` : `${timeLeft} minutes`
+
+        if (timeLeft <= THRESHOLD) {
+            throw new UnprocessableEntityException(`The current tournament will end in ${formattedTime}. You can't place a bet.`)
+        }
+
+        const stat = await this.prisma.stat.findFirst({
+            where: {
+                userId,
+                tickets: { gte: stake }
+            },
+        })
+
+        if (!stat) {
+            throw new UnprocessableEntityException("Insufficient tickets")
+        }
+
+        let res = await this.apiService.apiSportGET<any>(`/fixtures?id=${gameId}`)
+        const fixture = res.response as NFLResponse[]
+
+        const game = fixture[0]
+
+        if (fixture.length === 0) {
+            throw new NotFoundException("Fixture not found")
+        }
+
+        if (game.game.status.short !== "NS") {
+            throw new BadRequestException("Sorry, you can't bet on this game right now")
+        }
+
+        const [bet] = await this.prisma.$transaction([
+            this.prisma.sportBet.create({
+                data: {
+                    outcome: 'NOT_DECIDED',
+                    sport_type: SportType.NFL,
+                    fixureId: gameId.toString(),
+                    stake, elapsed: game.game.status.timer,
+                    status: 'NOT_STARTED',
+                    goals: {
+                        away: game.scores.away.total,
+                        home: game.scores.home.total,
+                    },
+                    potentialWin,
+                    placebetOutcome,
+                    teams: {
+                        home: {
+                            name: game.teams.home.name,
+                            logo: game.teams.home.logo,
+                            id: game.teams.home.id.toString(),
+                        },
+                        away: {
+                            name: game.teams.away.name,
+                            logo: game.teams.away.logo,
+                            id: game.teams.away.id.toString(),
+                        }
+                    },
+                    league: {
+                        name: game.league.name,
+                        logo: game.league.logo,
+                        id: game.league.id.toString(),
+                        country: game.league.country.name,
+                        season: game.league.season.toString()
+                    },
+                    sportRound: {
+                        create: {
+                            stake, sport_type: 'NFL',
                             user: { connect: { id: userId } }
                         }
                     },
