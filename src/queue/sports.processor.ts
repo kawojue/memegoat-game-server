@@ -33,6 +33,8 @@ export class SportsQueueProcessor {
             for (const bet of bets) {
                 let outcome: SportbetOutcome = SportbetOutcome.NOT_DECIDED
 
+                let status: BetStatus = BetStatus.ONGOING
+
                 if (
                     fixture.fixture.status.short === 'FT' ||
                     fixture.fixture.status.short === 'AET' ||
@@ -50,18 +52,20 @@ export class SportsQueueProcessor {
                     } else {
                         outcome = SportbetOutcome.LOSE
                     }
+
+                    status = BetStatus.FINISHED
                 } else if (
                     fixture.fixture.status.short === 'CANC' ||
                     fixture.fixture.status.short === 'SUSP'
                 ) {
+                    status = BetStatus.FINISHED
                     outcome = SportbetOutcome.CANCELLED
                 }
 
                 await this.prisma.sportBet.update({
                     where: { id: bet.id },
                     data: {
-                        outcome: outcome,
-                        status: BetStatus.FINISHED,
+                        outcome, status,
                         goals: {
                             home: fixture.goals.home,
                             away: fixture.goals.away,
@@ -95,6 +99,7 @@ export class SportsQueueProcessor {
                         },
                     })
                 }
+                console.log(bet)
             }
         }))
     }

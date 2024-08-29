@@ -49,7 +49,7 @@ export class SportsService {
         const rounds = await this.prisma.sportRound.count({
             where: {
                 userId,
-                createdAt: {
+                updatedAt: {
                     gte: start,
                     lte: end,
                 }
@@ -143,8 +143,12 @@ export class SportsService {
         const now = new Date()
         const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
 
-        if (timeLeft <= 120) {
-            throw new UnprocessableEntityException(`The current tournament will end in ${Math.ceil(timeLeft)} minutes. You can't place a bet.`)
+        const THRESHOLD = 300
+
+        let formattedTime = timeLeft > 60 ? `${Math.floor(timeLeft / 60)} Hrs` : `${timeLeft} minutes`
+
+        if (timeLeft <= THRESHOLD) {
+            throw new UnprocessableEntityException(`The current tournament will end in ${formattedTime}. You can't place a bet.`)
         }
 
         const stat = await this.prisma.stat.findFirst({
@@ -158,8 +162,8 @@ export class SportsService {
             throw new UnprocessableEntityException("Insufficient tickets")
         }
 
-        let fixture = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
-        fixture = fixture.response as FootballMatchResponse[]
+        let res = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
+        const fixture = res.response as FootballMatchResponse[]
 
         const game = fixture[0]
 
@@ -175,9 +179,10 @@ export class SportsService {
         const [bet] = await this.prisma.$transaction([
             this.prisma.sportBet.create({
                 data: {
-                    stake, status: 'ONGOING',
+                    stake, elapsed,
+                    outcome: 'NOT_DECIDED',
                     fixureId: fixtureId.toString(),
-                    outcome: 'NOT_DECIDED', elapsed,
+                    status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
                     goals: {
                         away: game.goals.away,
                         home: game.goals.away,
@@ -197,6 +202,14 @@ export class SportsService {
                             winner: game.teams.away.winner,
                             id: game.teams.away.id.toString(),
                         }
+                    },
+                    league: {
+                        name: game.league.name,
+                        flag: game.league.flag,
+                        logo: game.league.logo,
+                        country: game.league.country,
+                        id: game.league.id.toString(),
+                        season: game.league.season.toString()
                     },
                     sportRound: {
                         create: {
@@ -322,7 +335,7 @@ export class SportsService {
                 active: true,
                 sportRounds: {
                     some: {
-                        createdAt: {
+                        updatedAt: {
                             gte: currentTournament.start,
                             lte: currentTournament.end,
                         },
@@ -336,7 +349,7 @@ export class SportsService {
                 active: true,
                 sportRounds: {
                     some: {
-                        createdAt: {
+                        updatedAt: {
                             gte: currentTournament.start,
                             lte: currentTournament.end,
                         },
@@ -350,7 +363,7 @@ export class SportsService {
                 username: true,
                 sportRounds: {
                     where: {
-                        createdAt: {
+                        updatedAt: {
                             gte: currentTournament.start,
                             lte: currentTournament.end,
                         },
@@ -448,7 +461,7 @@ export class SportsService {
                     user: {
                         sportRounds: {
                             some: {
-                                createdAt: {
+                                updatedAt: {
                                     gte: currentTournament.start,
                                     lte: currentTournament.end,
                                 },

@@ -186,6 +186,7 @@ model SportBet {
   goals           Goals
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  league          League?
   sportRound      SportRound?
   teams           SportTeams
 
@@ -215,6 +216,7 @@ enum GameType {
 enum BetStatus {
   ONGOING
   FINISHED
+  NOT_STARTED
 }
 
 enum SportbetOutcome {
@@ -254,4 +256,13 @@ type SportTeam {
   name   String
   logo   String
   winner Boolean?
+}
+
+type League {
+  id      String?
+  name    String?
+  logo    String?
+  flag    String?
+  season  String?
+  country String?
 }

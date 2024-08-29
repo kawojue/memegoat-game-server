@@ -62,7 +62,7 @@ export class TaskService {
         }
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron(CronExpression.EVERY_30_SECONDS)
     async SPORT() {
         const batchSize = 17 // max is 20, I am just being skeptical
         let betsProcessed = 0
@@ -82,22 +82,18 @@ export class TaskService {
             const bets = await this.prisma.sportBet.findMany({
                 where: {
                     outcome: 'NOT_DECIDED',
-                    status: 'ONGOING',
-                    updatedAt: {
-                        gte: currentTournament.start,
-                        lte: currentTournament.end,
-                    },
+                    status: { in: ['ONGOING', 'NOT_STARTED'] },
                 },
                 take: batchSize,
                 skip: betsProcessed,
-                select: { id: true },
+                select: { fixureId: true },
             })
 
             if (bets.length === 0) {
                 break
             }
 
-            const batchIds = bets.map(bet => bet.id).join('-')
+            const batchIds = bets.map(bet => bet.fixureId).join('-')
 
             await this.sportQueue.add('cron.sport', { batchIds })
 
