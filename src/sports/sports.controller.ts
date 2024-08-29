@@ -17,6 +17,7 @@ import { Response } from 'express'
 import { ApiService } from 'libs/api.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { SportsService } from './sports.service'
+import { PaginationDTO } from "src/games/dto/pagination"
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -84,9 +85,17 @@ export class SportsController {
   }
 
   @ApiBearerAuth()
+  @Get('nfl/games')
+  @UseGuards(JwtAuthGuard)
+  async fetchNFLGames(@Res() res: Response, @Query() q: PaginationDTO) {
+    const data = await this.sportsService.fetchNFLGames(q)
+    return this.response.sendSuccess(res, StatusCodes.OK, { data })
+  }
+
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('nfl/place-bet')
-  async fetchNFLGames(
+  async placeNFLBet(
     @Req() req: IRequest,
     @Res() res: Response,
     @Body() body: PlaceNFLBetDTO
