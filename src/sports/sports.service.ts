@@ -5,7 +5,6 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { SportRound } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
@@ -73,18 +72,33 @@ export class SportsService {
         page = Number(page)
         limit = Number(limit)
 
-        let fixtures: FootballMatchResponse[] = []
+        const params = new URLSearchParams()
 
         if (leagueId) {
-            const data = await this.apiService.apiSportGET<any>(`/fixtures?league=${leagueId}&season=${new Date().getFullYear()}`)
-            fixtures = data.response
-        } else if (timezone) {
-            const data = await this.apiService.apiSportGET<any>(`/fixtures?live=all&timezone=${timezone}`)
-            fixtures = data.response
-        } else {
-            const data = await this.apiService.apiSportGET<any>(`/fixtures?live=all`)
-            fixtures = data.response
+            params.append('league', leagueId)
+            params.append('season', new Date().getFullYear().toString())
         }
+
+        if (timezone) {
+            params.append('timezone', timezone)
+            params.append('live', 'all')
+        }
+
+        if (!timezone && !leagueId) {
+            params.append('live', 'all')
+        }
+
+        let fixtures: FootballMatchResponse[] = []
+
+        const data = await this.apiService.apiSportGET<any>(`/fixtures?${params.toString()}`)
+        fixtures = data.response
+
+        fixtures = fixtures.filter((fixture) => {
+            const elapsed = fixture.fixture.status?.elapsed || 0
+            if (elapsed < 20) {
+                return fixture
+            }
+        })
 
         return this.paginateArray<FootballMatchResponse>(fixtures, page, limit)
     }
