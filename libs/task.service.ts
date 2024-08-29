@@ -10,11 +10,12 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 export class TaskService {
     constructor(
         private readonly prisma: PrismaService,
+        @InjectQueue('sports-queue') private readonly sportQueue: Queue,
         @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
     ) { }
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async refreshTournament() {
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    async refreshGameTournament() {
         const currentTournament = await this.prisma.tournament.findFirst({
             where: {
                 start: { lte: new Date() },
@@ -34,6 +35,73 @@ export class TaskService {
             await this.prisma.tournament.create({
                 data: { key: uuidv4(), start, end },
             })
+        }
+    }
+
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    async refreshSportTournament() {
+        const currentTournament = await this.prisma.sportTournament.findFirst({
+            where: {
+                start: { lte: new Date() },
+                end: { gte: new Date() },
+            }
+        })
+
+        if (currentTournament && currentTournament.paused) {
+            return
+        }
+
+        if (!currentTournament) {
+            const start = new Date()
+            const end = new Date(start)
+            end.setDate(start.getDate() + 7)
+
+            await this.prisma.sportTournament.create({
+                data: { key: uuidv4(), start, end },
+            })
+        }
+    }
+
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    async SPORT() {
+        const batchSize = 17 // max is 20, I am just being skeptical
+        let betsProcessed = 0
+
+        const currentTournament = await this.prisma.sportTournament.findFirst({
+            where: {
+                start: { lte: new Date() },
+                end: { gte: new Date() },
+            }
+        })
+
+        if (!currentTournament || (currentTournament && currentTournament.paused)) {
+            return
+        }
+
+        while (true) {
+            const bets = await this.prisma.sportBet.findMany({
+                where: {
+                    outcome: 'NOT_DECIDED',
+                    status: 'ONGOING',
+                    updatedAt: {
+                        gte: currentTournament.start,
+                        lte: currentTournament.end,
+                    },
+                },
+                take: batchSize,
+                skip: betsProcessed,
+                select: { id: true },
+            })
+
+            if (bets.length === 0) {
+                break
+            }
+
+            const batchIds = bets.map(bet => bet.id).join('-')
+
+            await this.sportQueue.add('cron.sport', { batchIds })
+
+            betsProcessed += bets.length
         }
     }
 

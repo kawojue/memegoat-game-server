@@ -67,12 +67,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
           ignoreExpiration: false,
         }) as JwtPayload
 
-        const { active } = await this.prisma.user.findUnique({
+        const userData = await this.prisma.user.findUnique({
           where: { id: sub },
           select: { active: true },
         })
 
-        if (!active) {
+        if (!userData) {
+          client.emit('error', {
+            status: StatusCodes.NotFound,
+            message: 'Account not found',
+          })
+          client.disconnect()
+          return
+        }
+
+        if (!userData.active) {
           client.emit('error', {
             status: StatusCodes.Forbidden,
             message: 'Account Suspended',
