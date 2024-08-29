@@ -135,4 +135,11 @@ export class TaskService {
             transactionsProcessed += transactions.length
         }
     }
+
+    @Cron(CronExpression.EVERY_DAY_AT_6AM)
+    async refreshTickets() {
+        await this.prisma.stat.updateMany({
+            data: { tickets: 500_000 }
+        })
+    }
 }

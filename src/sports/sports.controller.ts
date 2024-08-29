@@ -81,6 +81,7 @@ export class SportsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Get('/bets-history')
   async fetchUserBet(
     @Req() req: IRequest,
     @Res() res: Response,
