@@ -5,6 +5,7 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
+import { SportType } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
@@ -182,6 +183,7 @@ export class SportsService {
                     stake, elapsed,
                     outcome: 'NOT_DECIDED',
                     fixureId: fixtureId.toString(),
+                    sport_type: SportType.FOOTBALL,
                     status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
                     goals: {
                         away: game.goals.away,

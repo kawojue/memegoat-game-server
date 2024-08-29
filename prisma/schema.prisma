@@ -178,6 +178,7 @@ model SportBet {
   id              String          @id @default(auto()) @map("_id") @db.ObjectId
   fixureId        String
   status          BetStatus
+  sport_type      SportType
   stake           Int
   potentialWin    Int
   elapsed         Int?
@@ -238,6 +239,7 @@ type Goals {
 }
 
 enum SportType {
+  NFL
   FOOTBALL
 }
 

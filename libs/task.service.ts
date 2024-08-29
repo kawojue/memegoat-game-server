@@ -62,7 +62,7 @@ export class TaskService {
         }
     }
 
-    @Cron(CronExpression.EVERY_30_SECONDS)
+    @Cron(CronExpression.EVERY_5_MINUTES)
     async SPORT() {
         const batchSize = 17 // max is 20, I am just being skeptical
         let betsProcessed = 0
