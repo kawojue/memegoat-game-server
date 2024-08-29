@@ -158,10 +158,12 @@ export class SportsService {
             throw new UnprocessableEntityException("Insufficient tickets")
         }
 
-        const fixture = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
-        const game = fixture.response as FootballMatchResponse
+        let fixture = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
+        fixture = fixture.response as FootballMatchResponse[]
 
-        if (!game) {
+        const game = fixture[0]
+
+        if (fixture.length === 0) {
             throw new NotFoundException("Fixture not found")
         }
 
