@@ -109,14 +109,14 @@ export class TaskService {
     async updateTransactions() {
         const batchSize = 200
         let transactionsProcessed = 0
-        const thirtyDaysAgo = subDays(new Date(), 30)
+        const sevenDaysAgo = subDays(new Date(), 7)
 
         while (true) {
             const transactions = await this.prisma.transaction.findMany({
                 where: {
                     txStatus: 'Pending',
                     createdAt: {
-                        gte: thirtyDaysAgo,
+                        gte: sevenDaysAgo,
                     },
                 },
                 take: batchSize,
