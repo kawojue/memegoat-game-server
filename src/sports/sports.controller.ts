@@ -60,7 +60,7 @@ export class SportsController {
   }
 
   @ApiBearerAuth()
-  @Get('/fixtures')
+  @Get('football/fixtures')
   @UseGuards(JwtAuthGuard)
   async fetchFixtures(@Res() res: Response, @Query() q: FetchFixturesDTO) {
     const data = await this.sportsService.fetchFixtures(q)
@@ -69,7 +69,7 @@ export class SportsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Post('/place-bet')
+  @Post('football/place-bet')
   async placeBet(
     @Req() req: IRequest,
     @Res() res: Response,
