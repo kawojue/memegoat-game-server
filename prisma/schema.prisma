@@ -237,11 +237,6 @@ type Goals {
   away Int?
 }
 
-enum TournamentType {
-  GAME
-  SPORT
-}
-
 enum SportType {
   FOOTBALL
 }
