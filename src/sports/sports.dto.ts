@@ -41,7 +41,8 @@ export class FetchFixturesDTO extends PaginationDTO {
     timezone?: string
 
     @ApiProperty({
-        example: 1039
+        example: 1039,
+        required: false,
     })
     @IsOptional()
     leagueId?: string
