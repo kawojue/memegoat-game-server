@@ -1,4 +1,9 @@
 import {
+  PlaceNFLBetDTO,
+  FetchFixturesDTO,
+  PlaceFootballBetDTO,
+} from './sports.dto'
+import {
   Get,
   Req,
   Res,
@@ -8,16 +13,10 @@ import {
   UseGuards,
   Controller,
 } from '@nestjs/common'
-import {
-  PlaceNFLBetDTO,
-  FetchFixturesDTO,
-  PlaceFootballBetDTO,
-} from './sports.dto'
 import { Response } from 'express'
 import { ApiService } from 'libs/api.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { SportsService } from './sports.service'
-import { PaginationDTO } from "src/games/dto/pagination"
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

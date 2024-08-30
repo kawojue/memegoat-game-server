@@ -10,7 +10,7 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { SportType } from '@prisma/client'
+import { Prisma, SportType } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
@@ -419,22 +419,24 @@ export class SportsService {
 
         const offset = (page - 1) * limit
 
+        const whereClause = {
+            active: true,
+            stat: {
+                total_sport_points: { gt: 0 }
+            }
+        } as Prisma.UserWhereInput
+
         const totalUsers = await this.prisma.user.count({
-            where: { active: true },
+            where: whereClause,
         })
 
         const { _sum } = await this.prisma.stat.aggregate({
-            where: { user: { active: true } },
+            where: { user: whereClause },
             _sum: { total_sport_points: true },
         })
 
         const leaderboard = await this.prisma.user.findMany({
-            where: {
-                active: true,
-                stat: {
-                    total_sport_points: { gte: 1 }
-                }
-            },
+            where: whereClause,
             select: {
                 id: true,
                 stat: {
@@ -483,9 +485,16 @@ export class SportsService {
             return { leaderboard: [], totalPages: 0, hasNext: false, hasPrev: false }
         }
 
+        const whereClause = {
+            active: true,
+            stat: {
+                total_sport_points: { gt: 0 }
+            }
+        } as Prisma.UserWhereInput
+
         const totalUsers = await this.prisma.user.count({
             where: {
-                active: true,
+                ...whereClause,
                 sportRounds: {
                     some: {
                         updatedAt: {
@@ -499,7 +508,7 @@ export class SportsService {
 
         const leaderboard = await this.prisma.user.findMany({
             where: {
-                active: true,
+                ...whereClause,
                 sportRounds: {
                     some: {
                         updatedAt: {
@@ -565,6 +574,13 @@ export class SportsService {
         let userTotalPoints = 0
         let userPosition: null | number = null
 
+        const whereClause = {
+            active: true,
+            stat: {
+                total_sport_points: { gt: 0 }
+            }
+        } as Prisma.UserWhereInput
+
         if (userId) {
             const userStat = await this.prisma.user.findUnique({
                 where: { id: userId },
@@ -581,7 +597,7 @@ export class SportsService {
 
             userPosition = await this.prisma.user.count({
                 where: {
-                    active: true,
+                    ...whereClause,
                     stat: {
                         total_sport_points: {
                             gte: userTotalPoints,
@@ -597,6 +613,13 @@ export class SportsService {
     async tournamentPosition(userId?: string) {
         let position = 0
         let userPoints = 0
+
+        const whereClause = {
+            active: true,
+            stat: {
+                total_sport_points: { gt: 0 }
+            }
+        } as Prisma.UserWhereInput
 
         if (userId) {
             const currentTournament = await this.currentTournament()
