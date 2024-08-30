@@ -1,3 +1,8 @@
+import {
+  Injectable,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ObjectId } from 'mongodb';
 import { Response } from 'express';
 import { env } from 'configs/env.config';
@@ -10,11 +15,6 @@ import { PrismaService } from 'prisma/prisma.service';
 import { ResponseService } from 'libs/response.service';
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
-import {
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -75,7 +75,7 @@ export class AuthService {
 
         const { random } = this.randomService.randomize();
         const randomAvatarSeed =
-          avatarSeeds[Math.floor(random * avatarSeeds.length) - 1];
+          avatarSeeds[Math.floor(random * avatarSeeds.length)];
         const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
 
         await this.prisma.$transaction([
