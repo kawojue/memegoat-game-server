@@ -1,28 +1,27 @@
 import {
-    Process,
     Processor,
-    OnQueueActive,
-    OnQueueFailed,
-    OnQueueCompleted,
-} from '@nestjs/bull'
+    WorkerHost,
+} from '@nestjs/bullmq'
 import {
     BetStatus,
     SportbetOutcome,
 } from '@prisma/client'
-import { Job } from 'bull'
+import { Job } from 'bullmq'
 import { ApiService } from 'libs/api.service'
 import { PrismaService } from 'prisma/prisma.service'
 
-@Processor('sports-queue')
-export class SportsQueueProcessor {
+@Processor('sports-football-queue')
+export class FootballSportsQueueProcessor extends WorkerHost {
+
     constructor(
         private readonly api: ApiService,
         private readonly prisma: PrismaService,
-    ) { }
+    ) {
+        super()
+    }
 
-    @Process('cron.sport')
-    async sportsQueueJob({ data }: Job<{ batchIds: string }>) {
-        const res = await this.api.apiSportGET<any>(`/fixtures?ids=${data.batchIds}`)
+    async process({ data: { batchIds } }: Job<{ batchIds: string }>) {
+        const res = await this.api.apiSportGET<any>(`/fixtures?ids=${batchIds}`)
         const fixtures = res.response as FootballMatchResponse[]
 
         await Promise.all(fixtures.map(async (fixture) => {
@@ -121,31 +120,5 @@ export class SportsQueueProcessor {
                 }
             }
         }))
-    }
-
-    @OnQueueActive()
-    onActive(job: Job) {
-        console.info(
-            `(Queue) Processing: job ${job.id} of ${job.queue.name} with data: ${JSON.stringify(job.data)}...`
-        )
-    }
-
-    @OnQueueCompleted()
-    async OnQueueCompleted(job: Job) {
-        console.info(
-            '(Queue) Completed: job ',
-            job.id,
-            job.queue.name,
-        )
-    }
-
-    @OnQueueFailed()
-    OnQueueFailed(job: Job, error: Error) {
-        console.info(
-            '(Queue) Error on: job ',
-            job.id,
-            ' -> error: ',
-            error.message,
-        )
     }
 }

@@ -1,17 +1,20 @@
-import { Queue } from 'bull'
+import { Queue } from 'bullmq'
 import { subDays } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
+import { InjectQueue } from '@nestjs/bullmq'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
+import { ApiService } from './api.service'
+import { BetStatus, SportbetOutcome } from '@prisma/client'
 
 @Injectable()
 export class TaskService {
     constructor(
-        private readonly prisma: PrismaService,
-        @InjectQueue('sports-queue') private readonly sportQueue: Queue,
-        @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
+        private api: ApiService,
+        private prisma: PrismaService,
+        @InjectQueue('sports-football-queue') private sportQueue: Queue,
+        @InjectQueue('transactions-queue') private transactionQueue: Queue,
     ) { }
 
     @Cron(CronExpression.EVERY_5_MINUTES)
@@ -96,13 +99,13 @@ export class TaskService {
 
             const batchIds = bets.map(bet => bet.fixureId).join('-')
 
-            await this.sportQueue.add('cron.sport', { batchIds })
+            await this.sportQueue.add('sports-football-queue', { batchIds })
 
             betsProcessed += bets.length
         }
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron(CronExpression.EVERY_30_SECONDS)
     async updateTransactions() {
         const batchSize = 200
         let transactionsProcessed = 0

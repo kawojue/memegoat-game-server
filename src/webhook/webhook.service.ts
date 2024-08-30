@@ -1,8 +1,8 @@
-import { Queue } from 'bull';
+import { Queue } from 'bullmq';
 import { subDays } from 'date-fns';
 import { TxStatus } from '@prisma/client';
-import { InjectQueue } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Request, Response } from 'express';
 import { FetchTxDTO } from './dto/index.dto';
 import { StatusCodes } from 'enums/StatusCodes';

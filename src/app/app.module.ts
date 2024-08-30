@@ -1,7 +1,7 @@
 import { env } from 'configs/env.config'
-import { BullModule } from '@nestjs/bull'
 import { AppService } from './app.service'
 import { HttpModule } from '@nestjs/axios'
+import { BullModule } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
 import { TaskService } from 'libs/task.service'
 import { MiscService } from 'libs/misc.service'
@@ -33,17 +33,15 @@ import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.guard.middlewa
     WebhookModule,
     RealtimeModule,
     ScheduleModule.forRoot(),
-    BullModule.forRootAsync({
-      useFactory: async () => ({
-        redis: {
-          host: env.redis.host,
-          port: env.redis.port,
-          ...(env.redis.username && {
-            password: env.redis.password,
-            username: env.redis.username,
-          }),
-        },
-      }),
+    BullModule.forRoot({
+      connection: {
+        host: env.redis.host,
+        port: env.redis.port,
+        ...(env.redis.username && {
+          password: env.redis.password,
+          username: env.redis.username,
+        }),
+      }
     }),
   ],
   controllers: [AppController],

@@ -5,9 +5,7 @@ import {
   Post,
   Query,
   Controller,
-  BadRequestException,
-  UnauthorizedException,
-  InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { env } from 'configs/env.config';
@@ -24,12 +22,12 @@ export class WebhookController {
   constructor(
     private readonly response: ResponseService,
     private readonly webhookService: WebhookService,
-  ) {}
+  ) { }
 
   @Post()
   async receiveWebhook(@Res() res: Response, @Req() req: Request) {
     if (!req.body || !req.body?.event || !req.body?.data) {
-      throw new BadRequestException('Invalid request body received');
+      throw new HttpException('Invalid request body received', StatusCodes.BadRequest);
     }
 
     const signature = req.headers['x-webhook-signature'];
@@ -40,14 +38,15 @@ export class WebhookController {
       .digest('hex');
 
     if (signature !== hashedSignature) {
-      throw new UnauthorizedException('Invalid signature received');
+      throw new HttpException('Invalid signature received', StatusCodes.Unauthorized);
     }
 
     try {
       await this.webhookService.enqueueRequest(res, req);
+      return res.sendStatus(StatusCodes.OK).end()
     } catch (err) {
       console.error(err);
-      throw new InternalServerErrorException();
+      throw new HttpException("Internal server error", StatusCodes.InternalServerError);
     }
   }
 
