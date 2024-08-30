@@ -101,7 +101,6 @@ export class SportsQueueProcessor {
                         },
                     })
                 }
-                console.log(bet)
             }
         }))
     }
