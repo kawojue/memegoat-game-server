@@ -87,7 +87,18 @@ export class SportsQueueProcessor {
                     await this.prisma.stat.update({
                         where: { userId: bet.userId },
                         data: {
-                            total_points: { increment: bet.potentialWin },
+                            total_sport_wins: { increment: 1 },
+                            total_sport_points: { increment: bet.potentialWin },
+                        },
+                    })
+                }
+
+                if (outcome === SportbetOutcome.LOSE) {
+                    await this.prisma.stat.update({
+                        where: { userId: bet.userId },
+                        data: {
+                            total_sport_losses: { increment: 1 },
+                            total_sport_points: { increment: bet.potentialWin },
                         },
                     })
                 }
