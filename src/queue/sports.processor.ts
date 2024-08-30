@@ -33,9 +33,8 @@ export class SportsQueueProcessor {
             for (const bet of bets) {
                 let outcome: SportbetOutcome = SportbetOutcome.NOT_DECIDED
 
-                const elapsed = fixture.fixture.status?.elapsed ? String(fixture.fixture.status.elapsed) : null
-
-                let status: BetStatus = elapsed ? BetStatus.ONGOING : BetStatus.NOT_STARTED
+                const elapsed = fixture.fixture.status?.elapsed
+                let status: BetStatus = elapsed !== null ? BetStatus.ONGOING : BetStatus.NOT_STARTED
 
                 if (
                     fixture.fixture.status.short === 'FT' ||
@@ -72,7 +71,7 @@ export class SportsQueueProcessor {
                             home: fixture.goals.home,
                             away: fixture.goals.away,
                         },
-                        elapsed
+                        elapsed: elapsed === null ? null : String(elapsed)
                     },
                     include: {
                         sportRound: true,
