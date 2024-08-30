@@ -27,7 +27,7 @@ export class SportsQueueProcessor {
 
         await Promise.all(fixtures.map(async (fixture) => {
             const bets = await this.prisma.sportBet.findMany({
-                where: { fixureId: fixture.fixture.id.toString() }
+                where: { fixureId: String(fixture.fixture.id) }
             })
 
             for (const bet of bets) {
@@ -62,6 +62,8 @@ export class SportsQueueProcessor {
                     outcome = SportbetOutcome.CANCELLED
                 }
 
+                const elapsed = fixture.fixture.status?.elapsed ? String(fixture.fixture.status.elapsed) : null
+
                 await this.prisma.sportBet.update({
                     where: { id: bet.id },
                     data: {
@@ -70,7 +72,7 @@ export class SportsQueueProcessor {
                             home: fixture.goals.home,
                             away: fixture.goals.away,
                         },
-                        elapsed: fixture.fixture.status.elapsed.toString(),
+                        elapsed
                     },
                     include: {
                         sportRound: true,
