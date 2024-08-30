@@ -73,9 +73,6 @@ export class SportsQueueProcessor {
                         },
                         elapsed: elapsed === null ? null : String(elapsed)
                     },
-                    include: {
-                        sportRound: true,
-                    }
                 })
 
                 if (outcome === SportbetOutcome.WIN) {
@@ -109,6 +106,17 @@ export class SportsQueueProcessor {
                         data: {
                             tickets: { increment: bet.stake },
                         },
+                    })
+
+                    await this.prisma.sportTournament.updateMany({
+                        where: {
+                            paused: false,
+                            start: { lte: new Date() },
+                            end: { gte: new Date() },
+                        },
+                        data: {
+                            totalStakes: { decrement: bet.stake }
+                        }
                     })
                 }
             }

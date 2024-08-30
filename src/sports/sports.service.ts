@@ -248,6 +248,10 @@ export class SportsService {
                     tickets: { decrement: stake }
                 }
             }),
+            this.prisma.sportTournament.update({
+                where: { id: currentTournament.id },
+                data: { totalStakes: { increment: stake } }
+            })
         ])
 
         if (bet) {
