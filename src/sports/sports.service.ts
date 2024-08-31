@@ -426,7 +426,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 0 }
+                total_sport_points: { gt: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -492,7 +492,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 0 }
+                total_sport_points: { gt: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -553,7 +553,7 @@ export class SportsService {
                     ...user,
                     totalPoints,
                     totalRounds: user.sportRounds.length,
-                    rounds: undefined,
+                    sportRounds: undefined,
                 }
             })
             .sort((a, b) => b.totalPoints - a.totalPoints)
@@ -581,7 +581,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 0 }
+                total_sport_points: { gt: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -617,13 +617,6 @@ export class SportsService {
     async tournamentPosition(userId?: string) {
         let position = 0
         let userPoints = 0
-
-        const whereClause = {
-            active: true,
-            stat: {
-                total_sport_points: { gt: 0 }
-            }
-        } as Prisma.UserWhereInput
 
         if (userId) {
             const currentTournament = await this.currentTournament()
