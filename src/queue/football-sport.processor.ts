@@ -93,8 +93,7 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                     await this.prisma.stat.update({
                         where: { userId: bet.userId },
                         data: {
-                            total_sport_losses: { increment: 1 },
-                            total_sport_points: { increment: bet.potentialWin },
+                            total_sport_losses: { increment: 1 }
                         },
                     })
                 }
