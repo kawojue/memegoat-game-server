@@ -10,8 +10,8 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { Prisma, SportType } from '@prisma/client'
 import { ApiService } from 'libs/api.service'
+import { Prisma, SportType } from '@prisma/client'
 import { PrismaService } from 'prisma/prisma.service'
 import { PaginationDTO } from 'src/games/dto/pagination'
 

@@ -5,6 +5,7 @@ import {
   RouletteDTO,
   SelectBoxDTO,
   StartBlindBoxGameDTO,
+  LotteryDTO,
 } from './dto/index.dto'
 import {
   MessageBody,
@@ -144,12 +145,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const { sub } = user
 
-    const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub },
-      select: { tickets: true }
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake }
+      },
     })
 
-    if (stat.tickets < stake) {
+    if (!stat) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
@@ -241,12 +244,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const { sub } = user
 
-    const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub },
-      select: { tickets: true }
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake }
+      },
     })
 
-    if (stat.tickets < stake) {
+    if (!stat) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
@@ -342,12 +347,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const { sub } = user
 
-    const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub },
-      select: { tickets: true }
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake }
+      },
     })
 
-    if (stat.tickets < stake) {
+    if (!stat) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
@@ -544,11 +551,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-    const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub },
+
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: tickets }
+      },
     })
 
-    if (stat.tickets < tickets) {
+    if (!stat) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
@@ -687,5 +698,102 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('blindbox-ended', { points: game.points })
     this.blindBoxGames.delete(sub)
+  }
+
+  @SubscribeMessage('play-lottery')
+  async lottery(@ConnectedSocket() client: Socket, { digits, stake }: LotteryDTO) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    if (digits.length !== 6) {
+      client.emit('', {
+        status: StatusCodes.BadRequest,
+        message: "Lottery digits must be exactly 6-digits number"
+      })
+      return
+    }
+
+    const { sub } = user
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake }
+      },
+    })
+
+    if (!stat) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Out of tickets. Buy more tickets',
+      })
+      return
+    }
+
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
+    const [round] = await this.prisma.$transaction([
+      this.prisma.round.create({
+        data: {
+          stake,
+          game_type: 'LOTTERY',
+          lottery_digits: digits,
+          user: { connect: { id: sub } },
+        },
+        include: {
+          user: {
+            select: {
+              avatar: true,
+              username: true,
+            }
+          }
+        }
+      }),
+      this.prisma.stat.update({
+        where: { userId: sub },
+        data: {
+          tickets: { decrement: stake },
+        },
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { totalStakes: { increment: stake } }
+      }),
+    ])
+
+    client.emit('lottery-data', { round })
+
+    client.broadcast.emit('new-round', { round })
+  }
+
+  @SubscribeMessage('get-latest-rounds')
+  async getLatestRounds(@ConnectedSocket() client: Socket) {
+    const latestRounds = await this.prisma.round.findMany({
+      take: 15,
+      include: {
+        user: {
+          select: {
+            avatar: true,
+            username: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    client.emit('latest-rounds', { rounds: latestRounds })
   }
 }

@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { TxStatus } from '@prisma/client'
 import {
     Min,
     Max,
@@ -10,6 +9,7 @@ import {
     IsNumber,
     IsNotEmpty,
     IsOptional,
+    Matches,
 } from 'class-validator'
 
 enum CoinFlip {
@@ -67,4 +67,16 @@ export class StartBlindBoxGameDTO {
 export class SelectBoxDTO {
     row: number
     column: number
+}
+
+export class LotteryDTO extends StakeDTO {
+    @ApiProperty({
+        example: '123456'
+    })
+    @Max(6)
+    @Min(6)
+    @Matches(/^\d+$/, {
+        message: 'Lottery must be a digit'
+    })
+    digits: string
 }

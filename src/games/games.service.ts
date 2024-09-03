@@ -10,7 +10,7 @@ export class GamesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
-  ) {}
+  ) { }
 
   async buyTicket(res: Response, { sub }: ExpressUser) {
     /* Some Web3 CONTRACT TRANSACTIONS STUFF HERE */

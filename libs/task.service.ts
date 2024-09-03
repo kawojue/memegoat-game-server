@@ -5,17 +5,32 @@ import { Injectable } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { ApiService } from './api.service'
-import { BetStatus, SportbetOutcome } from '@prisma/client'
+import { contractDTO, ContractService } from './contract.service'
 
 @Injectable()
 export class TaskService {
     constructor(
-        private api: ApiService,
         private prisma: PrismaService,
+        private contract: ContractService,
         @InjectQueue('sports-football-queue') private sportQueue: Queue,
         @InjectQueue('transactions-queue') private transactionQueue: Queue,
     ) { }
+
+    calculateLotteryPoints(guess: string, outcome: string, stake: number): number {
+        const formattedOutcome = outcome.slice(1).split('').reverse().join('')
+
+        let matches = 0
+
+        for (let i = 0; i < guess.length; i++) {
+            if (guess[i] === formattedOutcome[i]) {
+                matches++
+            }
+        }
+        const probability = 1 / 10
+        const points = stake * Math.pow(1 / probability, matches)
+
+        return points
+    }
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async refreshGameTournament() {
@@ -65,9 +80,9 @@ export class TaskService {
         }
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron(CronExpression.EVERY_MINUTE)
     async triggerFootballBets() {
-        const batchSize = 17 // max is 20, I am just being skeptical
+        const batchSize = 19 // max is 20, I am just being skeptical
         let betsProcessed = 0
 
         const currentTournament = await this.prisma.sportTournament.findFirst({
@@ -102,10 +117,12 @@ export class TaskService {
             await this.sportQueue.add('sports-football-queue', { batchIds })
 
             betsProcessed += bets.length
+
+            await new Promise(resolve => setTimeout(resolve, 100))
         }
     }
 
-    @Cron(CronExpression.EVERY_30_SECONDS)
+    @Cron(CronExpression.EVERY_MINUTE)
     async updateTransactions() {
         const batchSize = 200
         let transactionsProcessed = 0
@@ -133,6 +150,55 @@ export class TaskService {
             }
 
             transactionsProcessed += transactions.length
+
+            await new Promise(resolve => setTimeout(resolve, 100))
+        }
+    }
+
+    @Cron(CronExpression.EVERY_MINUTE)
+    async updateLotterySession() {
+        const data: contractDTO = {
+            contract: 'memegoat-lottery-rng',
+            function: 'get-final-number',
+            arguments: [],
+        }
+
+        const rng = await this.contract.readContract(data)
+
+        const batchSize = 20
+        let roundsProcessed = 0
+
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+        while (true) {
+            const recentRounds = await this.prisma.round.findMany({
+                where: {
+                    createdAt: {
+                        gte: twentyFourHoursAgo,
+                    },
+                    point: { lte: 0 }
+                },
+                take: batchSize,
+                skip: roundsProcessed,
+                orderBy: { createdAt: 'desc' },
+            })
+
+            if (recentRounds.length === 0) {
+                break
+            }
+
+            await Promise.all(recentRounds.map(async (round) => {
+                const points = this.calculateLotteryPoints(round.lottery_digits, rng, round.stake)
+
+                await this.prisma.round.update({
+                    where: { id: round.id },
+                    data: { point: points },
+                })
+            }))
+
+            roundsProcessed += recentRounds.length
+
+            await new Promise(resolve => setTimeout(resolve, 100))
         }
     }
 

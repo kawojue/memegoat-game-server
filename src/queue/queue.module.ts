@@ -5,6 +5,7 @@ import { ApiService } from 'libs/api.service'
 import { TaskService } from 'libs/task.service'
 import { StoreModule } from 'src/store/store.module'
 import { PrismaService } from 'prisma/prisma.service'
+import { ContractService } from 'libs/contract.service'
 import { TransactionsQueueProcessor } from './transactions.processor'
 import { FootballSportsQueueProcessor } from './football-sport.processor'
 
@@ -42,6 +43,7 @@ const SharedModule = BullModule.registerQueue(
     ApiService,
     TaskService,
     PrismaService,
+    ContractService,
     TransactionsQueueProcessor,
     FootballSportsQueueProcessor,
   ],

@@ -14,7 +14,6 @@ import { ResponseService } from 'libs/response.service'
   controllers: [GamesController],
   providers: [
     GamesService,
-    GamesService,
     PrismaService,
     ResponseService,
   ],

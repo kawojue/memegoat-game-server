@@ -55,7 +55,7 @@ import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.guard.middlewa
     ResponseService,
     ContractService,
   ],
-  exports: [AppService]
+  exports: [AppService, ContractService, TaskService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
