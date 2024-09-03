@@ -19,7 +19,7 @@ import { ContractService } from 'libs/contract.service'
 import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.guard.middleware'
+import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.middleware'
 
 @Module({
   imports: [

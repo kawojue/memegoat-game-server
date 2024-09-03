@@ -43,7 +43,12 @@ export class GamesService {
     })
 
     const leaderboard = await this.prisma.user.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+        stat: {
+          total_points: { gte: 1 }
+        }
+      },
       select: {
         id: true,
         stat: {
@@ -104,6 +109,7 @@ export class GamesService {
         active: true,
         rounds: {
           some: {
+            point: { gte: 1 },
             createdAt: {
               gte: currentTournament.start,
               lte: currentTournament.end,
@@ -118,6 +124,7 @@ export class GamesService {
         active: true,
         rounds: {
           some: {
+            point: { gte: 1 },
             createdAt: {
               gte: currentTournament.start,
               lte: currentTournament.end,
@@ -132,6 +139,7 @@ export class GamesService {
         username: true,
         rounds: {
           where: {
+            point: { gte: 1 },
             createdAt: {
               gte: currentTournament.start,
               lte: currentTournament.end,
@@ -266,14 +274,14 @@ export class GamesService {
 
   async fetchLotteryHistories(
     { sub: userId }: ExpressUser,
-    { page, limit }: PaginationDTO
+    { page, limit }: PaginationDTO,
   ) {
     page = Number(page)
     limit = Number(limit)
 
     const offset = (page - 1) * limit
 
-    const rounds = await this.prisma.round.findMany({
+    return await this.prisma.round.findMany({
       where: {
         userId,
         game_type: 'LOTTERY',
@@ -282,7 +290,5 @@ export class GamesService {
       skip: offset,
       orderBy: { updatedAt: 'desc' }
     })
-
-    return rounds
   }
 }

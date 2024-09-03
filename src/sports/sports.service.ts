@@ -183,13 +183,12 @@ export class SportsService {
         let res = await this.apiService.apiSportGET<any>(`/fixtures?id=${fixtureId}`)
         const fixture = res.response as FootballMatchResponse[]
 
-        const game = fixture[0]
-
         if (fixture.length === 0) {
             throw new NotFoundException("Fixture not found")
         }
 
-        const elapsed = game.fixture.status.elapsed || 0
+        const game = fixture[0]
+        const elapsed = game.fixture.status?.elapsed || 0
         if (elapsed > 5) {
             throw new UnprocessableEntityException("The match has already begun")
         }
@@ -198,16 +197,15 @@ export class SportsService {
             this.prisma.sportBet.create({
                 data: {
                     outcome: 'NOT_DECIDED',
-                    fixureId: fixtureId.toString(),
+                    potentialWin, placebetOutcome,
                     sport_type: SportType.FOOTBALL,
+                    fixureId: fixtureId.toString(),
                     stake, elapsed: elapsed.toString(),
                     status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
                     goals: {
                         away: game.goals.away,
                         home: game.goals.home,
                     },
-                    potentialWin,
-                    placebetOutcome,
                     teams: {
                         home: {
                             name: game.teams.home.name,
@@ -271,8 +269,8 @@ export class SportsService {
     ) {
         const placedBetAlready = await this.prisma.sportBet.findFirst({
             where: {
-                gameId: gameId.toString(),
                 userId,
+                gameId: gameId.toString(),
             }
         })
 
@@ -325,11 +323,11 @@ export class SportsService {
         let res = await this.apiService.apiSportGET<any>(`/fixtures?id=${gameId}`)
         const fixture = res.response as NFLResponse[]
 
-        const game = fixture[0]
-
         if (fixture.length === 0) {
             throw new NotFoundException("Fixture not found")
         }
+
+        const game = fixture[0]
 
         if (game.game.status.short !== "NS") {
             throw new BadRequestException("Sorry, you can't bet on this game right now")
@@ -341,14 +339,13 @@ export class SportsService {
                     outcome: 'NOT_DECIDED',
                     sport_type: SportType.NFL,
                     fixureId: gameId.toString(),
+                    potentialWin, placebetOutcome,
                     stake, elapsed: game.game.status.timer,
                     status: 'NOT_STARTED',
                     goals: {
                         away: game.scores.away.total,
                         home: game.scores.home.total,
                     },
-                    potentialWin,
-                    placebetOutcome,
                     teams: {
                         home: {
                             name: game.teams.home.name,
@@ -425,7 +422,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 1 }
+                total_sport_points: { gte: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -493,7 +490,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 1 }
+                total_sport_points: { gte: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -582,7 +579,7 @@ export class SportsService {
         const whereClause = {
             active: true,
             stat: {
-                total_sport_points: { gt: 1 }
+                total_sport_points: { gte: 1 }
             }
         } as Prisma.UserWhereInput
 
@@ -633,6 +630,7 @@ export class SportsService {
                 },
                 where: {
                     user: {
+                        active: true,
                         sportRounds: {
                             some: {
                                 updatedAt: {
