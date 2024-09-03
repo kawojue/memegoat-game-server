@@ -3,14 +3,16 @@ import {
   Res,
   Get,
   Query,
+  UseGuards,
   Controller,
 } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { GamesService } from './games.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { PaginationDTO } from './dto/pagination'
+import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 
 @ApiTags("Games")
 @Controller('games')
@@ -46,5 +48,18 @@ export class GamesController {
     // @ts-ignore
     const position = await this.gamesService.tournamentPosition(req.user?.sub)
     return this.response.sendSuccess(res, StatusCodes.OK, { data: position })
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('/lottery-histories')
+  async fetchLotteryHistories(
+    @Req() req: IRequest,
+    @Res() res: Response,
+    @Query() q: PaginationDTO
+  ) {
+    const data = await this.gamesService.fetchLotteryHistories(req.user, q)
+
+    return this.response.sendSuccess(res, StatusCodes.OK, { data })
   }
 }

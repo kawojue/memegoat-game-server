@@ -100,7 +100,7 @@ export class SportsService {
 
         fixtures = fixtures.filter((fixture) => {
             const elapsed = fixture.fixture.status?.elapsed || 0
-            if (elapsed < 20) {
+            if (elapsed <= 5) {
                 return fixture
             }
         })
@@ -190,8 +190,8 @@ export class SportsService {
         }
 
         const elapsed = game.fixture.status.elapsed || 0
-        if (elapsed > 20) {
-            throw new UnprocessableEntityException("The match has started already")
+        if (elapsed > 5) {
+            throw new UnprocessableEntityException("The match has already begun")
         }
 
         const [bet] = await this.prisma.$transaction([
@@ -416,7 +416,6 @@ export class SportsService {
         })
     }
 
-
     async overallLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
         page = Number(page)
         limit = Number(limit)
@@ -474,10 +473,7 @@ export class SportsService {
         }
     }
 
-    async getCurrentTournamentLeaderboard({
-        limit = 50,
-        page = 1,
-    }: PaginationDTO) {
+    async getCurrentTournamentLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
         page = Number(page)
         limit = Number(limit)
 
@@ -486,7 +482,12 @@ export class SportsService {
         const currentTournament = await this.currentTournament()
 
         if (!currentTournament) {
-            return { leaderboard: [], totalPages: 0, hasNext: false, hasPrev: false }
+            return {
+                leaderboard: [],
+                totalPages: 0,
+                hasNext: false,
+                hasPrev: false
+            }
         }
 
         const whereClause = {
