@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger'
 import {
     Min,
     Max,
@@ -11,6 +10,7 @@ import {
     IsOptional,
     Matches,
 } from 'class-validator'
+import { ApiProperty } from '@nestjs/swagger'
 
 enum CoinFlip {
     tails = 'tails',
@@ -79,4 +79,14 @@ export class LotteryDTO extends StakeDTO {
         message: 'Lottery must be a digit'
     })
     digits: string
+}
+
+export class StartSpaceInvaderDTO {
+    @IsInt()
+    lives: number
+}
+
+export class EndSpaceInvaderDTO {
+    @IsInt()
+    points: number
 }

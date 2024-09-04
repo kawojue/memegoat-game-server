@@ -1,11 +1,13 @@
 import {
   DiceDTO,
   GameIdDTO,
+  LotteryDTO,
   CoinFlipDTO,
   RouletteDTO,
   SelectBoxDTO,
+  EndSpaceInvaderDTO,
   StartBlindBoxGameDTO,
-  LotteryDTO,
+  StartSpaceInvaderDTO,
 } from './dto/index.dto'
 import {
   MessageBody,
@@ -22,6 +24,7 @@ import { JwtService } from '@nestjs/jwt'
 import { GameType } from '@prisma/client'
 import { Server, Socket } from 'socket.io'
 import { StatusCodes } from 'enums/StatusCodes'
+import { MiscService } from 'libs/misc.service'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
@@ -44,6 +47,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   @WebSocketServer() server: Server
 
   constructor(
+    private readonly misc: MiscService,
     private readonly store: StoreService,
     private readonly prisma: PrismaService,
     private readonly random: RandomService,
@@ -182,7 +186,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       game_type: 'CoinFlip' as GameType,
     }
 
-    await this.prisma.$transaction([
+    const [savedRound] = await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
           ...round,
@@ -204,12 +208,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('coin-flip-result', { ...round, win, outcome })
 
-    await this.realtimeService.updateUniqueUsersForCurrentTournament(
-      currentTournament.id,
-      sub,
-      currentTournament.start,
-      currentTournament.end,
-    )
+    if (savedRound) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 
   @SubscribeMessage('dice-roll')
@@ -285,7 +291,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       game_type: 'Dice' as GameType,
     }
 
-    await this.prisma.$transaction([
+    const [savedRound] = await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
           ...round,
@@ -307,12 +313,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('dice-roll-result', { ...round, win, rolls })
 
-    await this.realtimeService.updateUniqueUsersForCurrentTournament(
-      currentTournament.id,
-      sub,
-      currentTournament.start,
-      currentTournament.end,
-    )
+    if (savedRound) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 
   @SubscribeMessage('roulette-spin')
@@ -391,7 +399,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const result = betType === 'number' ? outcome : betType === 'color' ? outcomeColor : outcomeParity
 
-    await this.prisma.$transaction([
+    const [savedRound] = await this.prisma.$transaction([
       this.prisma.round.create({
         data: {
           ...round,
@@ -413,12 +421,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('roulette-spin-result', { ...round, win, outcome, result })
 
-    await this.realtimeService.updateUniqueUsersForCurrentTournament(
-      currentTournament.id,
-      sub,
-      currentTournament.start,
-      currentTournament.end,
-    )
+    if (savedRound) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 
   @SubscribeMessage('start-blackjack')
@@ -777,10 +787,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('lottery-data', { round })
 
-    client.broadcast.emit('new-round', { round })
+    client.broadcast.emit('new-lottery-round', { round })
   }
 
-  @SubscribeMessage('get-latest-rounds')
+  @SubscribeMessage('get-latest-lottery-rounds')
   async getLatestRounds(@ConnectedSocket() client: Socket) {
     const latestRounds = await this.prisma.round.findMany({
       take: 15,
@@ -795,6 +805,135 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       orderBy: { createdAt: 'desc' },
     })
 
-    client.emit('latest-rounds', { rounds: latestRounds })
+    client.emit('latest-lottery-rounds', { rounds: latestRounds })
+  }
+
+  @SubscribeMessage('start-space-invader')
+  async startSpaceInvaders(@ConnectedSocket() client: Socket, @MessageBody() { lives }: StartSpaceInvaderDTO) {
+
+    const stake = this.misc.calculateSpaceInvaderTicketByLives(lives)
+
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    const { sub } = user
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake }
+      },
+    })
+
+    if (!stat) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Out of tickets. Buy more tickets',
+      })
+      return
+    }
+
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
+    await this.store.set(`space-invader-${sub}`, { lives, stake }, 60 * 60 * 1000)
+
+    await this.prisma.$transaction([
+      this.prisma.stat.update({
+        where: { userId: sub },
+        data: { tickets: { decrement: stake } }
+      }),
+      this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { totalStakes: { increment: stake } }
+      })
+    ])
+
+    client.emit('space-invader-started', { lives, stake })
+  }
+
+  @SubscribeMessage('end-space-invader')
+  async endSpaceInvaders(@ConnectedSocket() client: Socket, @MessageBody() { points }: EndSpaceInvaderDTO) {
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
+
+    const { sub } = user
+
+    const game = await this.store.get<{
+      stake: number
+      lives: number
+    }>(`space-invader-${sub}`)
+
+    if (!game) {
+      client.emit('error', {
+        status: StatusCodes.NotFound,
+        message: 'Game not found',
+      })
+      return
+    }
+
+    const currentTournament = await this.realtimeService.currentTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament. Your tickets have been reversed',
+      })
+
+      await this.prisma.$transaction([
+        this.prisma.stat.update({
+          where: { userId: sub },
+          data: { tickets: { increment: game.stake } }
+        }),
+        this.prisma.tournament.update({
+          where: { key: currentTournament.key },
+          data: { totalStakes: { decrement: game.stake } }
+        })
+      ])
+
+      return
+    }
+
+    const successRate = 0.5
+    const pointsPerLife = game.stake * successRate
+    let totalPoints = pointsPerLife * points
+
+    client.emit('space-invader-ended', { points: totalPoints })
+
+    const round = await this.prisma.round.create({
+      data: {
+        stake: game.stake,
+        point: totalPoints,
+        game_type: 'SpaceInvader',
+        user: { connect: { id: sub } }
+      }
+    })
+
+    if (round) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 }

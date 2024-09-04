@@ -216,6 +216,7 @@ enum GameType {
   Roulette
   CoinFlip
   BlackJack
+  SpaceInvader
 }
 
 enum BetStatus {

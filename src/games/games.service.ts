@@ -4,10 +4,12 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { PaginationDTO } from './dto/pagination'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
+import { MiscService } from 'libs/misc.service'
 
 @Injectable()
 export class GamesService {
   constructor(
+    private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
   ) { }
@@ -290,5 +292,23 @@ export class GamesService {
       skip: offset,
       orderBy: { updatedAt: 'desc' }
     })
+  }
+
+  fetchSpaceInvaderLives() {
+    const size = 5
+
+    const lives: {
+      lives: number
+      tickets: number
+    }[] = []
+
+    for (let i = 0; i < size; i++) {
+      lives.push({
+        lives: i + 1,
+        tickets: this.misc.calculateSpaceInvaderTicketByLives(i + 1)
+      })
+    }
+
+    return lives
   }
 }

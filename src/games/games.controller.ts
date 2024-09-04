@@ -62,4 +62,11 @@ export class GamesController {
 
     return this.response.sendSuccess(res, StatusCodes.OK, { data })
   }
+
+  @Get('/space-invader-lives')
+  async fetchSpaceInvaderLives(@Res() res: Response) {
+    const data = this.gamesService.fetchSpaceInvaderLives()
+
+    return this.response.sendSuccess(res, StatusCodes.OK, { data })
+  }
 }

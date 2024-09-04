@@ -23,6 +23,11 @@ export class MiscService {
     )
   }
 
+  calculateSpaceInvaderTicketByLives(life: number) {
+    const oneLife = 20 as const
+    return life * oneLife
+  }
+
   handleServerError(res: Response, err?: any, msg?: string) {
     console.error(err)
     return this.response.sendError(
