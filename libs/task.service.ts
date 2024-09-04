@@ -178,6 +178,7 @@ export class TaskService {
         while (true) {
             const recentRounds = await this.prisma.round.findMany({
                 where: {
+                    game_type: 'LOTTERY',
                     createdAt: {
                         gte: twentyFourHoursAgo,
                     },
