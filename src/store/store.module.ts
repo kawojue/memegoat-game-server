@@ -22,7 +22,7 @@ import { CacheModule, CacheStore } from '@nestjs/cache-manager'
         return {
           max: Infinity,
           store: store as unknown as CacheStore,
-          ttl: 60 * 60 * 24 * 7,
+          ttl: 7 * 24 * 60 * 60 * 1000,
         }
       },
     }),

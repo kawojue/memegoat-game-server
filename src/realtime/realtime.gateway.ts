@@ -25,8 +25,8 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { BlackjackService } from 'libs/blackJack.service'
 import { StoreService } from 'src/store/store.service'
+import { BlackjackService } from 'libs/blackJack.service'
 
 @WebSocketGateway({
   transports: ['polling', 'websocket'],

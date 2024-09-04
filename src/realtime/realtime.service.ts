@@ -113,7 +113,7 @@ export class RealtimeService {
   }
 
   createGameBoard() {
-    const board = Array.from({ length: 4 }, () => Array(4).fill('gem'))
+    const board: string[][] = Array.from({ length: 4 }, () => Array(4).fill('gem'))
     let bombsPlaced = 0
     while (bombsPlaced < 5) {
       const row = Math.floor(this.randomService.randomize().random * 4)
