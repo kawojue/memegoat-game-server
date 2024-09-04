@@ -793,6 +793,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   @SubscribeMessage('get-latest-lottery-rounds')
   async getLatestRounds(@ConnectedSocket() client: Socket) {
     const latestRounds = await this.prisma.round.findMany({
+      where:{ game_type: 'LOTTERY' },
       take: 15,
       include: {
         user: {
