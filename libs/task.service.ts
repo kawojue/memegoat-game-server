@@ -88,7 +88,7 @@ export class TaskService {
     @Cron(CronExpression.EVERY_MINUTE)
     async triggerFootballBets() {
         const batchSize = 19 // max is 20, I am just being skeptical
-        let betsProcessed = 0
+        let cursorId: string | null = null
 
         const currentTournament = await this.prisma.sportTournament.findFirst({
             where: {
@@ -109,8 +109,12 @@ export class TaskService {
                     status: { in: ['ONGOING', 'NOT_STARTED'] },
                 },
                 take: batchSize,
-                skip: betsProcessed,
-                select: { fixureId: true },
+                orderBy: { createdAt: 'desc' },
+                ...(cursorId && { cursor: { id: cursorId }, skip: 1 }),
+                select: {
+                    id: true,
+                    fixureId: true
+                },
             })
 
             if (bets.length === 0) {
@@ -121,16 +125,17 @@ export class TaskService {
 
             await this.sportQueue.add('sports-football-queue', { batchIds })
 
-            betsProcessed += bets.length
+            cursorId = bets[bets.length - 1].id
 
             await new Promise(resolve => setTimeout(resolve, 100))
         }
     }
 
+
     @Cron(CronExpression.EVERY_MINUTE)
     async updateTransactions() {
         const batchSize = 200
-        let transactionsProcessed = 0
+        let cursorId: string | null = null
         const sevenDaysAgo = subDays(new Date(), 7)
 
         while (true) {
@@ -142,8 +147,9 @@ export class TaskService {
                     },
                 },
                 take: batchSize,
-                skip: transactionsProcessed,
+                ...(cursorId && { cursor: { id: cursorId }, skip: 1 }),
                 select: { id: true, txId: true },
+                orderBy: { createdAt: 'desc' },
             })
 
             if (transactions.length === 0) {
@@ -154,13 +160,14 @@ export class TaskService {
                 await this.transactionQueue.add('cron.transaction', { transaction })
             }
 
-            transactionsProcessed += transactions.length
+            cursorId = transactions[transactions.length - 1].id
 
             await new Promise(resolve => setTimeout(resolve, 100))
         }
     }
 
-    @Cron(CronExpression.EVERY_MINUTE)
+
+    @Cron(CronExpression.EVERY_DAY_AT_4PM)
     async updateLotterySession() {
         const data: contractDTO = {
             contract: 'memegoat-lottery-rng',
@@ -170,22 +177,18 @@ export class TaskService {
 
         const rng = await this.contract.readContract(data)
 
-        const batchSize = 20
-        let roundsProcessed = 0
-
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        const batchSize = 32
+        let cursorId: string | null = null
 
         while (true) {
             const recentRounds = await this.prisma.round.findMany({
                 where: {
+                    point: { lte: 0 },
                     game_type: 'LOTTERY',
-                    createdAt: {
-                        gte: twentyFourHoursAgo,
-                    },
-                    point: { lte: 0 }
+                    lottery_outcome_digits: { equals: null },
                 },
                 take: batchSize,
-                skip: roundsProcessed,
+                ...(cursorId && { cursor: { id: cursorId }, skip: 1 }),
                 orderBy: { createdAt: 'desc' },
             })
 
@@ -198,11 +201,19 @@ export class TaskService {
 
                 await this.prisma.round.update({
                     where: { id: round.id },
-                    data: { point: points },
+                    data: {
+                        point: points,
+                        lottery_outcome_digits: rng,
+                    },
+                })
+
+                await this.prisma.stat.update({
+                    where: { userId: round.userId },
+                    data: { total_points: { increment: points } },
                 })
             }))
 
-            roundsProcessed += recentRounds.length
+            cursorId = recentRounds[recentRounds.length - 1].id
 
             await new Promise(resolve => setTimeout(resolve, 100))
         }

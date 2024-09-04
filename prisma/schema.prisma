@@ -88,8 +88,9 @@ model Round {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
 
+  @@index([point])
+  @@index([stake])
   @@index([game_type])
-  @@index([point, stake])
   @@index([createdAt, updatedAt])
 }
 

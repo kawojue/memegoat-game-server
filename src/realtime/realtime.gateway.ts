@@ -58,6 +58,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   private clients: Map<Socket, JwtPayload> = new Map()
   private onlineUsers: Map<string, string> = new Map()
+  private blindBoxGames: Map<string, BlindBox> = new Map()
 
   afterInit() {
     this.realtimeService.setServer(this.server)
@@ -562,15 +563,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-
-    const stat = await this.prisma.stat.findFirst({
-      where: {
-        userId: sub,
-        tickets: { gte: tickets }
-      },
+    const stat = await this.prisma.stat.findUnique({
+      where: { userId: sub },
     })
 
-    if (!stat) {
+    if (stat.tickets < tickets) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
@@ -588,11 +585,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const board = this.realtimeService.createGameBoard()
-    await this.store.set(`blindbox_${sub}`, {
+    this.blindBoxGames.set(sub, {
       points: 0,
       board: board,
       stake: tickets
-    }, 5 * 60 * 1000)
+    })
 
     await this.prisma.$transaction([
       this.prisma.stat.update({
@@ -631,7 +628,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-    const game = await this.store.get<BlindBox>(`blindbox_${sub}`)
+    const game = this.blindBoxGames.get(sub)
     if (!game) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -643,7 +640,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     const { board, stake } = game
     const selected = board[row][column]
     if (selected === 'bomb') {
-      await this.store.delete(`blindbox_${sub}`)
+      this.blindBoxGames.delete(sub)
       client.emit('blindbox-game-over', { points: 0 })
       await this.prisma.stat.update({
         where: { userId: sub },
@@ -670,7 +667,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
       await this.realtimeService.saveGameResult(sub, game)
-      await this.store.delete(`blindbox_${sub}`)
+      this.blindBoxGames.delete(sub)
     } else {
       client.emit('box-selected', { points: game.points, remainingGems })
     }
@@ -689,7 +686,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-    const game = await this.store.get<BlindBox>(`blindbox_${sub}`)
+    const game = this.blindBoxGames.get(sub)
     if (!game) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
@@ -708,7 +705,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.realtimeService.saveGameResult(sub, game)
 
     client.emit('blindbox-ended', { points: game.points })
-    await this.store.delete(`blindbox_${sub}`)
+    this.blindBoxGames.delete(sub)
   }
 
   @SubscribeMessage('play-lottery')
@@ -793,7 +790,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   @SubscribeMessage('get-latest-lottery-rounds')
   async getLatestRounds(@ConnectedSocket() client: Socket) {
     const latestRounds = await this.prisma.round.findMany({
-      where:{ game_type: 'LOTTERY' },
+      where: { game_type: 'LOTTERY' },
       take: 15,
       include: {
         user: {
@@ -927,6 +924,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         user: { connect: { id: sub } }
       }
     })
+
+    await this.store.delete(`space-invader-${sub}`)
 
     if (round) {
       await this.realtimeService.updateUniqueUsersForCurrentTournament(
