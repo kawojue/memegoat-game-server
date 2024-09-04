@@ -26,6 +26,11 @@ export class TaskService {
                 matches++
             }
         }
+
+        if (matches === 0) {
+            return 0
+        }
+
         const probability = 1 / 10
         const points = stake * Math.pow(1 / probability, matches)
 
