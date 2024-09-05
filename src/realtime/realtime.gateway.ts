@@ -914,6 +914,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('space-invader-ended', { points: totalPoints })
 
     if (round) {
+      await this.prisma.stat.update({
+        where: { userId: sub },
+        data: {
+          total_points: { increment: totalPoints }
+        }
+      })
       this.spaceInvaderGames.delete(sub)
     }
   }
