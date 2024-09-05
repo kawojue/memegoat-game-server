@@ -24,8 +24,8 @@ export class MiscService {
   }
 
   calculateSpaceInvaderTicketByLives(life: number) {
-    const oneLife = 20 as const
-    return life * oneLife
+    const baseTicket = 25
+    return baseTicket * Math.pow(2, life - 1)
   }
 
   handleServerError(res: Response, err?: any, msg?: string) {

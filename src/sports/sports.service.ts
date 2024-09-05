@@ -47,6 +47,7 @@ export class SportsService {
 
     private async updateUniqueUsersForCurrentTournament(
         tournamentId: string,
+        stakes: number,
         userId: string,
         start: Date,
         end: Date,
@@ -68,7 +69,15 @@ export class SportsService {
         if (rounds <= 1) {
             await this.prisma.sportTournament.update({
                 where: { id: tournamentId },
-                data: { uniqueUsers: { increment: 1 } }
+                data: {
+                    uniqueUsers: { increment: 1 },
+                    totalStakes: { increment: stakes }
+                }
+            })
+        } else {
+            await this.prisma.sportTournament.update({
+                where: { id: tournamentId },
+                data: { totalStakes: { increment: stakes } }
             })
         }
     }
@@ -193,68 +202,69 @@ export class SportsService {
             throw new UnprocessableEntityException("The match has already begun")
         }
 
-        const [bet] = await this.prisma.$transaction([
-            this.prisma.sportBet.create({
-                data: {
-                    outcome: 'NOT_DECIDED',
-                    potentialWin, placebetOutcome,
-                    sport_type: SportType.FOOTBALL,
-                    fixureId: fixtureId.toString(),
-                    stake, elapsed: elapsed.toString(),
-                    status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
-                    goals: {
-                        away: game.goals.away,
-                        home: game.goals.home,
-                    },
-                    teams: {
-                        home: {
-                            name: game.teams.home.name,
-                            logo: game.teams.home.logo,
-                            winner: game.teams.home.winner,
-                            id: game.teams.home.id.toString(),
-                        },
-                        away: {
-                            name: game.teams.away.name,
-                            logo: game.teams.away.logo,
-                            winner: game.teams.away.winner,
-                            id: game.teams.away.id.toString(),
-                        }
-                    },
-                    league: {
-                        name: game.league.name,
-                        flag: game.league.flag,
-                        logo: game.league.logo,
-                        country: game.league.country,
-                        id: game.league.id.toString(),
-                        season: game.league.season.toString()
-                    },
-                    sportRound: {
-                        create: {
-                            stake, sport_type: 'FOOTBALL',
-                            user: { connect: { id: userId } }
-                        }
-                    },
-                    user: { connect: { id: userId } },
+        const bet = await this.prisma.sportBet.create({
+            data: {
+                outcome: 'NOT_DECIDED',
+                potentialWin, placebetOutcome,
+                sport_type: SportType.FOOTBALL,
+                fixureId: fixtureId.toString(),
+                stake, elapsed: elapsed.toString(),
+                status: elapsed > 0 ? 'ONGOING' : 'NOT_STARTED',
+                goals: {
+                    away: game.goals.away,
+                    home: game.goals.home,
                 },
-                include: {
-                    sportRound: true
-                }
-            }),
-            this.prisma.stat.update({
+                teams: {
+                    home: {
+                        name: game.teams.home.name,
+                        logo: game.teams.home.logo,
+                        winner: game.teams.home.winner,
+                        id: game.teams.home.id.toString(),
+                    },
+                    away: {
+                        name: game.teams.away.name,
+                        logo: game.teams.away.logo,
+                        winner: game.teams.away.winner,
+                        id: game.teams.away.id.toString(),
+                    }
+                },
+                league: {
+                    name: game.league.name,
+                    flag: game.league.flag,
+                    logo: game.league.logo,
+                    country: game.league.country,
+                    id: game.league.id.toString(),
+                    season: game.league.season.toString()
+                },
+                sportRound: {
+                    create: {
+                        stake, sport_type: 'FOOTBALL',
+                        user: { connect: { id: userId } }
+                    }
+                },
+                user: { connect: { id: userId } },
+            },
+            include: {
+                sportRound: true
+            }
+        })
+
+        if (bet) {
+            await this.prisma.stat.update({
                 where: { userId },
                 data: {
                     tickets: { decrement: stake }
                 }
-            }),
-            this.prisma.sportTournament.update({
+            })
+
+            await this.prisma.sportTournament.update({
                 where: { id: currentTournament.id },
                 data: { totalStakes: { increment: stake } }
             })
-        ])
 
-        if (bet) {
             await this.updateUniqueUsersForCurrentTournament(
-                currentTournament.id, userId,
+                currentTournament.id,
+                stake, userId,
                 currentTournament.start,
                 currentTournament.end,
             )
@@ -333,61 +343,61 @@ export class SportsService {
             throw new BadRequestException("Sorry, you can't bet on this game right now")
         }
 
-        const [bet] = await this.prisma.$transaction([
-            this.prisma.sportBet.create({
-                data: {
-                    outcome: 'NOT_DECIDED',
-                    sport_type: SportType.NFL,
-                    fixureId: gameId.toString(),
-                    potentialWin, placebetOutcome,
-                    stake, elapsed: game.game.status.timer,
-                    status: 'NOT_STARTED',
-                    goals: {
-                        away: game.scores.away.total,
-                        home: game.scores.home.total,
-                    },
-                    teams: {
-                        home: {
-                            name: game.teams.home.name,
-                            logo: game.teams.home.logo,
-                            id: game.teams.home.id.toString(),
-                        },
-                        away: {
-                            name: game.teams.away.name,
-                            logo: game.teams.away.logo,
-                            id: game.teams.away.id.toString(),
-                        }
-                    },
-                    league: {
-                        name: game.league.name,
-                        logo: game.league.logo,
-                        id: game.league.id.toString(),
-                        country: game.league.country.name,
-                        season: game.league.season.toString()
-                    },
-                    sportRound: {
-                        create: {
-                            stake, sport_type: 'NFL',
-                            user: { connect: { id: userId } }
-                        }
-                    },
-                    user: { connect: { id: userId } },
+        const bet = await this.prisma.sportBet.create({
+            data: {
+                outcome: 'NOT_DECIDED',
+                sport_type: SportType.NFL,
+                fixureId: gameId.toString(),
+                potentialWin, placebetOutcome,
+                stake, elapsed: game.game.status.timer,
+                status: 'NOT_STARTED',
+                goals: {
+                    away: game.scores.away.total,
+                    home: game.scores.home.total,
                 },
-                include: {
-                    sportRound: true
-                }
-            }),
-            this.prisma.stat.update({
+                teams: {
+                    home: {
+                        name: game.teams.home.name,
+                        logo: game.teams.home.logo,
+                        id: game.teams.home.id.toString(),
+                    },
+                    away: {
+                        name: game.teams.away.name,
+                        logo: game.teams.away.logo,
+                        id: game.teams.away.id.toString(),
+                    }
+                },
+                league: {
+                    name: game.league.name,
+                    logo: game.league.logo,
+                    id: game.league.id.toString(),
+                    country: game.league.country.name,
+                    season: game.league.season.toString()
+                },
+                sportRound: {
+                    create: {
+                        stake, sport_type: 'NFL',
+                        user: { connect: { id: userId } }
+                    }
+                },
+                user: { connect: { id: userId } },
+            },
+            include: {
+                sportRound: true
+            }
+        })
+
+        if (bet) {
+            await this.prisma.stat.update({
                 where: { userId },
                 data: {
                     tickets: { decrement: stake }
                 }
-            }),
-        ])
+            })
 
-        if (bet) {
             await this.updateUniqueUsersForCurrentTournament(
-                currentTournament.id, userId,
+                currentTournament.id,
+                stake, userId,
                 currentTournament.start,
                 currentTournament.end,
             )

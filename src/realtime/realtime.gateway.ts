@@ -28,7 +28,6 @@ import { MiscService } from 'libs/misc.service'
 import { RandomService } from 'libs/random.service'
 import { RealtimeService } from './realtime.service'
 import { PrismaService } from 'prisma/prisma.service'
-import { StoreService } from 'src/store/store.service'
 import { BlackjackService } from 'libs/blackJack.service'
 
 @WebSocketGateway({
@@ -48,7 +47,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   constructor(
     private readonly misc: MiscService,
-    private readonly store: StoreService,
     private readonly prisma: PrismaService,
     private readonly random: RandomService,
     private readonly jwtService: JwtService,
@@ -59,6 +57,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   private clients: Map<Socket, JwtPayload> = new Map()
   private onlineUsers: Map<string, string> = new Map()
   private blindBoxGames: Map<string, BlindBox> = new Map()
+  private spaceInvaderGames: Map<string, SpaceInvader> = new Map()
 
   afterInit() {
     this.realtimeService.setServer(this.server)
@@ -187,32 +186,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       game_type: 'CoinFlip' as GameType,
     }
 
-    const [savedRound] = await this.prisma.$transaction([
-      this.prisma.round.create({
-        data: {
-          ...round,
-          user: { connect: { id: sub } },
-        },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: {
-          tickets: { decrement: stake },
-          ...updateData,
-        },
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: stake } }
-      }),
-    ])
+    const savedRound = await this.prisma.round.create({
+      data: {
+        ...round,
+        user: { connect: { id: sub } },
+      },
+    })
+
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: {
+        tickets: { decrement: stake },
+        ...updateData,
+      },
+    })
 
     client.emit('coin-flip-result', { ...round, win, outcome })
 
     if (savedRound) {
       await this.realtimeService.updateUniqueUsersForCurrentTournament(
         currentTournament.id,
-        sub,
+        stake, sub,
         currentTournament.start,
         currentTournament.end,
       )
@@ -292,32 +286,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       game_type: 'Dice' as GameType,
     }
 
-    const [savedRound] = await this.prisma.$transaction([
-      this.prisma.round.create({
-        data: {
-          ...round,
-          user: { connect: { id: sub } },
-        },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: {
-          tickets: { decrement: stake },
-          ...updateData,
-        },
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: stake } }
-      }),
-    ])
+    const savedRound = await this.prisma.round.create({
+      data: {
+        ...round,
+        user: { connect: { id: sub } },
+      },
+    })
+
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: {
+        tickets: { decrement: stake },
+        ...updateData,
+      },
+    })
 
     client.emit('dice-roll-result', { ...round, win, rolls })
 
     if (savedRound) {
       await this.realtimeService.updateUniqueUsersForCurrentTournament(
         currentTournament.id,
-        sub,
+        stake, sub,
         currentTournament.start,
         currentTournament.end,
       )
@@ -400,32 +389,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const result = betType === 'number' ? outcome : betType === 'color' ? outcomeColor : outcomeParity
 
-    const [savedRound] = await this.prisma.$transaction([
-      this.prisma.round.create({
-        data: {
-          ...round,
-          user: { connect: { id: sub } },
-        },
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: {
-          tickets: { decrement: stake },
-          ...updateData
-        },
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: stake } }
-      }),
-    ])
+    const savedRound = await this.prisma.round.create({
+      data: {
+        ...round,
+        user: { connect: { id: sub } },
+      },
+    })
+
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: {
+        tickets: { decrement: stake },
+        ...updateData
+      },
+    })
 
     client.emit('roulette-spin-result', { ...round, win, outcome, result })
 
     if (savedRound) {
       await this.realtimeService.updateUniqueUsersForCurrentTournament(
         currentTournament.id,
-        sub,
+        stake, sub,
         currentTournament.start,
         currentTournament.end,
       )
@@ -591,25 +575,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       stake: tickets
     })
 
-    await this.prisma.$transaction([
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: { tickets: { decrement: tickets } },
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: tickets } }
-      })
-    ])
+    const newStat = await this.prisma.stat.update({
+      where: { userId: sub },
+      data: { tickets: { decrement: tickets } },
+    })
 
     client.emit('blindbox-started', { boardSize: 4, tickets })
 
-    await this.realtimeService.updateUniqueUsersForCurrentTournament(
-      currentTournament.id,
-      sub,
-      currentTournament.start,
-      currentTournament.end,
-    )
+    if (newStat) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        tickets, sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 
   @SubscribeMessage('select-box')
@@ -666,7 +646,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
-      await this.realtimeService.saveGameResult(sub, game)
+      await this.realtimeService.saveBlindBoxGameResult(sub, game)
       this.blindBoxGames.delete(sub)
     } else {
       client.emit('box-selected', { points: game.points, remainingGems })
@@ -702,7 +682,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }
     }
 
-    await this.realtimeService.saveGameResult(sub, game)
+    await this.realtimeService.saveBlindBoxGameResult(sub, game)
 
     client.emit('blindbox-ended', { points: game.points })
     this.blindBoxGames.delete(sub)
@@ -753,38 +733,42 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const [round] = await this.prisma.$transaction([
-      this.prisma.round.create({
-        data: {
-          stake,
-          game_type: 'LOTTERY',
-          lottery_digits: digits,
-          user: { connect: { id: sub } },
-        },
-        include: {
-          user: {
-            select: {
-              avatar: true,
-              username: true,
-            }
+    const round = await this.prisma.round.create({
+      data: {
+        stake,
+        game_type: 'LOTTERY',
+        lottery_digits: digits,
+        user: { connect: { id: sub } },
+      },
+      include: {
+        user: {
+          select: {
+            avatar: true,
+            username: true,
           }
         }
-      }),
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: {
-          tickets: { decrement: stake },
-        },
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: stake } }
-      }),
-    ])
+      }
+    })
+
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: {
+        tickets: { decrement: stake },
+      },
+    })
 
     client.emit('lottery-data', { round })
 
     client.broadcast.emit('new-lottery-round', { round })
+
+    if (round) {
+      await this.realtimeService.updateUniqueUsersForCurrentTournament(
+        currentTournament.id,
+        stake, sub,
+        currentTournament.start,
+        currentTournament.end,
+      )
+    }
   }
 
   @SubscribeMessage('get-latest-lottery-rounds')
@@ -846,20 +830,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    await this.store.set(`space-invader-${sub}`, { lives, stake }, 60 * 60 * 1000)
+    this.spaceInvaderGames.set(sub, { lives, stake })
 
-    await this.prisma.$transaction([
-      this.prisma.stat.update({
-        where: { userId: sub },
-        data: { tickets: { decrement: stake } }
-      }),
-      this.prisma.tournament.update({
-        where: { key: currentTournament.key },
-        data: { totalStakes: { increment: stake } }
-      })
-    ])
+    await this.prisma.stat.update({
+      where: { userId: sub },
+      data: { tickets: { decrement: stake } }
+    })
 
     client.emit('space-invader-started', { lives, stake })
+
+    await this.realtimeService.updateUniqueUsersForCurrentTournament(
+      currentTournament.id,
+      stake, sub,
+      currentTournament.start,
+      currentTournament.end,
+    )
   }
 
   @SubscribeMessage('end-space-invader')
@@ -875,11 +860,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     const { sub } = user
-
-    const game = await this.store.get<{
-      stake: number
-      lives: number
-    }>(`space-invader-${sub}`)
+    const game = this.spaceInvaderGames.get(sub)
 
     if (!game) {
       client.emit('error', {
@@ -896,28 +877,33 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         message: 'No active tournament. Your tickets have been reversed',
       })
 
-      await this.prisma.$transaction([
-        this.prisma.stat.update({
-          where: { userId: sub },
-          data: { tickets: { increment: game.stake } }
-        }),
-        this.prisma.tournament.update({
-          where: { key: currentTournament.key },
-          data: { totalStakes: { decrement: game.stake } }
-        })
-      ])
+      await this.prisma.stat.update({
+        where: { userId: sub },
+        data: { tickets: { increment: game.stake } }
+      })
+
+      await this.prisma.tournament.update({
+        where: { key: currentTournament.key },
+        data: { totalStakes: { decrement: game.stake } }
+      })
 
       return
     }
 
-    const successRate = 0.5
-    const pointsPerLife = game.stake * successRate
-    let totalPoints = pointsPerLife * points
+    let totalPoints = points
+    const throttle = Math.floor(points / game.stake)
 
-    client.emit('space-invader-ended', { points: totalPoints })
+    if (points > (game.stake / 2)) {
+      if (throttle >= 1) {
+        totalPoints = throttle * points * game.stake
+      } else {
+        totalPoints = points * game.stake
+      }
+    }
 
     const round = await this.prisma.round.create({
       data: {
+        lives: game.lives,
         stake: game.stake,
         point: totalPoints,
         game_type: 'SpaceInvader',
@@ -925,15 +911,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       }
     })
 
-    await this.store.delete(`space-invader-${sub}`)
+    client.emit('space-invader-ended', { points: totalPoints })
 
     if (round) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      this.spaceInvaderGames.delete(sub)
     }
   }
 }

@@ -78,6 +78,7 @@ model Stat {
 model Round {
   id                     String   @id @default(auto()) @map("_id") @db.ObjectId
   stake                  Int
+  lives                  Int?
   point                  Float    @default(0.00)
   lottery_digits         String?
   lottery_outcome_digits String?

@@ -20,6 +20,11 @@ interface BlindBox {
     board: string[][]
 }
 
+interface SpaceInvader {
+    lives: number
+    stake: number
+}
+
 interface Card {
     suit: string
     value: string

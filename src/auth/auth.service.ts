@@ -78,17 +78,15 @@ export class AuthService {
           avatarSeeds[Math.floor(random * avatarSeeds.length)];
         const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
 
-        await this.prisma.$transaction([
-          this.prisma.user.create({
-            data: { id: _id, address, avatar: avatarUrl },
-          }),
-          this.prisma.stat.create({
-            data: {
-              tickets: 100_000,
-              user: { connect: { id: _id } },
-            },
-          }),
-        ]);
+        await this.prisma.user.create({
+          data: { id: _id, address, avatar: avatarUrl },
+        })
+        await this.prisma.stat.create({
+          data: {
+            tickets: 100_000,
+            user: { connect: { id: _id } },
+          },
+        })
       }
 
       if (user) {

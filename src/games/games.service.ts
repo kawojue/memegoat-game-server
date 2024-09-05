@@ -1,10 +1,10 @@
 import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
 import { StatusCodes } from 'enums/StatusCodes'
+import { MiscService } from 'libs/misc.service'
 import { PaginationDTO } from './dto/pagination'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
-import { MiscService } from 'libs/misc.service'
 
 @Injectable()
 export class GamesService {
@@ -295,7 +295,7 @@ export class GamesService {
   }
 
   fetchSpaceInvaderLives() {
-    const size = 5
+    const size = 3
 
     const lives: {
       lives: number

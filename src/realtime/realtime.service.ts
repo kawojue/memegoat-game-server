@@ -35,6 +35,7 @@ export class RealtimeService {
 
   async updateUniqueUsersForCurrentTournament(
     tournamentId: string,
+    stakes: number,
     userId: string,
     start: Date,
     end: Date,
@@ -56,7 +57,15 @@ export class RealtimeService {
     if (rounds <= 1) {
       await this.prisma.tournament.update({
         where: { id: tournamentId },
-        data: { uniqueUsers: { increment: 1 } }
+        data: {
+          uniqueUsers: { increment: 1 },
+          totalStakes: { increment: stakes }
+        }
+      })
+    } else {
+      await this.prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { totalStakes: { increment: stakes } }
       })
     }
   }
@@ -126,22 +135,20 @@ export class RealtimeService {
     return board
   }
 
-  async saveGameResult(userId: string, game: BlindBox) {
-    await this.prisma.$transaction([
-      this.prisma.stat.update({
-        where: { userId },
-        data: {
-          total_points: { increment: game.points },
-        },
-      }),
-      this.prisma.round.create({
-        data: {
-          stake: game.stake,
-          point: game.points,
-          game_type: 'BlindBox',
-          user: { connect: { id: userId } },
-        },
-      }),
-    ])
+  async saveBlindBoxGameResult(userId: string, game: BlindBox) {
+    await this.prisma.stat.update({
+      where: { userId },
+      data: {
+        total_points: { increment: game.points },
+      },
+    })
+    await this.prisma.round.create({
+      data: {
+        stake: game.stake,
+        point: game.points,
+        game_type: 'BlindBox',
+        user: { connect: { id: userId } },
+      },
+    })
   }
 }
