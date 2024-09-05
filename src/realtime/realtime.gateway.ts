@@ -879,16 +879,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const stake = this.misc.calculateSpaceInvaderTicketByLives(game.lives)
-
-    let totalPoints = points
+    let totalPoints = points * game.lives
     const throttle = Math.floor(points / game.stake)
 
     if (points > (game.stake / 2)) {
-      if (throttle >= 1) {
-        totalPoints = throttle * points * game.stake
+      if (throttle > 1) {
+        totalPoints = throttle * points + game.stake
       } else {
-        totalPoints = points * game.stake
+        totalPoints = points + game.stake
       }
     }
 
@@ -908,7 +906,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       await this.prisma.stat.update({
         where: { userId: sub },
         data: {
-          tickets: { decrement: stake },
+          tickets: { decrement: game.stake },
           total_points: { increment: totalPoints }
         }
       })

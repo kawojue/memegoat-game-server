@@ -17,12 +17,10 @@ export class TaskService {
     ) { }
 
     calculateLotteryPoints(guess: string, outcome: string, stake: number): number {
-        const formattedOutcome = outcome.slice(1).split('').reverse().join('')
-
         let matches = 0
 
         for (let i = 0; i < guess.length; i++) {
-            if (guess[i] === formattedOutcome[i]) {
+            if (guess[i] === outcome[i]) {
                 matches++
             }
         }
@@ -31,8 +29,11 @@ export class TaskService {
             return 0
         }
 
-        const probability = 1 / 10
-        const points = stake * Math.pow(1 / probability, matches)
+        let points = stake * matches * (1 / 10) + stake
+
+        if (matches === outcome.length) {
+            points = stake * 10 + stake
+        }
 
         return points
     }
@@ -176,6 +177,7 @@ export class TaskService {
         }
 
         const rng = await this.contract.readContract(data)
+        const outcome = rng.slice(1).split('').reverse().join('')
 
         const batchSize = 32
         let cursorId: string | null = null
@@ -197,13 +199,13 @@ export class TaskService {
             }
 
             await Promise.all(recentRounds.map(async (round) => {
-                const points = this.calculateLotteryPoints(round.lottery_digits, rng, round.stake)
+                const points = this.calculateLotteryPoints(round.lottery_digits, outcome, round.stake)
 
                 await this.prisma.round.update({
                     where: { id: round.id },
                     data: {
                         point: points,
-                        lottery_outcome_digits: rng,
+                        lottery_outcome_digits: outcome,
                     },
                 })
 
