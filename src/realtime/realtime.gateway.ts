@@ -792,7 +792,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   @SubscribeMessage('start-space-invader')
   async startSpaceInvaders(@ConnectedSocket() client: Socket, @MessageBody() { lives }: StartSpaceInvaderDTO) {
-
     const stake = this.misc.calculateSpaceInvaderTicketByLives(lives)
 
     const user = this.clients.get(client)
@@ -831,11 +830,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     this.spaceInvaderGames.set(sub, { lives, stake })
-
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: { tickets: { decrement: stake } }
-    })
 
     client.emit('space-invader-started', { lives, stake })
 
@@ -877,11 +871,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         message: 'No active tournament. Your tickets have been reversed',
       })
 
-      await this.prisma.stat.update({
-        where: { userId: sub },
-        data: { tickets: { increment: game.stake } }
-      })
-
       await this.prisma.tournament.update({
         where: { key: currentTournament.key },
         data: { totalStakes: { decrement: game.stake } }
@@ -889,6 +878,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
       return
     }
+
+    const stake = this.misc.calculateSpaceInvaderTicketByLives(game.lives)
 
     let totalPoints = points
     const throttle = Math.floor(points / game.stake)
@@ -917,6 +908,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       await this.prisma.stat.update({
         where: { userId: sub },
         data: {
+          tickets: { decrement: stake },
           total_points: { increment: totalPoints }
         }
       })
