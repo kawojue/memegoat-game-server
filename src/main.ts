@@ -19,6 +19,7 @@ async function bootstrap() {
       'https://games-server.memegoat.io',
       'https://memegoat-games.vercel.app',
       'https://beta-games.memegoat.io',
+      'fluksy.memegoat.io',
     ],
     credentials: true,
     optionsSuccessStatus: 200,
