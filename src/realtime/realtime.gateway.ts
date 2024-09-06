@@ -649,6 +649,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     if (remainingGems === 0) {
       client.emit('blindbox-game-won', { points: game.points })
+      await this.prisma.stat.update({
+        where: { userId: sub },
+        data: { total_wins: { increment: 1 } }
+      })
       await this.realtimeService.saveBlindBoxGameResult(sub, game)
       this.blindBoxGames.delete(sub)
     } else {
