@@ -548,10 +548,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const { sub } = user
     const stat = await this.prisma.stat.findUnique({
-      where: { userId: sub },
+      where: {
+        userId: sub,
+        tickets: { gte: tickets }
+      },
     })
 
-    if (stat.tickets < tickets) {
+    if (!stat) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'Out of tickets. Buy more tickets',
