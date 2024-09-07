@@ -29,14 +29,12 @@ export class TaskService {
             return 0
         }
 
-        let points = stake * matches * (1 / 10) + stake
-
-        if (matches === outcome.length) {
-            points = stake * 10 + stake
-        }
+        let multiplier = Math.pow(2, matches)
+        let points = stake * multiplier
 
         return points
     }
+
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async refreshGameTournament() {
@@ -167,7 +165,6 @@ export class TaskService {
         }
     }
 
-
     @Cron(CronExpression.EVERY_DAY_AT_4PM)
     async updateLotterySession() {
         const data: contractDTO = {
@@ -179,7 +176,7 @@ export class TaskService {
         const rng = await this.contract.readContract(data)
         const outcome = rng.slice(1).split('').reverse().join('')
 
-        const batchSize = 32
+        const batchSize = 50
         let cursorId: string | null = null
 
         while (true) {
@@ -187,32 +184,39 @@ export class TaskService {
                 where: {
                     point: { lte: 0 },
                     game_type: 'LOTTERY',
-                    lottery_outcome_digits: { equals: null },
                 },
                 take: batchSize,
                 ...(cursorId && { cursor: { id: cursorId }, skip: 1 }),
                 orderBy: { createdAt: 'desc' },
             })
 
-            if (recentRounds.length === 0) {
+            const roundsWithNullOutcome = recentRounds.filter(round => round.lottery_outcome_digits === null)
+
+            if (roundsWithNullOutcome.length === 0) {
                 break
             }
 
-            await Promise.all(recentRounds.map(async (round) => {
+            await Promise.all(roundsWithNullOutcome.map(async (round) => {
                 const points = this.calculateLotteryPoints(round.lottery_digits, outcome, round.stake)
 
-                await this.prisma.round.update({
-                    where: { id: round.id },
-                    data: {
-                        point: points,
-                        lottery_outcome_digits: outcome,
-                    },
-                })
+                try {
+                    await this.prisma.round.update({
+                        where: { id: round.id },
+                        data: {
+                            point: points,
+                            lottery_outcome_digits: outcome,
+                        },
+                    })
 
-                await this.prisma.stat.update({
-                    where: { userId: round.userId },
-                    data: { total_points: { increment: points } },
-                })
+                    await this.prisma.stat.update({
+                        where: { userId: round.userId },
+                        data: { total_points: { increment: points } },
+                    })
+
+                    await new Promise(resolve => setTimeout(resolve, 100))
+                } catch (err) {
+                    console.error(`Error updating round ${round.id}:`, err)
+                }
             }))
 
             cursorId = recentRounds[recentRounds.length - 1].id

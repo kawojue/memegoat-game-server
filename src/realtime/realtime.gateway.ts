@@ -800,6 +800,35 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('latest-lottery-rounds', { rounds: latestRounds })
   }
 
+  @SubscribeMessage('current-lottery-analysis')
+  async currentLotteryAnalysis(@ConnectedSocket() client: Socket) {
+    const user = this.clients.get(client)
+
+    let analysis = {
+      myStake: 0,
+      currentStake: 0
+    }
+
+    const recentRounds = await this.prisma.round.findMany({
+      where: {
+        point: { lte: 0 },
+        game_type: 'LOTTERY',
+      }
+    })
+
+    const roundsWithNullOutcome = recentRounds.filter(round => round.lottery_outcome_digits === null)
+
+    analysis.currentStake = roundsWithNullOutcome.reduce((total, round) => total + round.stake, 0)
+
+    if (user) {
+      analysis.myStake = roundsWithNullOutcome.reduce((total, round) => {
+        return total + (round.userId === user.sub ? round.stake : 0)
+      }, 0)
+    }
+
+    client.emit('current-lottery-analysis-result', analysis)
+  }
+
   @SubscribeMessage('start-space-invader')
   async startSpaceInvaders(@ConnectedSocket() client: Socket, @MessageBody() { lives }: StartSpaceInvaderDTO) {
     const stake = this.misc.calculateSpaceInvaderTicketByLives(lives)

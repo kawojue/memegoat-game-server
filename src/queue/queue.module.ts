@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common'
 import { HttpModule } from '@nestjs/axios'
 import { BullModule } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
-import { TaskService } from 'libs/task.service'
 import { StoreModule } from 'src/store/store.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ContractService } from 'libs/contract.service'
@@ -41,7 +40,6 @@ const SharedModule = BullModule.registerQueue(
   ],
   providers: [
     ApiService,
-    TaskService,
     PrismaService,
     ContractService,
     TransactionsQueueProcessor,
