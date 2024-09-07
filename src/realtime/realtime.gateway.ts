@@ -710,8 +710,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    console.log(user)
-
     if (digits.length !== 6) {
       client.emit('error', {
         status: StatusCodes.BadRequest,
