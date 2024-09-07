@@ -696,7 +696,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
   }
 
   @SubscribeMessage('play-lottery')
-  async lottery(@ConnectedSocket() client: Socket, { digits, stake }: LotteryDTO) {
+  async lottery(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { digits, stake }: LotteryDTO
+  ) {
     const user = this.clients.get(client)
     if (!user) {
       client.emit('error', {
@@ -706,6 +709,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       client.disconnect()
       return
     }
+
+    console.log(user)
 
     if (digits.length !== 6) {
       client.emit('error', {
