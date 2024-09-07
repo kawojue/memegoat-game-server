@@ -708,7 +708,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     }
 
     if (digits.length !== 6) {
-      client.emit('', {
+      client.emit('error', {
         status: StatusCodes.BadRequest,
         message: "Lottery digits must be exactly 6-digits number"
       })
