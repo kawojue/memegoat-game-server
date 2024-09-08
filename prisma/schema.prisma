@@ -205,6 +205,15 @@ model SportBet {
   @@index([status, placebetOutcome, outcome])
 }
 
+model LotteryDraw {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  digits    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt, updatedAt])
+}
+
 enum TxStatus {
   Failed
   Pending
@@ -240,14 +249,14 @@ enum PlacebetOutcome {
   draw
 }
 
-type Goals {
-  home Int?
-  away Int?
-}
-
 enum SportType {
   NFL
   FOOTBALL
+}
+
+type Goals {
+  home Int?
+  away Int?
 }
 
 type SportTeams {

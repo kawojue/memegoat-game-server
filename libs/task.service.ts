@@ -35,7 +35,6 @@ export class TaskService {
         return points
     }
 
-
     @Cron(CronExpression.EVERY_5_MINUTES)
     async refreshGameTournament() {
         const currentTournament = await this.prisma.tournament.findFirst({
@@ -223,6 +222,10 @@ export class TaskService {
 
             await new Promise(resolve => setTimeout(resolve, 100))
         }
+
+        await this.prisma.lotteryDraw.create({
+            data: { digits: outcome }
+        })
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_6AM)

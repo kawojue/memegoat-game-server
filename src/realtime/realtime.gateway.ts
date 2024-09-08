@@ -829,6 +829,23 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('current-lottery-analysis-result', analysis)
   }
 
+  @SubscribeMessage('lottery-draws')
+  async lotteryDraws(@ConnectedSocket() client: Socket) {
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now)
+    thirtyDaysAgo.setDate(now.getDate() - 30)
+
+    const draws = await this.prisma.lotteryDraw.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+    })
+
+    client.emit('lottery-draws-result', { draws })
+  }
+
   @SubscribeMessage('start-space-invader')
   async startSpaceInvaders(@ConnectedSocket() client: Socket, @MessageBody() { lives }: StartSpaceInvaderDTO) {
     const stake = this.misc.calculateSpaceInvaderTicketByLives(lives)
