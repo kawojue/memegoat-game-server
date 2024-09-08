@@ -94,23 +94,23 @@ export class RealtimeService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async handleDisconnectionTimeouts() {
-    const gracePeriod = 1 * 60 * 1000
+  // @Cron(CronExpression.EVERY_MINUTE)
+  // async handleDisconnectionTimeouts() {
+  //   const gracePeriod = 1 * 60 * 1000
 
-    const players = await this.prisma.player.findMany({
-      where: { disconnectedAt: { not: null } },
-    })
+  //   const players = await this.prisma.player.findMany({
+  //     where: { disconnectedAt: { not: null } },
+  //   })
 
-    for (const player of players) {
-      if (
-        new Date(new Date().toUTCString()).getTime() - new Date(player.disconnectedAt).getTime() >
-        gracePeriod
-      ) {
-        await this.forfeitGame(player.gameId, player.userId)
-      }
-    }
-  }
+  //   for (const player of players) {
+  //     if (
+  //       new Date(new Date().toUTCString()).getTime() - new Date(player.disconnectedAt).getTime() >
+  //       gracePeriod
+  //     ) {
+  //       await this.forfeitGame(player.gameId, player.userId)
+  //     }
+  //   }
+  // }
 
   calculateDicePoint(stake: number, numDice: number, win: boolean) {
     if (!win) return 0
