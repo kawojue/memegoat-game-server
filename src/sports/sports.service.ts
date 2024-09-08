@@ -26,8 +26,8 @@ export class SportsService {
         return await this.prisma.sportTournament.findFirst({
             where: {
                 paused: false,
-                start: { lte: new Date() },
-                end: { gte: new Date() },
+                start: { lte: new Date(new Date().toUTCString()) },
+                end: { gte: new Date(new Date().toUTCString()) },
             }
         })
     }
@@ -90,7 +90,7 @@ export class SportsService {
 
         if (leagueId) {
             params.append('league', leagueId)
-            params.append('season', new Date().getFullYear().toString())
+            params.append('season', new Date(new Date().toUTCString()).getFullYear().toString())
         }
 
         if (timezone) {
@@ -119,7 +119,7 @@ export class SportsService {
 
     async fetchNFLGames({ page = 0, limit = 0 }: PaginationDTO) {
         let fixtures: NFLResponse[] = []
-        const data = await this.apiService.apiSportGET<any>(`/games?league=1&season=${new Date().getFullYear()}`)
+        const data = await this.apiService.apiSportGET<any>(`/games?league=1&season=${new Date(new Date().toUTCString()).getFullYear()}`)
         fixtures = data.response
 
         fixtures = fixtures.filter((fixture) => {
@@ -167,7 +167,7 @@ export class SportsService {
             throw new UnprocessableEntityException("No ongoing tournament")
         }
 
-        const now = new Date()
+        const now = new Date(new Date().toUTCString())
         const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
 
         const THRESHOLD = 300
@@ -308,7 +308,7 @@ export class SportsService {
             throw new UnprocessableEntityException("No ongoing tournament")
         }
 
-        const now = new Date()
+        const now = new Date(new Date().toUTCString())
         const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
 
         const THRESHOLD = 300

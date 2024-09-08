@@ -27,8 +27,8 @@ export class RealtimeService {
     return await this.prisma.tournament.findFirst({
       where: {
         paused: false,
-        start: { lte: new Date() },
-        end: { gte: new Date() },
+        start: { lte: new Date(new Date().toUTCString()) },
+        end: { gte: new Date(new Date().toUTCString()) },
       }
     })
   }
@@ -104,7 +104,7 @@ export class RealtimeService {
 
     for (const player of players) {
       if (
-        new Date().getTime() - new Date(player.disconnectedAt).getTime() >
+        new Date(new Date().toUTCString()).getTime() - new Date(player.disconnectedAt).getTime() >
         gracePeriod
       ) {
         await this.forfeitGame(player.gameId, player.userId)

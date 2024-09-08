@@ -831,7 +831,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
   @SubscribeMessage('lottery-draws')
   async lotteryDraws(@ConnectedSocket() client: Socket) {
-    const now = new Date()
+    const now = new Date(new Date().toUTCString())
     const thirtyDaysAgo = new Date(now)
     thirtyDaysAgo.setDate(now.getDate() - 30)
 

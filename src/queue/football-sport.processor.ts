@@ -109,8 +109,8 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                     await this.prisma.sportTournament.updateMany({
                         where: {
                             paused: false,
-                            start: { lte: new Date() },
-                            end: { gte: new Date() },
+                            start: { lte: new Date(new Date().toUTCString()) },
+                            end: { gte: new Date(new Date().toUTCString()) },
                         },
                         data: {
                             totalStakes: { decrement: bet.stake }

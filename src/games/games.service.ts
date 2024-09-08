@@ -92,8 +92,8 @@ export class GamesService {
 
     const currentTournament = await this.prisma.tournament.findFirst({
       where: {
-        start: { lte: new Date() },
-        end: { gte: new Date() },
+        start: { lte: new Date(new Date().toUTCString()) },
+        end: { gte: new Date(new Date().toUTCString()) },
       },
     })
 
@@ -228,8 +228,8 @@ export class GamesService {
       const currentTournament = await this.prisma.tournament.findFirst({
         where: {
           paused: false,
-          start: { lte: new Date() },
-          end: { gte: new Date() },
+          start: { lte: new Date(new Date().toUTCString()) },
+          end: { gte: new Date(new Date().toUTCString()) },
         },
       })
 

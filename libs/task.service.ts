@@ -37,10 +37,12 @@ export class TaskService {
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async refreshGameTournament() {
+        const currentTime = new Date(new Date().toUTCString())
+
         const currentTournament = await this.prisma.tournament.findFirst({
             where: {
-                start: { lte: new Date() },
-                end: { gte: new Date() },
+                start: { lte: currentTime },
+                end: { gte: currentTime },
             }
         })
 
@@ -49,7 +51,7 @@ export class TaskService {
         }
 
         if (!currentTournament) {
-            const start = new Date()
+            const start = currentTime
             const end = new Date(start)
             end.setDate(start.getDate() + 3)
 
@@ -61,10 +63,11 @@ export class TaskService {
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async refreshSportTournament() {
+        const currentTime = new Date(new Date().toUTCString())
         const currentTournament = await this.prisma.sportTournament.findFirst({
             where: {
-                start: { lte: new Date() },
-                end: { gte: new Date() },
+                start: { lte: currentTime },
+                end: { gte: currentTime },
             }
         })
 
@@ -73,7 +76,7 @@ export class TaskService {
         }
 
         if (!currentTournament) {
-            const start = new Date()
+            const start = currentTime
             const end = new Date(start)
             end.setDate(start.getDate() + 7)
 
@@ -90,8 +93,8 @@ export class TaskService {
 
         const currentTournament = await this.prisma.sportTournament.findFirst({
             where: {
-                start: { lte: new Date() },
-                end: { gte: new Date() },
+                start: { lte: new Date(new Date().toUTCString()) },
+                end: { gte: new Date(new Date().toUTCString()) },
             }
         })
 
@@ -134,7 +137,7 @@ export class TaskService {
     async updateTransactions() {
         const batchSize = 200
         let cursorId: string | null = null
-        const sevenDaysAgo = subDays(new Date(), 7)
+        const sevenDaysAgo = subDays(new Date(new Date().toUTCString()), 7)
 
         while (true) {
             const transactions = await this.prisma.transaction.findMany({
