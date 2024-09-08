@@ -66,7 +66,7 @@ export class AuthService {
         throw new ForbiddenException('Signature is invalid');
       }
 
-      const user = await this.prisma.user.findUnique({
+      let user = await this.prisma.user.findUnique({
         where: { address },
       });
 
@@ -78,7 +78,7 @@ export class AuthService {
           avatarSeeds[Math.floor(random * avatarSeeds.length)];
         const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
 
-        await this.prisma.user.create({
+        user = await this.prisma.user.create({
           data: { id: _id, address, avatar: avatarUrl },
         })
         await this.prisma.stat.create({
