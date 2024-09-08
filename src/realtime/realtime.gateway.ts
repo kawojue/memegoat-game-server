@@ -19,10 +19,12 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets'
+import { Queue } from 'bullmq'
 import { env } from 'configs/env.config'
 import { JwtService } from '@nestjs/jwt'
 import { GameType } from '@prisma/client'
 import { Server, Socket } from 'socket.io'
+import { InjectQueue } from '@nestjs/bullmq'
 import { StatusCodes } from 'enums/StatusCodes'
 import { MiscService } from 'libs/misc.service'
 import { RandomService } from 'libs/random.service'
@@ -52,6 +54,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     private readonly jwtService: JwtService,
     private readonly realtimeService: RealtimeService,
     private readonly blackjackService: BlackjackService,
+    @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
   ) { }
 
   private clients: Map<Socket, JwtPayload> = new Map()
@@ -204,12 +207,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('coin-flip-result', { ...round, win, outcome })
 
     if (savedRound) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        stake, sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      await this.tournamentQueue.add('game', {
+        stake, userId: sub,
+        id: currentTournament.id,
+        end: currentTournament.end,
+        start: currentTournament.start,
+      })
     }
   }
 
@@ -304,12 +307,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('dice-roll-result', { ...round, win, rolls })
 
     if (savedRound) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        stake, sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      await this.tournamentQueue.add('game', {
+        stake, userId: sub,
+        id: currentTournament.id,
+        end: currentTournament.end,
+        start: currentTournament.start,
+      })
     }
   }
 
@@ -407,12 +410,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('roulette-spin-result', { ...round, win, outcome, result })
 
     if (savedRound) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        stake, sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      await this.tournamentQueue.add('game', {
+        stake, userId: sub,
+        id: currentTournament.id,
+        end: currentTournament.end,
+        start: currentTournament.start,
+      })
     }
   }
 
@@ -586,12 +589,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.emit('blindbox-started', { boardSize: 4, tickets })
 
     if (newStat) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        tickets, sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      await this.tournamentQueue.add('game', {
+        id: currentTournament.id,
+        end: currentTournament.end,
+        stake: tickets, userId: sub,
+        start: currentTournament.start,
+      })
     }
   }
 
@@ -772,12 +775,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     client.broadcast.emit('new-lottery-round', { round })
 
     if (round) {
-      await this.realtimeService.updateUniqueUsersForCurrentTournament(
-        currentTournament.id,
-        stake, sub,
-        currentTournament.start,
-        currentTournament.end,
-      )
+      await this.tournamentQueue.add('game', {
+        stake, userId: sub,
+        id: currentTournament.id,
+        end: currentTournament.end,
+        start: currentTournament.start,
+      })
     }
   }
 
@@ -889,12 +892,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     client.emit('space-invader-started', { lives, stake })
 
-    await this.realtimeService.updateUniqueUsersForCurrentTournament(
-      currentTournament.id,
-      stake, sub,
-      currentTournament.start,
-      currentTournament.end,
-    )
+    await this.tournamentQueue.add('game', {
+      stake, userId: sub,
+      id: currentTournament.id,
+      end: currentTournament.end,
+      start: currentTournament.start,
+    })
   }
 
   @SubscribeMessage('end-space-invader')

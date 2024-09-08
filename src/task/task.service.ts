@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { PrismaService } from 'prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { contractDTO, ContractService } from './contract.service'
+import { contractDTO, ContractService } from 'libs/contract.service'
 
 @Injectable()
 export class TaskService {
@@ -87,7 +87,7 @@ export class TaskService {
     }
 
     @Cron(CronExpression.EVERY_MINUTE)
-    async triggerFootballBets() {
+    async refreshFootballBets() {
         const batchSize = 19 // max is 20, I am just being skeptical
         let cursorId: string | null = null
 
@@ -132,10 +132,9 @@ export class TaskService {
         }
     }
 
-
-    @Cron(CronExpression.EVERY_MINUTE)
+    @Cron(CronExpression.EVERY_5_MINUTES)
     async updateTransactions() {
-        const batchSize = 200
+        const batchSize = 100
         let cursorId: string | null = null
         const sevenDaysAgo = subDays(new Date(new Date().toUTCString()), 7)
 
@@ -184,10 +183,15 @@ export class TaskService {
         let cursorId: string | null = null
 
         while (true) {
+            const twentyFourHoursAgo = new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
+
             const recentRounds = await this.prisma.round.findMany({
                 where: {
                     point: { lte: 0 },
                     game_type: 'LOTTERY',
+                    createdAt: {
+                        gte: twentyFourHoursAgo
+                    },
                 },
                 take: batchSize,
                 ...(cursorId && { cursor: { id: cursorId }, skip: 1 }),
@@ -203,7 +207,7 @@ export class TaskService {
             await Promise.all(roundsWithNullOutcome.map(async (round) => {
                 const points = this.calculateLotteryPoints(round.lottery_digits, outcome, round.stake)
 
-                try {
+                await this.prisma.retryTransaction(async () => {
                     await this.prisma.round.update({
                         where: { id: round.id },
                         data: {
@@ -216,11 +220,9 @@ export class TaskService {
                         where: { userId: round.userId },
                         data: { total_points: { increment: points } },
                     })
+                })
 
-                    await new Promise(resolve => setTimeout(resolve, 100))
-                } catch (err) {
-                    console.error(`Error updating round ${round.id}:`, err)
-                }
+                await new Promise(resolve => setTimeout(resolve, 100))
             }))
 
             cursorId = recentRounds[recentRounds.length - 1].id

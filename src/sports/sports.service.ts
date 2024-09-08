@@ -10,6 +10,8 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
+import { Queue } from 'bullmq'
+import { InjectQueue } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
 import { Prisma, SportType } from '@prisma/client'
 import { PrismaService } from 'prisma/prisma.service'
@@ -20,6 +22,7 @@ export class SportsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly apiService: ApiService,
+        @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
     ) { }
 
     private async currentTournament() {
@@ -42,43 +45,6 @@ export class SportsService {
             totalItems: array.length,
             totalPages: Math.ceil(array.length / limit),
             items: paginatedItems
-        }
-    }
-
-    private async updateUniqueUsersForCurrentTournament(
-        tournamentId: string,
-        stakes: number,
-        userId: string,
-        start: Date,
-        end: Date,
-    ) {
-        const rounds = await this.prisma.sportRound.count({
-            where: {
-                userId,
-                updatedAt: {
-                    gte: start,
-                    lte: end,
-                }
-            }
-        })
-
-        /*
-        Used less than or equal-to one because
-        I am saving it after the first round has been saved.
-        */
-        if (rounds <= 1) {
-            await this.prisma.sportTournament.update({
-                where: { id: tournamentId },
-                data: {
-                    uniqueUsers: { increment: 1 },
-                    totalStakes: { increment: stakes }
-                }
-            })
-        } else {
-            await this.prisma.sportTournament.update({
-                where: { id: tournamentId },
-                data: { totalStakes: { increment: stakes } }
-            })
         }
     }
 
@@ -262,12 +228,12 @@ export class SportsService {
                 data: { totalStakes: { increment: stake } }
             })
 
-            await this.updateUniqueUsersForCurrentTournament(
-                currentTournament.id,
+            await this.tournamentQueue.add('sport', {
                 stake, userId,
-                currentTournament.start,
-                currentTournament.end,
-            )
+                id: currentTournament.id,
+                end: currentTournament.end,
+                start: currentTournament.start,
+            })
         }
 
         return bet
@@ -395,12 +361,12 @@ export class SportsService {
                 }
             })
 
-            await this.updateUniqueUsersForCurrentTournament(
-                currentTournament.id,
+            await this.tournamentQueue.add('sport', {
                 stake, userId,
-                currentTournament.start,
-                currentTournament.end,
-            )
+                id: currentTournament.id,
+                end: currentTournament.end,
+                start: currentTournament.start,
+            })
         }
 
         return bet

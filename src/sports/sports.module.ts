@@ -4,6 +4,7 @@ import { HttpModule } from '@nestjs/axios'
 import { ApiService } from 'libs/api.service'
 import { SportsService } from './sports.service'
 import { PassportModule } from '@nestjs/passport'
+import { QueueModule } from 'src/queue/queue.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { SportsController } from './sports.controller'
 import { ResponseService } from 'libs/response.service'
@@ -12,14 +13,16 @@ import { ResponseService } from 'libs/response.service'
   imports: [
     JwtModule,
     HttpModule,
+    QueueModule,
     PassportModule.register({ defaultStrategy: 'jwt' })
   ],
   controllers: [SportsController],
   providers: [
-    SportsService,
     ApiService,
+    SportsService,
     PrismaService,
     ResponseService,
   ],
+  exports: [SportsService]
 })
 export class SportsModule { }

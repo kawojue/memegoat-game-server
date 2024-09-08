@@ -30,6 +30,13 @@ const SharedModule = BullModule.registerQueue(
       removeOnComplete: true,
     }
   },
+  {
+    name: 'current-tournament-queue',
+    defaultJobOptions: {
+      removeOnFail: true,
+      removeOnComplete: true,
+    }
+  },
 )
 
 @Module({

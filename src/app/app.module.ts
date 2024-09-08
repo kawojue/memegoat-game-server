@@ -3,7 +3,7 @@ import { AppService } from './app.service'
 import { HttpModule } from '@nestjs/axios'
 import { BullModule } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
-import { TaskService } from 'libs/task.service'
+import { TaskService } from 'src/task/task.service'
 import { MiscService } from 'libs/misc.service'
 import { AppController } from './app.controller'
 import { ScheduleModule } from '@nestjs/schedule'
@@ -20,15 +20,16 @@ import { WebhookModule } from 'src/webhook/webhook.module'
 import { RealtimeModule } from 'src/realtime/realtime.module'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.middleware'
+import { TaskModule } from 'src/task/task.module'
 
 @Module({
   imports: [
     AuthModule,
     JwtModule,
     HttpModule,
+    TaskModule,
     GamesModule,
     StoreModule,
-    QueueModule,
     SportsModule,
     WebhookModule,
     RealtimeModule,
@@ -50,12 +51,10 @@ import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.middleware'
     JwtService,
     ApiService,
     MiscService,
-    TaskService,
     PrismaService,
     ResponseService,
-    ContractService,
   ],
-  exports: [AppService, ContractService, TaskService]
+  exports: [AppService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

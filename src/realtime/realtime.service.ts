@@ -33,43 +33,6 @@ export class RealtimeService {
     })
   }
 
-  async updateUniqueUsersForCurrentTournament(
-    tournamentId: string,
-    stakes: number,
-    userId: string,
-    start: Date,
-    end: Date,
-  ) {
-    const rounds = await this.prisma.round.count({
-      where: {
-        userId,
-        createdAt: {
-          gte: start,
-          lte: end,
-        }
-      }
-    })
-
-    /*
-    Used less than or equal-to one because
-    I am saving it after the first round has been saved.
-    */
-    if (rounds <= 1) {
-      await this.prisma.tournament.update({
-        where: { id: tournamentId },
-        data: {
-          uniqueUsers: { increment: 1 },
-          totalStakes: { increment: stakes }
-        }
-      })
-    } else {
-      await this.prisma.tournament.update({
-        where: { id: tournamentId },
-        data: { totalStakes: { increment: stakes } }
-      })
-    }
-  }
-
   async forfeitGame(gameId: string, userId: string): Promise<void> {
     const player = await this.prisma.player.findFirst({
       where: { userId, gameId },
