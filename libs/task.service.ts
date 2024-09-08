@@ -167,7 +167,9 @@ export class TaskService {
         }
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_4PM)
+    @Cron(CronExpression.EVERY_DAY_AT_4PM, {
+        timeZone: 'UTC',
+    })
     async updateLotterySession() {
         const data: contractDTO = {
             contract: 'memegoat-lottery-rng',
@@ -231,7 +233,9 @@ export class TaskService {
         })
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_6AM)
+    @Cron(CronExpression.EVERY_DAY_AT_4PM, {
+        timeZone: 'UTC',
+    })
     async refreshTickets() {
         await this.prisma.stat.updateMany({
             data: { tickets: 500_000 }
