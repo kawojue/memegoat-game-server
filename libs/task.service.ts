@@ -233,7 +233,7 @@ export class TaskService {
         })
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_4PM, {
+    @Cron(CronExpression.EVERY_DAY_AT_6AM, {
         timeZone: 'UTC',
     })
     async refreshTickets() {
