@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Tournament {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(uuid()) @db.Uuid
   key         String   @unique
   title       String?
   start       DateTime
@@ -22,7 +22,7 @@ model Tournament {
 }
 
 model User {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  id          String       @id @default(uuid()) @db.Uuid
   address     String       @unique
   username    String?      @unique
   avatar      String?
@@ -39,7 +39,7 @@ model User {
 }
 
 model SportTournament {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(uuid()) @db.Uuid
   key         String   @unique
   title       String?
   start       DateTime
@@ -53,7 +53,7 @@ model SportTournament {
 }
 
 model Stat {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  id           String @id @default(uuid()) @db.Uuid
   tickets      Int    @default(0)
   total_wins   Int    @default(0)
   total_losses Int    @default(0)
@@ -66,8 +66,8 @@ model Stat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.Uuid
 
   @@index([tickets])
   @@index([createdAt, updatedAt])
@@ -76,7 +76,7 @@ model Stat {
 }
 
 model Round {
-  id                     String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                     String   @id @default(uuid()) @db.Uuid
   stake                  Int
   lives                  Int?
   point                  Float    @default(0.00)
@@ -86,8 +86,8 @@ model Round {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([point])
   @@index([stake])
@@ -95,19 +95,46 @@ model Round {
   @@index([createdAt, updatedAt])
 }
 
+model SportBet {
+  id              String          @id @default(uuid()) @db.Uuid
+  gameId          String?
+  fixureId        String?
+  status          BetStatus
+  sport_type      SportType
+  stake           Int
+  potentialWin    Int
+  elapsed         String?
+  placebetOutcome PlacebetOutcome
+  outcome         SportbetOutcome
+  goals           Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  league          Json?
+  sportRound      SportRound?
+  teams           Json?
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([fixureId])
+  @@index([gameId])
+  @@index([createdAt, updatedAt])
+  @@index([status, placebetOutcome, outcome])
+}
+
 model SportRound {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  id         String    @id @default(uuid()) @db.Uuid
   stake      Int
   sport_type SportType
   point      Float     @default(0.00)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  bet   SportBet @relation(fields: [betId], references: [id])
-  betId String   @unique @db.ObjectId
+  bet   SportBet @relation(fields: [betId], references: [id], onDelete: Cascade)
+  betId String   @unique @db.Uuid
 
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([sport_type])
   @@index([point, stake])
@@ -115,13 +142,13 @@ model SportRound {
 }
 
 model Game {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(uuid()) @db.Uuid
   status    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  dealerId String @unique @db.ObjectId
-  dealer   Dealer @relation(fields: [dealerId], references: [id])
+  dealerId String @unique @db.Uuid
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   players Player[]
 
@@ -129,7 +156,7 @@ model Game {
 }
 
 model Player {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  id             String    @id @default(uuid()) @db.Uuid
   hand           Json[]
   score          Int
   stand          Boolean
@@ -139,17 +166,17 @@ model Player {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  gameId String @db.ObjectId
-  game   Game   @relation(fields: [gameId], references: [id])
+  gameId String @db.Uuid
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@index([createdAt, updatedAt])
 }
 
 model Dealer {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(uuid()) @db.Uuid
   hand      Json[]
   score     Int
   stand     Boolean?
@@ -162,7 +189,7 @@ model Dealer {
 }
 
 model Transaction {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  id        String    @id @default(uuid()) @db.Uuid
   key       String
   tag       String?
   txId      String    @unique
@@ -178,35 +205,8 @@ model Transaction {
   @@index([createdAt, updatedAt])
 }
 
-model SportBet {
-  id              String          @id @default(auto()) @map("_id") @db.ObjectId
-  gameId          String?
-  fixureId        String?
-  status          BetStatus
-  sport_type      SportType
-  stake           Int
-  potentialWin    Int
-  elapsed         String?
-  placebetOutcome PlacebetOutcome
-  outcome         SportbetOutcome
-  goals           Goals
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  league          League?
-  sportRound      SportRound?
-  teams           SportTeams
-
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@index([fixureId])
-  @@index([gameId])
-  @@index([createdAt, updatedAt])
-  @@index([status, placebetOutcome, outcome])
-}
-
 model LotteryDraw {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(uuid()) @db.Uuid
   digits    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -252,30 +252,4 @@ enum PlacebetOutcome {
 enum SportType {
   NFL
   FOOTBALL
-}
-
-type Goals {
-  home Int?
-  away Int?
-}
-
-type SportTeams {
-  home SportTeam
-  away SportTeam
-}
-
-type SportTeam {
-  id     String
-  name   String
-  logo   String
-  winner Boolean?
-}
-
-type League {
-  id      String?
-  name    String?
-  logo    String?
-  flag    String?
-  season  String?
-  country String?
 }
