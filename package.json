@@ -9,7 +9,7 @@
     "node": ">=16.x"
   },
   "scripts": {
-    "build": "npx prisma generate && nest build",
+    "build": "npx prisma generate && npx prisma migrate deploy && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "seed": "ts-node prisma/seeder.ts",

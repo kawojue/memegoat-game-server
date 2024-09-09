@@ -943,9 +943,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     if (points > (game.stake / 2)) {
       if (throttle > 1) {
-        totalPoints = throttle * points + game.stake
+        totalPoints = throttle * points * game.lives + game.stake
       } else {
-        totalPoints = points + game.stake
+        totalPoints = points * game.lives + game.stake
       }
     }
 
