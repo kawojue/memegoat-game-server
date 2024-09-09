@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
+import { v4 as uuid } from 'uuid'
 import { Response } from 'express';
 import { env } from 'configs/env.config';
 import { enc, HmacSHA256 } from 'crypto-js';
@@ -71,7 +71,7 @@ export class AuthService {
       });
 
       if (!user) {
-        const _id = new ObjectId().toString();
+        const _id = uuid();
 
         const { random } = this.randomService.randomize();
         const randomAvatarSeed =
