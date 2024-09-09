@@ -45,6 +45,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                         status = 'Failed'
                         break
                     case 'dropped_replace_by_fee':
+                    case 'dropped_stale_garbage_collect':
                         status = 'Dropped'
                         break
                     default:
