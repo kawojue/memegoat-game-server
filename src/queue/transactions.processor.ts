@@ -32,9 +32,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     data.transaction.txId,
                 )
 
-                console.log({ txnInfo })
-
-                let status = 'Pending'
+                let status = 'Pending' as TxStatus
                 switch (txnInfo.tx_status) {
                     case 'success':
                         status = 'Success'
@@ -43,17 +41,20 @@ export class TransactionsQueueProcessor extends WorkerHost {
                         status = 'Pending'
                         break
                     case 'abort_by_response':
+                    case 'abort_by_post_condition':
                         status = 'Failed'
+                        break
+                    case 'dropped_replace_by_fee':
+                        status = 'Dropped'
                         break
                     default:
                         break
                 }
 
-                const update = await this.prisma.transaction.update({
+                await this.prisma.transaction.update({
                     where: { id: data.transaction.id },
                     data: { txStatus: status as TxStatus },
                 })
-                console.log({ update })
             default:
                 break
         }

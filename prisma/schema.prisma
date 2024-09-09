@@ -216,6 +216,7 @@ model LotteryDraw {
 
 enum TxStatus {
   Failed
+  Dropped
   Pending
   Success
 }

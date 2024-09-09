@@ -157,7 +157,6 @@ export class TaskService {
             }
 
             for (const transaction of transactions) {
-                console.log("Task: ", { transaction })
                 await this.transactionQueue.add('cron.transaction', { transaction })
             }
 
