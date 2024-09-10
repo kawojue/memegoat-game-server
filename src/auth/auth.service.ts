@@ -56,6 +56,7 @@ export class AuthService {
     publicKey,
   }: ConnectWalletDTO) {
     try {
+      let newUser = false
       const isVerified = verifyMessageSignatureRsv({
         message,
         publicKey,
@@ -72,7 +73,7 @@ export class AuthService {
 
       if (!user) {
         const _id = uuid();
-
+        newUser = true
         const { random } = this.randomService.randomize();
         const randomAvatarSeed =
           avatarSeeds[Math.floor(random * avatarSeeds.length)];
@@ -111,7 +112,7 @@ export class AuthService {
         address: user.address,
       });
 
-      return { access_token, user };
+      return { access_token, user, newUser };
     } catch (err) {
       throw err;
     }
