@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
                         ? authHeader.substring(7)
                         : null
 
-                    return cookieToken || bearerToken
+                    return bearerToken || cookieToken
                 }
             ]),
             ignoreExpiration: false,
