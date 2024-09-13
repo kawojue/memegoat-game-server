@@ -26,12 +26,9 @@ export class CustomAuthMiddleware implements NestMiddleware {
         let token: string | undefined
 
         const authHeader = req.headers.authorization
-        const cookieToken = req.cookies?.access_token
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.split(' ')[1]
-        } else if (cookieToken) {
-            token = cookieToken
         }
 
         if (token) {

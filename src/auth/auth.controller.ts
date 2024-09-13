@@ -23,29 +23,22 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly response: ResponseService,
-  ) {}
+  ) { }
 
   @Post('/connect-wallet')
   async connectWallet(
     @Res({ passthrough: true }) res: Response,
     @Body() body: ConnectWalletDTO,
   ) {
-    try {
-      const data = await this.authService.connectWallet(body);
+    const data = await this.authService.connectWallet(body);
 
-      res.cookie('access_token', data.access_token, {
-        sameSite: env.isProd ? 'none' : 'lax',
-        secure: env.isProd,
-        maxAge: 120 * 24 * 60 * 60 * 1000,
-      });
+    // res.cookie('access_token', data.access_token, {
+    //   sameSite: env.isProd ? 'none' : 'lax',
+    //   secure: env.isProd,
+    //   maxAge: 120 * 24 * 60 * 60 * 1000,
+    // });
 
-      return this.response.sendSuccess(res, StatusCodes.OK, { data });
-
-      // res.redirect(env.REDIRECT_URL || 'http://localhost:3000/games')
-    } catch (err) {
-      // res.redirect('http://localhost:3000/failed')
-      console.log(err);
-    }
+    return this.response.sendSuccess(res, StatusCodes.OK, { data });
   }
 
   @ApiCookieAuth()

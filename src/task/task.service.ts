@@ -234,13 +234,4 @@ export class TaskService {
             data: { digits: outcome }
         })
     }
-
-    @Cron(CronExpression.EVERY_DAY_AT_6AM, {
-        timeZone: 'UTC',
-    })
-    async refreshTickets() {
-        await this.prisma.stat.updateMany({
-            data: { tickets: 500_000 }
-        })
-    }
 }

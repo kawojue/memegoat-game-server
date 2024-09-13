@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { v4 as uuid } from 'uuid'
 import { Response } from 'express';
 import { env } from 'configs/env.config';
 import { enc, HmacSHA256 } from 'crypto-js';
@@ -72,7 +71,6 @@ export class AuthService {
       });
 
       if (!user) {
-        const _id = uuid();
         newUser = true
         const { random } = this.randomService.randomize();
         const randomAvatarSeed =
@@ -80,12 +78,11 @@ export class AuthService {
         const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
 
         user = await this.prisma.user.create({
-          data: { id: _id, address, avatar: avatarUrl },
-        })
-        await this.prisma.stat.create({
           data: {
-            tickets: 100_000,
-            user: { connect: { id: _id } },
+            address, avatar: avatarUrl,
+            stat: {
+              create: { tickets: 100 }
+            }
           },
         })
       }
