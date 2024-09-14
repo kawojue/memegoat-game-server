@@ -1,6 +1,9 @@
-
+import {
+    Injectable,
+    OnModuleInit,
+    OnModuleDestroy
+} from '@nestjs/common'
 import { PrismaClient, Prisma } from '@prisma/client'
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -28,5 +31,25 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 await new Promise(resolve => setTimeout(resolve, 100))
             }
         }
+    }
+
+    async currentGameTournament() {
+        return await this.tournament.findFirst({
+            where: {
+                paused: false,
+                start: { lte: new Date(new Date().toUTCString()) },
+                end: { gte: new Date(new Date().toUTCString()) },
+            }
+        })
+    }
+
+    async currentSportTournament() {
+        return await this.sportTournament.findFirst({
+            where: {
+                paused: false,
+                start: { lte: new Date(new Date().toUTCString()) },
+                end: { gte: new Date(new Date().toUTCString()) },
+            }
+        })
     }
 }

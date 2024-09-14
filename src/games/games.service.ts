@@ -90,12 +90,7 @@ export class GamesService {
 
     const offset = (page - 1) * limit
 
-    const currentTournament = await this.prisma.tournament.findFirst({
-      where: {
-        start: { lte: new Date(new Date().toUTCString()) },
-        end: { gte: new Date(new Date().toUTCString()) },
-      },
-    })
+    const currentTournament = await this.prisma.currentGameTournament()
 
     if (!currentTournament) {
       return {
@@ -225,14 +220,7 @@ export class GamesService {
     let userPoints = 0
 
     if (userId) {
-      const currentTournament = await this.prisma.tournament.findFirst({
-        where: {
-          paused: false,
-          start: { lte: new Date(new Date().toUTCString()) },
-          end: { gte: new Date(new Date().toUTCString()) },
-        },
-      })
-
+      const currentTournament = await this.prisma.currentGameTournament()
       if (!currentTournament) {
         return null
       }

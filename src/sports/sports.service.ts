@@ -3,6 +3,7 @@ import {
     FetchFixturesDTO,
     PlaceFootballBetDTO,
 } from './sports.dto'
+import { Queue } from 'bullmq'
 import {
     Injectable,
     ConflictException,
@@ -10,7 +11,6 @@ import {
     BadRequestException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { Queue } from 'bullmq'
 import { InjectQueue } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
 import { Prisma, SportType } from '@prisma/client'
@@ -24,16 +24,6 @@ export class SportsService {
         private readonly apiService: ApiService,
         @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
     ) { }
-
-    private async currentTournament() {
-        return await this.prisma.sportTournament.findFirst({
-            where: {
-                paused: false,
-                start: { lte: new Date(new Date().toUTCString()) },
-                end: { gte: new Date(new Date().toUTCString()) },
-            }
-        })
-    }
 
     private paginateArray<T>(array: Array<T>, page = 1, limit = 10) {
         const offset = (page - 1) * limit
@@ -127,7 +117,7 @@ export class SportsService {
                 throw new BadRequestException("Invalid bet outcome")
         }
 
-        const currentTournament = await this.currentTournament()
+        const currentTournament = await this.prisma.currentSportTournament()
 
         if (!currentTournament) {
             throw new UnprocessableEntityException("No ongoing tournament")
@@ -268,7 +258,7 @@ export class SportsService {
                 throw new BadRequestException("Invalid bet outcome")
         }
 
-        const currentTournament = await this.currentTournament()
+        const currentTournament = await this.prisma.currentSportTournament()
 
         if (!currentTournament) {
             throw new UnprocessableEntityException("No ongoing tournament")
@@ -452,7 +442,7 @@ export class SportsService {
 
         const offset = (page - 1) * limit
 
-        const currentTournament = await this.currentTournament()
+        const currentTournament = await this.prisma.currentSportTournament()
 
         if (!currentTournament) {
             return {
@@ -593,8 +583,7 @@ export class SportsService {
         let userPoints = 0
 
         if (userId) {
-            const currentTournament = await this.currentTournament()
-
+            const currentTournament = await this.prisma.currentSportTournament()
             if (!currentTournament) {
                 return null
             }

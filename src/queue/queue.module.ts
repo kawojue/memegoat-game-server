@@ -33,6 +33,7 @@ const SharedModule = BullModule.registerQueue(
   {
     name: 'current-tournament-queue',
     defaultJobOptions: {
+      lifo: true,
       removeOnFail: true,
       removeOnComplete: true,
     }

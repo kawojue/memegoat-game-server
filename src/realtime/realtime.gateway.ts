@@ -168,7 +168,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -264,7 +264,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -364,7 +364,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -565,7 +565,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -737,7 +737,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -879,7 +879,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
@@ -923,7 +923,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.realtimeService.currentTournament()
+    const currentTournament = await this.prisma.currentGameTournament()
     if (!currentTournament) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,

@@ -23,16 +23,6 @@ export class RealtimeService {
     return this.server
   }
 
-  async currentTournament() {
-    return await this.prisma.tournament.findFirst({
-      where: {
-        paused: false,
-        start: { lte: new Date(new Date().toUTCString()) },
-        end: { gte: new Date(new Date().toUTCString()) },
-      }
-    })
-  }
-
   async forfeitGame(gameId: string, userId: string): Promise<void> {
     const player = await this.prisma.player.findFirst({
       where: { userId, gameId },
