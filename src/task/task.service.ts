@@ -443,7 +443,7 @@ export class TaskService {
                                 userId: user.id,
                                 earning: userEarnings,
                                 points: user.totalPoints,
-                                earned: true, type: 'GAME',
+                                earned: true, type: 'SPORT',
                                 gameTournamentId: tournament.id,
                             },
                         })
