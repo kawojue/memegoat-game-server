@@ -168,6 +168,69 @@ export class AuthService {
       _count: undefined,
     };
 
-    this.response.sendSuccess(res, StatusCodes.OK, { data: newUser });
+    const gameTournament = await this.prisma.currentGameTournament()
+    const sportTournament = await this.prisma.currentSportTournament()
+
+    this.response.sendSuccess(res, StatusCodes.OK, {
+      data: newUser,
+      gameTournament,
+      sportTournament,
+    });
+  }
+
+  async reward(res: Response, { sub }: ExpressUser) {
+    const { _sum: { earning } } = await this.prisma.reward.aggregate({
+      where: {
+        userId: sub,
+        claimed: false
+      },
+      _sum: { earning: true }
+    })
+
+    /*
+    BlockyJ, this is the amount stakes,
+    you can then multiply it by how much a ticket cost,
+    this should give the actual amount of stx
+    */
+
+    this.response.sendSuccess(res, StatusCodes.OK, {
+      data: {
+        reward: earning,
+        isClaimable: earning.toNumber() > 0,
+        stxAmount: earning.toNumber() * 0.1 // Just an Assumption
+      }
+    })
+  }
+
+  async claimReward(res: Response, { sub }: ExpressUser) {
+    const { _sum: { earning } } = await this.prisma.reward.aggregate({
+      where: {
+        userId: sub,
+        claimed: false
+      },
+      _sum: { earning: true }
+    })
+
+    /*
+    BlockyJ, this is the amount stakes,
+    you can then multiply it by how much a ticket cost,
+    this should give the actual amount of the stx the user would earn
+    */
+
+    //  -Actual claim goes here
+
+    /*
+    This might need to go inside the transaction confimation webhook, to check if it's really successful before marking them as claimed.
+    If yes, then we can connect the userId to transaction table
+    */
+    await this.prisma.reward.updateMany({
+      where: {
+        userId: sub,
+        claimed: false
+      },
+      data: { claimed: true }
+    })
+
+    this.response.sendSuccess(res, StatusCodes.OK, { message: "Successful" })
   }
 }

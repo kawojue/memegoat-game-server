@@ -19,7 +19,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034'
     }
 
-    async retryTransaction(fn: () => Promise<void>, retries = 5) {
+    async retryTransaction(fn: () => Promise<void>, retries: number = 5) {
         for (let i = 0; i < retries; i++) {
             try {
                 await fn()

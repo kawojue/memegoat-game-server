@@ -263,7 +263,7 @@ export class TaskService {
         })
 
         for (const tournament of tournamentsToProcess) {
-            try {
+            await this.prisma.retryTransaction(async () => {
                 await this.prisma.$transaction(async (prisma) => {
                     await prisma.tournament.update({
                         where: { id: tournament.id },
@@ -327,8 +327,9 @@ export class TaskService {
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
+                                totalTournamentPoints,
                                 points: user.totalPoints,
-                                earned: true, type: 'GAME',
+                                claimed: false, type: 'GAME',
                                 gameTournamentId: tournament.id,
                             },
                         })
@@ -342,12 +343,7 @@ export class TaskService {
                         },
                     })
                 })
-            } catch (err) {
-                console.error(
-                    `Failed to process rewards for tournament ID ${tournament.id}:`,
-                    err.message
-                )
-            }
+            }, 2)
         }
     }
 
@@ -378,7 +374,7 @@ export class TaskService {
         })
 
         for (const tournament of tournamentsToProcess) {
-            try {
+            await this.prisma.retryTransaction(async () => {
                 await this.prisma.$transaction(async (prisma) => {
                     await prisma.sportTournament.update({
                         where: { id: tournament.id },
@@ -442,8 +438,9 @@ export class TaskService {
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
+                                totalTournamentPoints,
                                 points: user.totalPoints,
-                                earned: true, type: 'SPORT',
+                                claimed: false, type: 'SPORT',
                                 gameTournamentId: tournament.id,
                             },
                         })
@@ -457,12 +454,7 @@ export class TaskService {
                         },
                     })
                 })
-            } catch (err) {
-                console.error(
-                    `Failed to process rewards for tournament ID ${tournament.id}:`,
-                    err.message
-                )
-            }
+            }, 2)
         }
     }
 }

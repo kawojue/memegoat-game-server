@@ -14,8 +14,8 @@ import { AuthService } from './auth.service';
 import { StatusCodes } from 'enums/StatusCodes';
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard';
 import { ResponseService } from 'libs/response.service';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
-import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -41,7 +41,6 @@ export class AuthController {
     return this.response.sendSuccess(res, StatusCodes.OK, { data });
   }
 
-  @ApiCookieAuth()
   @ApiBearerAuth()
   @Patch('/username')
   @UseGuards(JwtAuthGuard)
@@ -54,10 +53,23 @@ export class AuthController {
   }
 
   @Get('/profile')
-  @ApiCookieAuth()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async profile(@Res() res: Response, @Req() req: IRequest) {
     await this.authService.profile(res, req.user);
+  }
+
+  @Get('/reward')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async reward(@Res() res: Response, @Req() req: IRequest) {
+    await this.authService.reward(res, req.user)
+  }
+
+  @ApiBearerAuth()
+  @Post('/claim-reward')
+  @UseGuards(JwtAuthGuard)
+  async claimReward(@Res() res: Response, @Req() req: IRequest) {
+    await this.authService.claimReward(res, req.user)
   }
 }

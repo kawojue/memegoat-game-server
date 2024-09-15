@@ -54,18 +54,19 @@ model User {
 
   stat Stat?
 
-  rounds      Round[]
-  players     Player[]
-  rewards     Reward[]
-  sportBets   SportBet[]
-  sportRounds SportRound[]
+  rounds       Round[]
+  players      Player[]
+  rewards      Reward[]
+  sportBets    SportBet[]
+  sportRounds  SportRound[]
+  transactions Transaction[]
 
   @@index([createdAt, updatedAt])
 }
 
 model Stat {
   id           String @id @default(uuid()) @db.Uuid
-  tickets      Int    @default(0)
+  tickets      Float  @default(0)
   total_wins   Int    @default(0)
   total_losses Int    @default(0)
   total_points Float  @default(0.00)
@@ -91,13 +92,14 @@ model Stat {
 }
 
 model Reward {
-  id        String     @id @default(uuid()) @db.Uuid
-  earning   Decimal    @db.Decimal(15, 2)
-  points    Float?
-  type      RewardType
-  earned    Boolean    @default(false)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                    String     @id @default(uuid()) @db.Uuid
+  earning               Decimal    @db.Decimal(15, 2)
+  points                Float?
+  type                  RewardType
+  claimed               Boolean    @default(false)
+  totalTournamentPoints Float?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
 
   sportTournamentId String? @db.Uuid
   gameTournamentId  String? @db.Uuid
@@ -234,6 +236,9 @@ model Transaction {
   amount    Float     @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  user   User?   @relation(references: [id], fields: [userId])
+  userId String? @db.Uuid
 
   @@index([tag])
   @@index([txSender])
