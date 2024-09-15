@@ -56,7 +56,7 @@ export class CurrentTournamentProcessor extends WorkerHost {
 
                 if (gameRounds <= 1) {
                     await this.prisma.tournament.update({
-                        where: { id: id },
+                        where: { id },
                         data: {
                             uniqueUsers: { increment: 1 },
                             totalStakes: { increment: stake }
@@ -64,11 +64,12 @@ export class CurrentTournamentProcessor extends WorkerHost {
                     })
                 } else {
                     await this.prisma.tournament.update({
-                        where: { id: id },
+                        where: { id },
                         data: { totalStakes: { increment: stake } }
                     })
                 }
                 break
+
             default:
                 break
         }

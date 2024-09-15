@@ -8,48 +8,59 @@ datasource db {
 }
 
 model Tournament {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
-  title       String?
-  start       DateTime
-  end         DateTime
-  totalStakes Int      @default(0)
-  uniqueUsers Int      @default(0)
-  paused      Boolean  @default(false)
+  id                    String   @id @default(uuid()) @db.Uuid
+  key                   String   @unique
+  title                 String?
+  start                 DateTime
+  end                   DateTime
+  totalStakes           Int      @default(0)
+  uniqueUsers           Int      @default(0)
+  paused                Boolean  @default(false)
+  disbursed             Boolean? @default(false)
+  numberOfUsersRewarded Int      @default(0)
+
+  rewards Reward[]
+
+  @@index([totalStakes])
+  @@index([start, end])
+}
+
+model SportTournament {
+  id                    String   @id @default(uuid()) @db.Uuid
+  key                   String   @unique
+  title                 String?
+  start                 DateTime
+  end                   DateTime
+  totalStakes           Int      @default(0)
+  uniqueUsers           Int      @default(0)
+  paused                Boolean  @default(false)
+  disbursed             Boolean? @default(false)
+  numberOfUsersRewarded Int      @default(0)
+
+  rewards Reward[]
 
   @@index([totalStakes])
   @@index([start, end])
 }
 
 model User {
-  id          String       @id @default(uuid()) @db.Uuid
-  address     String       @unique
-  username    String?      @unique
-  avatar      String?
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  stat        Stat?
+  id        String   @id @default(uuid()) @db.Uuid
+  address   String   @unique
+  username  String?  @unique
+  avatar    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stat Stat?
+
   rounds      Round[]
   players     Player[]
+  rewards     Reward[]
   sportBets   SportBet[]
   sportRounds SportRound[]
 
   @@index([createdAt, updatedAt])
-}
-
-model SportTournament {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
-  title       String?
-  start       DateTime
-  end         DateTime
-  totalStakes Int      @default(0)
-  uniqueUsers Int      @default(0)
-  paused      Boolean  @default(false)
-
-  @@index([totalStakes])
-  @@index([start, end])
 }
 
 model Stat {
@@ -70,9 +81,33 @@ model Stat {
   userId String @unique @db.Uuid
 
   @@index([tickets])
-  @@index([createdAt, updatedAt])
+  @@index([total_wins])
+  @@index([total_points])
+  @@index([total_losses])
+  @@index([total_sport_wins])
   @@index([total_sport_points])
-  @@index([total_points, total_losses, total_wins])
+  @@index([total_sport_losses])
+  @@index([createdAt, updatedAt])
+}
+
+model Reward {
+  id        String     @id @default(uuid()) @db.Uuid
+  earning   Decimal    @db.Decimal(15, 2)
+  points    Float?
+  type      RewardType
+  earned    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  sportTournamentId String? @db.Uuid
+  gameTournamentId  String? @db.Uuid
+  userId            String  @db.Uuid
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameTournament  Tournament?      @relation(fields: [gameTournamentId], references: [id], onDelete: Cascade)
+  sportTournament SportTournament? @relation(fields: [sportTournamentId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt, updatedAt])
 }
 
 model Round {
@@ -255,275 +290,7 @@ enum SportType {
   FOOTBALL
 }
 
-// model Tournament {
-//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-//   key         String   @unique
-//   title       String?
-//   start       DateTime
-//   end         DateTime
-//   totalStakes Int      @default(0)
-//   uniqueUsers Int      @default(0)
-//   paused      Boolean  @default(false)
-
-//   @@index([totalStakes])
-//   @@index([start, end])
-// }
-
-// model User {
-//   id          String       @id @default(auto()) @map("_id") @db.ObjectId
-//   address     String       @unique
-//   username    String?      @unique
-//   avatar      String?
-//   active      Boolean      @default(true)
-//   createdAt   DateTime     @default(now())
-//   updatedAt   DateTime     @updatedAt
-//   stat        Stat?
-//   rounds      Round[]
-//   players     Player[]
-//   sportBets   SportBet[]
-//   sportRounds SportRound[]
-
-//   @@index([createdAt, updatedAt])
-// }
-
-// model SportTournament {
-//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-//   key         String   @unique
-//   title       String?
-//   start       DateTime
-//   end         DateTime
-//   totalStakes Int      @default(0)
-//   uniqueUsers Int      @default(0)
-//   paused      Boolean  @default(false)
-
-//   @@index([totalStakes])
-//   @@index([start, end])
-// }
-
-// model Stat {
-//   id           String @id @default(auto()) @map("_id") @db.ObjectId
-//   tickets      Int    @default(0)
-//   total_wins   Int    @default(0)
-//   total_losses Int    @default(0)
-//   total_points Float  @default(0.00)
-
-//   total_sport_wins   Int   @default(0)
-//   total_sport_losses Int   @default(0)
-//   total_sport_points Float @default(0.00)
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   user   User   @relation(fields: [userId], references: [id])
-//   userId String @unique @db.ObjectId
-
-//   @@index([tickets])
-//   @@index([createdAt, updatedAt])
-//   @@index([total_sport_points])
-//   @@index([total_points, total_losses, total_wins])
-// }
-
-// model Round {
-//   id                     String   @id @default(auto()) @map("_id") @db.ObjectId
-//   stake                  Int
-//   lives                  Int?
-//   point                  Float    @default(0.00)
-//   lottery_digits         String?
-//   lottery_outcome_digits String?
-//   game_type              GameType
-//   createdAt              DateTime @default(now())
-//   updatedAt              DateTime @updatedAt
-
-//   userId String @db.ObjectId
-//   user   User   @relation(fields: [userId], references: [id])
-
-//   @@index([point])
-//   @@index([stake])
-//   @@index([game_type])
-//   @@index([createdAt, updatedAt])
-// }
-
-// model SportRound {
-//   id         String    @id @default(auto()) @map("_id") @db.ObjectId
-//   stake      Int
-//   sport_type SportType
-//   point      Float     @default(0.00)
-//   createdAt  DateTime  @default(now())
-//   updatedAt  DateTime  @updatedAt
-
-//   bet   SportBet @relation(fields: [betId], references: [id])
-//   betId String   @unique @db.ObjectId
-
-//   userId String @db.ObjectId
-//   user   User   @relation(fields: [userId], references: [id])
-
-//   @@index([sport_type])
-//   @@index([point, stake])
-//   @@index([createdAt, updatedAt])
-// }
-
-// model Game {
-//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-//   status    String
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   dealerId String @unique @db.ObjectId
-//   dealer   Dealer @relation(fields: [dealerId], references: [id])
-
-//   players Player[]
-
-//   @@index([createdAt, updatedAt])
-// }
-
-// model Player {
-//   id             String    @id @default(auto()) @map("_id") @db.ObjectId
-//   hand           Json[]
-//   score          Int
-//   stand          Boolean
-//   stake          Int?
-//   result         String?
-//   disconnectedAt DateTime?
-//   createdAt      DateTime  @default(now())
-//   updatedAt      DateTime  @updatedAt
-
-//   userId String @db.ObjectId
-//   user   User   @relation(fields: [userId], references: [id])
-
-//   gameId String @db.ObjectId
-//   game   Game   @relation(fields: [gameId], references: [id])
-
-//   @@index([createdAt, updatedAt])
-// }
-
-// model Dealer {
-//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-//   hand      Json[]
-//   score     Int
-//   stand     Boolean?
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   game Game?
-
-//   @@index([createdAt, updatedAt])
-// }
-
-// model Transaction {
-//   id        String    @id @default(auto()) @map("_id") @db.ObjectId
-//   key       String
-//   tag       String?
-//   txId      String    @unique
-//   txStatus  TxStatus?
-//   txSender  String?
-//   action    String?
-//   amount    Float     @default(0)
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-
-//   @@index([tag])
-//   @@index([txSender])
-//   @@index([createdAt, updatedAt])
-// }
-
-// model SportBet {
-//   id              String          @id @default(auto()) @map("_id") @db.ObjectId
-//   gameId          String?
-//   fixureId        String?
-//   status          BetStatus
-//   sport_type      SportType
-//   stake           Int
-//   potentialWin    Int
-//   elapsed         String?
-//   placebetOutcome PlacebetOutcome
-//   outcome         SportbetOutcome
-//   goals           Goals
-//   createdAt       DateTime        @default(now())
-//   updatedAt       DateTime        @updatedAt
-//   league          League?
-//   sportRound      SportRound?
-//   teams           SportTeams
-
-//   userId String @db.ObjectId
-//   user   User   @relation(fields: [userId], references: [id])
-
-//   @@index([fixureId])
-//   @@index([gameId])
-//   @@index([createdAt, updatedAt])
-//   @@index([status, placebetOutcome, outcome])
-// }
-
-// model LotteryDraw {
-//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-//   digits    String
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@index([createdAt, updatedAt])
-// }
-
-// enum TxStatus {
-//   Failed
-//   Pending
-//   Success
-// }
-
-// enum GameType {
-//   Dice
-//   LOTTERY
-//   BlindBox
-//   Roulette
-//   CoinFlip
-//   BlackJack
-//   SpaceInvader
-// }
-
-// enum BetStatus {
-//   ONGOING
-//   FINISHED
-//   NOT_STARTED
-// }
-
-// enum SportbetOutcome {
-//   WIN
-//   LOSE
-//   CANCELLED
-//   NOT_DECIDED
-// }
-
-// enum PlacebetOutcome {
-//   home
-//   away
-//   draw
-// }
-
-// enum SportType {
-//   NFL
-//   FOOTBALL
-// }
-
-// type Goals {
-//   home Int?
-//   away Int?
-// }
-
-// type SportTeams {
-//   home SportTeam
-//   away SportTeam
-// }
-
-// type SportTeam {
-//   id     String
-//   name   String
-//   logo   String
-//   winner Boolean?
-// }
-
-// type League {
-//   id      String?
-//   name    String?
-//   logo    String?
-//   flag    String?
-//   season  String?
-//   country String?
-// }
+enum RewardType {
+  GAME
+  SPORT
+}

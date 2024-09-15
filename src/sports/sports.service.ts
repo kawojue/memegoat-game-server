@@ -126,7 +126,7 @@ export class SportsService {
         const now = new Date(new Date().toUTCString())
         const timeLeft = (new Date(currentTournament.end).getTime() - now.getTime()) / (1000 * 60)
 
-        const THRESHOLD = 300
+        const THRESHOLD = 10
 
         let formattedTime = timeLeft > 60 ? `${Math.floor(timeLeft / 60)} Hrs` : `${timeLeft} minutes`
 
