@@ -14,6 +14,19 @@ import { PrismaService } from 'prisma/prisma.service';
 import { ResponseService } from 'libs/response.service';
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
+import {
+  makeContractCall,
+  broadcastTransaction,
+  AnchorMode,
+  FungibleConditionCode,
+  makeStandardSTXPostCondition,
+  uintCV,
+  TransactionVersion,
+} from '@stacks/transactions';
+import { StacksTestnet } from '@stacks/network';
+import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
+
+const network = new StacksTestnet();
 
 @Injectable()
 export class AuthService {
@@ -55,7 +68,7 @@ export class AuthService {
     publicKey,
   }: ConnectWalletDTO) {
     try {
-      let newUser = false
+      let newUser = false;
       const isVerified = verifyMessageSignatureRsv({
         message,
         publicKey,
@@ -71,7 +84,7 @@ export class AuthService {
       });
 
       if (!user) {
-        newUser = true
+        newUser = true;
         const { random } = this.randomService.randomize();
         const randomAvatarSeed =
           avatarSeeds[Math.floor(random * avatarSeeds.length)];
@@ -79,12 +92,13 @@ export class AuthService {
 
         user = await this.prisma.user.create({
           data: {
-            address, avatar: avatarUrl,
+            address,
+            avatar: avatarUrl,
             stat: {
-              create: { tickets: 100 }
-            }
+              create: { tickets: 100 },
+            },
           },
-        })
+        });
       }
 
       if (user) {
@@ -168,8 +182,8 @@ export class AuthService {
       _count: undefined,
     };
 
-    const gameTournament = await this.prisma.currentGameTournament()
-    const sportTournament = await this.prisma.currentSportTournament()
+    const gameTournament = await this.prisma.currentGameTournament();
+    const sportTournament = await this.prisma.currentSportTournament();
 
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: newUser,
@@ -179,13 +193,15 @@ export class AuthService {
   }
 
   async reward(res: Response, { sub }: ExpressUser) {
-    const { _sum: { earning } } = await this.prisma.reward.aggregate({
+    const {
+      _sum: { earning },
+    } = await this.prisma.reward.aggregate({
       where: {
         userId: sub,
-        claimed: false
+        claimed: false,
       },
-      _sum: { earning: true }
-    })
+      _sum: { earning: true },
+    });
 
     /*
     BlockyJ, this is the amount stakes,
@@ -197,19 +213,21 @@ export class AuthService {
       data: {
         reward: earning,
         isClaimable: earning.toNumber() > 0,
-        stxAmount: earning.toNumber() * 0.1 // Just an Assumption
-      }
-    })
+        stxAmount: earning.toNumber() * 0.1, // Just an Assumption
+      },
+    });
   }
 
   async claimReward(res: Response, { sub }: ExpressUser) {
-    const { _sum: { earning } } = await this.prisma.reward.aggregate({
+    const {
+      _sum: { earning },
+    } = await this.prisma.reward.aggregate({
       where: {
         userId: sub,
-        claimed: false
+        claimed: false,
       },
-      _sum: { earning: true }
-    })
+      _sum: { earning: true },
+    });
 
     /*
     BlockyJ, this is the amount stakes,
@@ -223,14 +241,59 @@ export class AuthService {
     This might need to go inside the transaction confimation webhook, to check if it's really successful before marking them as claimed.
     If yes, then we can connect the userId to transaction table
     */
+
+    // initialize wallet with key
+    const wallet = await generateWallet({
+      secretKey: env.wallet.key,
+      password: env.wallet.password,
+    });
+    const account = wallet.accounts[0];
+    const ticketPriceInSTX = 0.0001; // 1 ticket = 1/1000 STX, example
+    const postConditionAddress = getStxAddress({
+      account,
+      transactionVersion: TransactionVersion.Mainnet,
+    });
+    const postConditionCode = FungibleConditionCode.LessEqual;
+    const postConditionAmount = earning.toNumber() * ticketPriceInSTX * 1e6;
+    const postConditions = [
+      makeStandardSTXPostCondition(
+        postConditionAddress,
+        postConditionCode,
+        postConditionAmount,
+      ),
+    ];
+
+    const txOptions = {
+      contractAddress: 'SP2F4QC563WN0A0949WPH5W1YXVC4M1R46QKE0G14',
+      contractName: 'memegoat-ticket-paymaster',
+      functionName: 'payout-rewards',
+      functionArgs: [uintCV(postConditionAmount)],
+      senderKey: account.stxPrivateKey,
+      validateWithAbi: true,
+      network,
+      postConditions,
+      anchorMode: AnchorMode.Any,
+    };
+
+    const transaction = await makeContractCall(txOptions);
+
+    // @Kowojie This actually waits for transaction to be confirmed, is there any way we can prevent users from spamming this req, propably like a pending status
+
+    const broadcastResponse = await broadcastTransaction(transaction, network);
+
+    const txId = broadcastResponse.txid;
+
     await this.prisma.reward.updateMany({
       where: {
         userId: sub,
-        claimed: false
+        claimed: false,
       },
-      data: { claimed: true }
-    })
+      data: { claimed: true },
+    });
 
-    this.response.sendSuccess(res, StatusCodes.OK, { message: "Successful" })
+    this.response.sendSuccess(res, StatusCodes.OK, {
+      message: 'Successful',
+      txId: txId,
+    });
   }
 }
