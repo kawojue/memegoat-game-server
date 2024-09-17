@@ -2,7 +2,9 @@ import {
   Injectable,
   ForbiddenException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid'
 import { Response } from 'express';
 import { env } from 'configs/env.config';
 import { enc, HmacSHA256 } from 'crypto-js';
@@ -26,6 +28,8 @@ import {
 } from '@stacks/transactions';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuthService {
@@ -35,20 +39,21 @@ export class AuthService {
     HiroChannel,
     { txVersion: TransactionVersion; network: StacksTestnet | StacksMainnet }
   > = {
-    testnet: {
-      txVersion: TransactionVersion.Testnet,
-      network: new StacksTestnet(),
-    },
-    mainnet: {
-      txVersion: TransactionVersion.Mainnet,
-      network: new StacksMainnet(),
-    },
-  };
+      testnet: {
+        txVersion: TransactionVersion.Testnet,
+        network: new StacksTestnet(),
+      },
+      mainnet: {
+        txVersion: TransactionVersion.Mainnet,
+        network: new StacksMainnet(),
+      },
+    };
 
   constructor(
     private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
+    @InjectQueue('reward-tx-queue') private rewardTxQueue: Queue,
   ) {
     this.randomService = new RandomService('md5');
   }
@@ -205,38 +210,51 @@ export class AuthService {
   }
 
   async reward(res: Response, { sub }: ExpressUser) {
+    const isPendingReward = await this.prisma.reward.findFirst({
+      where: {
+        userId: sub,
+        claimed: 'PENDING',
+      }
+    })
+
     const {
       _sum: { earning },
     } = await this.prisma.reward.aggregate({
       where: {
         userId: sub,
-        claimed: false,
+        claimed: 'DEFAULT',
       },
       _sum: { earning: true },
     });
-
-    /*
-    BlockyJ, this is the amount stakes,
-    you can then multiply it by how much a ticket cost,
-    this should give the actual amount of stx
-    */
 
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: {
         reward: earning,
         isClaimable: earning.toNumber() > 0,
+        status: isPendingReward ? 'PENDING' : 'DEFAULT',
         stxAmount: earning.toNumber() * 0.1, // Just an Assumption
       },
     });
   }
 
   async claimReward(res: Response, { sub }: ExpressUser) {
+    const isPendingReward = await this.prisma.reward.findFirst({
+      where: {
+        userId: sub,
+        claimed: 'PENDING',
+      }
+    })
+
+    if (isPendingReward) {
+      throw new BadRequestException("There is an ongoing transaction. Try again later..")
+    }
+
     const {
       _sum: { earning },
     } = await this.prisma.reward.aggregate({
       where: {
         userId: sub,
-        claimed: false,
+        claimed: 'DEFAULT',
       },
       _sum: { earning: true },
     });
@@ -246,20 +264,6 @@ export class AuthService {
       where: { id: sub },
     });
 
-    /*
-    BlockyJ, this is the amount stakes,
-    you can then multiply it by how much a ticket cost,
-    this should give the actual amount of the stx the user would earn
-    */
-
-    //  -Actual claim goes here
-
-    /*
-    This might need to go inside the transaction confimation webhook, to check if it's really successful before marking them as claimed.
-    If yes, then we can connect the userId to transaction table
-    */
-
-    // initialize wallet with key
     const networkEnv = env.wallet.network as HiroChannel;
     if (!this.walletConfig[networkEnv]) {
       throw new Error(`Unknown network: ${networkEnv}`);
@@ -295,23 +299,38 @@ export class AuthService {
       anchorMode: AnchorMode.Any,
     };
     const transaction = await makeContractCall(txOptions);
-    // @Kowojie This actually waits for transaction to be confirmed, is there any way we can prevent users from spamming this req, propably like a pending status
-    const broadcastResponse = await broadcastTransaction(
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.reward.updateMany({
+        where: {
+          userId: sub,
+          claimed: 'DEFAULT',
+        },
+        data: { claimed: 'PENDING' },
+      })
+
+      await tx.transaction.create({
+        data: {
+          txId: transaction.txid(),
+          amount: postConditionAmount,
+          tag: 'MEMEGOAT-GAMES',
+          txSender: postConditionAddress,
+          action: 'CLAIM-REWARD',
+          key: uuidv4(),
+          user: { connect: { id: sub } }
+        }
+      })
+    })
+
+    await this.rewardTxQueue.add('reward-tx-queue', {
+      sub,
       transaction,
-      this.walletConfig[networkEnv].network,
-    );
-    const txId = broadcastResponse.txid;
-    await this.prisma.reward.updateMany({
-      where: {
-        userId: sub,
-        claimed: false,
-      },
-      data: { claimed: true },
-    });
+      network: this.walletConfig[networkEnv].network
+    })
 
     this.response.sendSuccess(res, StatusCodes.OK, {
       message: 'Successful',
-      txId: txId,
+      txId: transaction.txid(),
     });
   }
 }

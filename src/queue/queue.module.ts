@@ -38,6 +38,13 @@ const SharedModule = BullModule.registerQueue(
       removeOnComplete: true,
     }
   },
+  {
+    name: 'reward-tx-queue',
+    defaultJobOptions: {
+      removeOnFail: true,
+      removeOnComplete: true,
+    }
+  },
 )
 
 @Module({

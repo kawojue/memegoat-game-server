@@ -96,7 +96,7 @@ model Reward {
   earning               Decimal    @db.Decimal(15, 2)
   points                Float?
   type                  RewardType
-  claimed               Boolean    @default(false)
+  claimed               Claim
   totalTournamentPoints Float?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
@@ -227,10 +227,10 @@ model Dealer {
 
 model Transaction {
   id        String    @id @default(uuid()) @db.Uuid
-  key       String
+  key       String?
   tag       String?
   txId      String    @unique
-  txStatus  TxStatus?
+  txStatus  TxStatus? @default(Pending)
   txSender  String?
   action    String?
   amount    Float     @default(0)
@@ -298,4 +298,10 @@ enum SportType {
 enum RewardType {
   GAME
   SPORT
+}
+
+enum Claim {
+  DEFAULT
+  PENDING
+  SUCCESSFUL
 }
