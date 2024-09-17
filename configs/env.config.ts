@@ -34,8 +34,9 @@ export const env = {
   },
   wallet: {
     key: process.env.WALLET_KEY,
-    address: process.env.WALLET_ADDRESS,
+    network: process.env.WALLET_NETWORK,
     password: process.env.WALLET_PASSWORD,
+    contract: process.env.CONTRACT_ADDRESS,
   },
   genKey: process.env.GEN_KEY,
   redirectUrl: process.env.REDIRECT_URL,

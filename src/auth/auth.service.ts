@@ -22,16 +22,28 @@ import {
   makeStandardSTXPostCondition,
   uintCV,
   TransactionVersion,
+  standardPrincipalCV,
 } from '@stacks/transactions';
-import { StacksTestnet } from '@stacks/network';
+import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
-
-const network = new StacksTestnet();
 
 @Injectable()
 export class AuthService {
   private randomService: RandomService;
   private readonly avatarBaseUrl = 'https://api.dicebear.com/9.x/bottts/svg';
+  private walletConfig: Record<
+    HiroChannel,
+    { txVersion: TransactionVersion; network: StacksTestnet | StacksMainnet }
+  > = {
+    testnet: {
+      txVersion: TransactionVersion.Testnet,
+      network: new StacksTestnet(),
+    },
+    mainnet: {
+      txVersion: TransactionVersion.Mainnet,
+      network: new StacksMainnet(),
+    },
+  };
 
   constructor(
     private readonly misc: MiscService,
@@ -229,6 +241,11 @@ export class AuthService {
       _sum: { earning: true },
     });
 
+    // @kowojie also help confirm that this is set correctly
+    const { address } = await this.prisma.user.findFirst({
+      where: { id: sub },
+    });
+
     /*
     BlockyJ, this is the amount stakes,
     you can then multiply it by how much a ticket cost,
@@ -243,6 +260,10 @@ export class AuthService {
     */
 
     // initialize wallet with key
+    const networkEnv = env.wallet.network as HiroChannel;
+    if (!this.walletConfig[networkEnv]) {
+      throw new Error(`Unknown network: ${networkEnv}`);
+    }
     const wallet = await generateWallet({
       secretKey: env.wallet.key,
       password: env.wallet.password,
@@ -251,7 +272,7 @@ export class AuthService {
     const ticketPriceInSTX = 0.0001; // 1 ticket = 1/1000 STX, example
     const postConditionAddress = getStxAddress({
       account,
-      transactionVersion: TransactionVersion.Mainnet,
+      transactionVersion: this.walletConfig[networkEnv].txVersion,
     });
     const postConditionCode = FungibleConditionCode.LessEqual;
     const postConditionAmount = earning.toNumber() * ticketPriceInSTX * 1e6;
@@ -262,27 +283,24 @@ export class AuthService {
         postConditionAmount,
       ),
     ];
-
     const txOptions = {
-      contractAddress: 'SP2F4QC563WN0A0949WPH5W1YXVC4M1R46QKE0G14',
+      contractAddress: env.wallet.contract,
       contractName: 'memegoat-ticket-paymaster',
       functionName: 'payout-rewards',
-      functionArgs: [uintCV(postConditionAmount)],
+      functionArgs: [standardPrincipalCV(address), uintCV(postConditionAmount)],
       senderKey: account.stxPrivateKey,
       validateWithAbi: true,
-      network,
+      network: this.walletConfig[networkEnv].network,
       postConditions,
       anchorMode: AnchorMode.Any,
     };
-
     const transaction = await makeContractCall(txOptions);
-
     // @Kowojie This actually waits for transaction to be confirmed, is there any way we can prevent users from spamming this req, propably like a pending status
-
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-
+    const broadcastResponse = await broadcastTransaction(
+      transaction,
+      this.walletConfig[networkEnv].network,
+    );
     const txId = broadcastResponse.txid;
-
     await this.prisma.reward.updateMany({
       where: {
         userId: sub,
