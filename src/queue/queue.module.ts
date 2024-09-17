@@ -5,6 +5,7 @@ import { ApiService } from 'libs/api.service'
 import { StoreModule } from 'src/store/store.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ContractService } from 'libs/contract.service'
+import { RewardTxQueueProcessor } from './reward-tx.process'
 import { TransactionsQueueProcessor } from './transactions.processor'
 import { FootballSportsQueueProcessor } from './football-sport.processor'
 
@@ -12,6 +13,10 @@ const SharedModule = BullModule.registerQueue(
   {
     name: 'sports-football-queue',
     defaultJobOptions: {
+      backoff: {
+        type: 'fixed',
+        delay: 60 * 60 * 1000
+      },
       removeOnFail: true,
       removeOnComplete: true,
     }
@@ -41,6 +46,10 @@ const SharedModule = BullModule.registerQueue(
   {
     name: 'reward-tx-queue',
     defaultJobOptions: {
+      backoff: {
+        type: 'exponential',
+        delay: 5 * 60 * 1000
+      },
       removeOnFail: true,
       removeOnComplete: true,
     }
@@ -57,6 +66,7 @@ const SharedModule = BullModule.registerQueue(
     ApiService,
     PrismaService,
     ContractService,
+    RewardTxQueueProcessor,
     TransactionsQueueProcessor,
     FootballSportsQueueProcessor,
   ],

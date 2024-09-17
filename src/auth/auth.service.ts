@@ -18,7 +18,6 @@ import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import {
   makeContractCall,
-  broadcastTransaction,
   AnchorMode,
   FungibleConditionCode,
   makeStandardSTXPostCondition,
@@ -232,7 +231,7 @@ export class AuthService {
         reward: earning,
         isClaimable: earning.toNumber() > 0,
         status: isPendingReward ? 'PENDING' : 'DEFAULT',
-        stxAmount: earning.toNumber() * 0.1, // Just an Assumption
+        stxAmount: earning.toNumber() * 0.001, // Just an Assumption
       },
     });
   }
@@ -259,12 +258,11 @@ export class AuthService {
       _sum: { earning: true },
     });
 
-    // @kowojie also help confirm that this is set correctly
-    const { address } = await this.prisma.user.findFirst({
+    const { address } = await this.prisma.user.findUnique({
       where: { id: sub },
     });
 
-    const networkEnv = env.wallet.network as HiroChannel;
+    const networkEnv = env.wallet.network;
     if (!this.walletConfig[networkEnv]) {
       throw new Error(`Unknown network: ${networkEnv}`);
     }
@@ -273,7 +271,7 @@ export class AuthService {
       password: env.wallet.password,
     });
     const account = wallet.accounts[0];
-    const ticketPriceInSTX = 0.0001; // 1 ticket = 1/1000 STX, example
+    const ticketPriceInSTX = 0.001; // 1 ticket = 1/1000 STX, example
     const postConditionAddress = getStxAddress({
       account,
       transactionVersion: this.walletConfig[networkEnv].txVersion,
@@ -311,12 +309,12 @@ export class AuthService {
 
       await tx.transaction.create({
         data: {
+          key: uuidv4(),
           txId: transaction.txid(),
           amount: postConditionAmount,
           tag: 'MEMEGOAT-GAMES',
           txSender: postConditionAddress,
           action: 'CLAIM-REWARD',
-          key: uuidv4(),
           user: { connect: { id: sub } }
         }
       })
