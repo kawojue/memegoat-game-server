@@ -83,66 +83,62 @@ export class AuthService {
     message,
     publicKey,
   }: ConnectWalletDTO) {
-    try {
-      let newUser = false;
-      const isVerified = verifyMessageSignatureRsv({
-        message,
-        publicKey,
-        signature,
-      });
+    let newUser = false;
+    const isVerified = verifyMessageSignatureRsv({
+      message,
+      publicKey,
+      signature,
+    });
 
-      if (!isVerified) {
-        throw new ForbiddenException('Signature is invalid');
-      }
-
-      let user = await this.prisma.user.findUnique({
-        where: { address },
-      });
-
-      if (!user) {
-        newUser = true;
-        const { random } = this.randomService.randomize();
-        const randomAvatarSeed =
-          avatarSeeds[Math.floor(random * avatarSeeds.length)];
-        const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
-
-        user = await this.prisma.user.create({
-          data: {
-            address,
-            avatar: avatarUrl,
-            stat: {
-              create: { tickets: 100 },
-            },
-          },
-        });
-      }
-
-      if (user) {
-        if (!user.active) {
-          throw new ForbiddenException('Account has been suspended');
-        }
-      }
-
-      const parsedMessage = JSON.parse(message);
-
-      const requestId = parsedMessage?.requestId;
-      const issuedAt = parsedMessage?.issuedAt;
-
-      const signatureVerified = await this.verifySignature(requestId, issuedAt);
-
-      if (!signatureVerified) {
-        throw new UnauthorizedException('Invalid Signature');
-      }
-
-      const access_token = await this.misc.generateAccessToken({
-        sub: user.id,
-        address: user.address,
-      });
-
-      return { access_token, user, newUser };
-    } catch (err) {
-      throw err;
+    if (!isVerified) {
+      throw new ForbiddenException('Signature is invalid');
     }
+
+    let user = await this.prisma.user.findUnique({
+      where: { address },
+    });
+
+    if (!user) {
+      newUser = true;
+      const { random } = this.randomService.randomize();
+      const randomAvatarSeed =
+        avatarSeeds[Math.floor(random * avatarSeeds.length)];
+      const avatarUrl = `${this.avatarBaseUrl}?seed=${randomAvatarSeed}`;
+
+      user = await this.prisma.user.create({
+        data: {
+          address,
+          avatar: avatarUrl,
+          stat: {
+            create: { tickets: 100 },
+          },
+        },
+      });
+    }
+
+    if (user) {
+      if (!user.active) {
+        throw new ForbiddenException('Account has been suspended');
+      }
+    }
+
+    const parsedMessage = JSON.parse(message);
+
+    const requestId = parsedMessage?.requestId;
+    const issuedAt = parsedMessage?.issuedAt;
+
+    const signatureVerified = await this.verifySignature(requestId, issuedAt);
+
+    if (!signatureVerified) {
+      throw new UnauthorizedException('Invalid Signature');
+    }
+
+    const access_token = await this.misc.generateAccessToken({
+      sub: user.id,
+      address: user.address,
+    });
+
+    return { access_token, user, newUser };
   }
 
   async editUsername(
