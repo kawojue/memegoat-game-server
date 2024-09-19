@@ -6,6 +6,7 @@ import { StoreModule } from 'src/store/store.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ContractService } from 'libs/contract.service'
 import { RewardTxQueueProcessor } from './reward-tx.process'
+import { CurrentTournamentProcessor } from './tournament.processor'
 import { TransactionsQueueProcessor } from './transactions.processor'
 import { FootballSportsQueueProcessor } from './football-sport.processor'
 
@@ -39,6 +40,10 @@ const SharedModule = BullModule.registerQueue(
     name: 'current-tournament-queue',
     defaultJobOptions: {
       lifo: true,
+      backoff: {
+        type: 'fixed',
+        delay: 5 * 60 * 1000
+      },
       removeOnFail: true,
       removeOnComplete: true,
     }
@@ -67,6 +72,7 @@ const SharedModule = BullModule.registerQueue(
     PrismaService,
     ContractService,
     RewardTxQueueProcessor,
+    CurrentTournamentProcessor,
     TransactionsQueueProcessor,
     FootballSportsQueueProcessor,
   ],

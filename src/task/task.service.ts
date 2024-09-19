@@ -346,11 +346,10 @@ export class TaskService {
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
-                                totalTournamentPoints: totalPointsForPickedUsers,
                                 points: user.totalPoints,
-                                claimed: 'DEFAULT',
-                                type: 'GAME',
                                 gameTournamentId: tournament.id,
+                                claimed: 'DEFAULT', type: 'GAME',
+                                totalTournamentPoints: totalPointsForPickedUsers,
                             },
                         })
                     }
@@ -464,11 +463,10 @@ export class TaskService {
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
-                                totalTournamentPoints: totalPointsForPickedUsers,
                                 points: user.totalPoints,
-                                claimed: 'DEFAULT',
-                                type: 'SPORT',
                                 sportTournamentId: tournament.id,
+                                claimed: 'DEFAULT', type: 'SPORT',
+                                totalTournamentPoints: totalPointsForPickedUsers,
                             },
                         })
                     }
