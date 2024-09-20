@@ -24,6 +24,8 @@ export class FootballSportsQueueProcessor extends WorkerHost {
         const res = await this.api.apiSportGET<any>(`/fixtures?ids=${batchIds}`)
         const fixtures = res.response as FootballMatchResponse[]
 
+        const currentSportTournament = await this.prisma.currentSportTournament()
+
         await Promise.all(fixtures.map(async (fixture) => {
             const bets = await this.prisma.sportBet.findMany({
                 where: { fixureId: String(fixture.fixture.id) }
@@ -63,18 +65,6 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                 }
 
                 await this.prisma.retryTransaction(async () => {
-                    await this.prisma.sportBet.update({
-                        where: { id: bet.id },
-                        data: {
-                            outcome, status,
-                            goals: {
-                                home: fixture.goals.home,
-                                away: fixture.goals.away,
-                            },
-                            elapsed: elapsed === null ? null : String(elapsed)
-                        },
-                    })
-
                     if (outcome === SportbetOutcome.WIN) {
                         await this.prisma.sportRound.update({
                             where: { betId: bet.id },
@@ -85,6 +75,7 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                             where: { userId: bet.userId },
                             data: {
                                 total_sport_wins: { increment: 1 },
+                                xp: { increment: Math.sqrt(bet.potentialWin) },
                                 total_sport_points: { increment: bet.potentialWin },
                             },
                         })
@@ -107,18 +98,26 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                             },
                         })
 
-                        await this.prisma.sportTournament.updateMany({
-                            where: {
-                                paused: false,
-                                start: { lte: new Date(new Date().toUTCString()) },
-                                end: { gte: new Date(new Date().toUTCString()) },
-                            },
+                        await this.prisma.sportTournament.update({
+                            where: { id: currentSportTournament.id },
                             data: {
                                 totalStakes: { decrement: bet.stake }
                             }
                         })
                     }
-                }, 3)
+
+                    await this.prisma.sportBet.update({
+                        where: { id: bet.id },
+                        data: {
+                            outcome, status,
+                            goals: {
+                                home: fixture.goals.home,
+                                away: fixture.goals.away,
+                            },
+                            elapsed: elapsed === null ? null : String(elapsed)
+                        },
+                    })
+                }, 5)
             }
         }))
     }

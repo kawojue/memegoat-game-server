@@ -250,7 +250,10 @@ export class TaskService {
         })
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+        timeZone: 'UTC',
+    })
     async rewardGamePlay() {
         const currentTime = new Date(new Date().toUTCString())
 
@@ -278,71 +281,69 @@ export class TaskService {
 
         for (const tournament of tournamentsToProcess) {
             await this.prisma.retryTransaction(async () => {
-                await this.prisma.$transaction(async (prisma) => {
-                    await prisma.tournament.update({
-                        where: { id: tournament.id },
-                        data: { paused: true },
-                    })
+                await this.prisma.tournament.update({
+                    where: { id: tournament.id },
+                    data: { paused: true },
+                })
 
-                    const leaderboard = await prisma.user.findMany({
-                        where: {
-                            active: true,
-                            rounds: {
-                                some: {
-                                    point: { gte: 1 },
-                                    createdAt: {
-                                        gte: tournament.start,
-                                        lte: tournament.end,
-                                    },
-                                },
+                const leaderboard = await this.prisma.user.findMany({
+                    where: { active: true, },
+                    select: {
+                        id: true,
+                        rounds: {
+                            where: {
+                                gameTournamentId: tournament.id,
+                            },
+                            select: {
+                                point: true,
                             },
                         },
-                        select: {
-                            id: true,
-                            rounds: {
-                                where: {
-                                    createdAt: {
-                                        gte: tournament.start,
-                                        lte: tournament.end,
-                                    },
-                                },
-                                select: {
-                                    point: true,
-                                },
-                            },
-                        },
-                    })
+                    },
+                })
 
-                    let totalTournamentPoints = 0
-                    const leaderboardWithPoints = leaderboard.map((user) => {
-                        const totalPoints = user.rounds.reduce(
-                            (acc, round) => acc + round.point,
-                            0
-                        )
-                        totalTournamentPoints += totalPoints
-                        return { ...user, totalPoints }
-                    })
-
-                    const sortedLeaderboard = leaderboardWithPoints.sort(
-                        (a, b) => b.totalPoints - a.totalPoints
-                    )
-
-                    const numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 10)
-
-                    const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward)
-
-                    const totalPointsForPickedUsers = usersToReward.reduce(
-                        (acc, user) => acc + user.totalPoints,
+                let totalTournamentPoints = 0
+                const leaderboardWithPoints = leaderboard.map((user) => {
+                    const totalPoints = user.rounds.reduce(
+                        (acc, round) => acc + round?.point || 0,
                         0
                     )
+                    totalTournamentPoints += totalPoints
+                    return { ...user, totalPoints }
+                })
 
-                    const totalStakes = tournament.totalStakes
+                const sortedLeaderboard = leaderboardWithPoints.sort(
+                    (a, b) => b.totalPoints - a.totalPoints
+                )
 
-                    for (const user of usersToReward) {
-                        const userProportion = user.totalPoints / totalPointsForPickedUsers
-                        const userEarnings = totalStakes * userProportion
+                let numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 10)
 
-                        await prisma.reward.create({
+                if (tournament.uniqueUsers <= 5) {
+                    numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 2)
+                }
+
+                if (tournament.uniqueUsers <= 10) {
+                    numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 5)
+                }
+
+                const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward)
+
+                if (usersToReward.length === 0) {
+                    return
+                }
+
+                const totalPointsForPickedUsers = usersToReward.reduce(
+                    (acc, user) => acc + user.totalPoints,
+                    0
+                )
+
+                const totalStakes = tournament.totalStakes
+
+                for (const user of usersToReward) {
+                    const userProportion = user.totalPoints / totalPointsForPickedUsers
+                    const userEarnings = totalStakes * userProportion
+
+                    if (userEarnings) {
+                        await this.prisma.reward.create({
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
@@ -353,21 +354,22 @@ export class TaskService {
                             },
                         })
                     }
+                }
 
-                    await prisma.tournament.update({
-                        where: { id: tournament.id },
-                        data: {
-                            disbursed: true,
-                            numberOfUsersRewarded: usersToReward.length,
-                        },
-                    })
+                await this.prisma.tournament.update({
+                    where: { id: tournament.id },
+                    data: {
+                        disbursed: true,
+                        numberOfUsersRewarded: usersToReward.length,
+                    },
                 })
             }, 2)
         }
     }
 
-
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+        timeZone: 'UTC',
+    })
     async rewardSportBet() {
         const currentTime = new Date(new Date().toUTCString())
 
@@ -385,8 +387,8 @@ export class TaskService {
                     },
                 },
             ],
-            paused: false,
-            disbursed: false,
+            totalStakes: { gte: 1 },
+            uniqueUsers: { gte: 1 },
         }
 
         const tournamentsToProcess = await this.prisma.sportTournament.findMany({
@@ -395,71 +397,103 @@ export class TaskService {
 
         for (const tournament of tournamentsToProcess) {
             await this.prisma.retryTransaction(async () => {
-                await this.prisma.$transaction(async (prisma) => {
-                    await prisma.sportTournament.update({
-                        where: { id: tournament.id },
-                        data: { paused: true },
-                    })
+                await this.prisma.sportTournament.update({
+                    where: { id: tournament.id },
+                    data: { paused: true },
+                })
 
-                    const leaderboard = await prisma.user.findMany({
-                        where: {
-                            active: true,
-                            sportRounds: {
-                                some: {
-                                    point: { gte: 1 },
-                                    createdAt: {
-                                        gte: tournament.start,
-                                        lte: tournament.end,
-                                    },
-                                },
-                            },
+                const betsAggregate = await this.prisma.sportBet.aggregate({
+                    where: {
+                        status: 'FINISHED',
+                        outcome: { in: ['WIN', 'LOSE'] },
+                        disbursed: false,
+                        createdAt: {
+                            gte: tournament.start,
+                            lte: tournament.end,
                         },
-                        select: {
-                            id: true,
-                            sportRounds: {
-                                where: {
-                                    createdAt: {
-                                        gte: tournament.start,
-                                        lte: tournament.end,
-                                    },
-                                },
-                                select: {
-                                    point: true,
-                                },
+                    },
+                    _sum: {
+                        stake: true
+                    }
+                })
+
+                const leaderboard = await this.prisma.user.findMany({
+                    where: { active: true },
+                    select: {
+                        id: true,
+                        sportBets: {
+                            where: {
+                                disbursed: false,
+                                status: 'FINISHED',
+                                outcome: { in: ['WIN', 'LOSE'] },
+                                sportTournamentId: tournament.id,
                             },
+                            select: {
+                                id: true,
+                                sportRound: {
+                                    where: {
+                                        point: { gte: 1 },
+                                        createdAt: {
+                                            gte: tournament.start,
+                                            lte: tournament.end,
+                                        },
+                                    },
+                                    select: { point: true },
+                                }
+                            }
                         },
-                    })
+                    },
+                })
 
-                    let totalTournamentPoints = 0
-                    const leaderboardWithPoints = leaderboard.map((user) => {
-                        const totalPoints = user.sportRounds.reduce(
-                            (acc, round) => acc + round.point,
-                            0,
-                        )
-                        totalTournamentPoints += totalPoints
-                        return { ...user, totalPoints }
-                    })
+                const groupBetsBy = await this.prisma.sportBet.groupBy({
+                    where: {
+                        disbursed: false,
+                        status: 'FINISHED',
+                        outcome: { in: ['WIN', 'LOSE'] },
+                        sportTournamentId: tournament.id,
+                    },
+                    by: ['userId']
+                })
 
-                    const sortedLeaderboard = leaderboardWithPoints.sort(
-                        (a, b) => b.totalPoints - a.totalPoints,
+                let totalTournamentPoints = 0
+                const leaderboardWithPoints = leaderboard.map((user) => {
+                    const totalPoints = user.sportBets.reduce(
+                        (acc, bet) => acc + bet.sportRound?.point || 0,
+                        0,
                     )
+                    totalTournamentPoints += totalPoints
+                    return { ...user, totalPoints }
+                })
 
-                    const numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 10)
+                const sortedLeaderboard = leaderboardWithPoints.sort(
+                    (a, b) => b.totalPoints - a.totalPoints,
+                )
 
-                    const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward)
+                let numberOfUsersToReward = Math.ceil(groupBetsBy.length / 10)
 
-                    const totalPointsForPickedUsers = usersToReward.reduce(
-                        (acc, user) => acc + user.totalPoints,
-                        0
-                    )
+                if (groupBetsBy.length <= 5) {
+                    numberOfUsersToReward = Math.ceil(groupBetsBy.length / 2)
+                }
 
-                    const totalStakes = tournament.totalStakes
+                if (groupBetsBy.length <= 10) {
+                    numberOfUsersToReward = Math.ceil(groupBetsBy.length / 5)
+                }
 
-                    for (const user of usersToReward) {
-                        const userProportion = user.totalPoints / totalPointsForPickedUsers
-                        const userEarnings = totalStakes * userProportion
+                const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward)
 
-                        await prisma.reward.create({
+                const totalPointsForPickedUsers = usersToReward.reduce(
+                    (acc, user) => acc + user.totalPoints,
+                    0
+                )
+
+                const totalStakes = betsAggregate._sum.stake
+
+                for (const user of usersToReward) {
+                    const userProportion = user.totalPoints / totalPointsForPickedUsers
+                    const userEarnings = totalStakes * userProportion
+
+                    if (userEarnings) {
+                        await this.prisma.reward.create({
                             data: {
                                 userId: user.id,
                                 earning: userEarnings,
@@ -470,16 +504,29 @@ export class TaskService {
                             },
                         })
                     }
+                }
 
-                    await prisma.tournament.update({
-                        where: { id: tournament.id },
-                        data: {
-                            disbursed: true,
-                            numberOfUsersRewarded: usersToReward.length,
+                const sportBetIds = leaderboard.flatMap(user =>
+                    user.sportBets.map(bet => bet.id)
+                )
+
+                if (sportBetIds.length > 0) {
+                    await this.prisma.sportBet.updateMany({
+                        where: {
+                            id: { in: sportBetIds },
                         },
+                        data: { disbursed: true }
                     })
+                }
+
+                await this.prisma.sportTournament.update({
+                    where: { id: tournament.id },
+                    data: {
+                        paused: false,
+                        numberOfUsersRewarded: { increment: usersToReward.length }
+                    },
                 })
-            }, 2)
+            })
         }
     }
 }

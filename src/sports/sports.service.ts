@@ -199,6 +199,7 @@ export class SportsService {
                     }
                 },
                 user: { connect: { id: userId } },
+                sportTournament: { connect: { id: currentTournament.id } }
             },
             include: {
                 sportRound: true
@@ -211,11 +212,6 @@ export class SportsService {
                 data: {
                     tickets: { decrement: stake }
                 }
-            })
-
-            await this.prisma.sportTournament.update({
-                where: { id: currentTournament.id },
-                data: { totalStakes: { increment: stake } }
             })
 
             await this.tournamentQueue.add('sport', {

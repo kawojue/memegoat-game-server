@@ -15,8 +15,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         await this.$disconnect()
     }
 
-    isDeadlockError(error: any): boolean {
-        return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034'
+    isPrismaError(error: any): boolean {
+        return error instanceof Prisma.PrismaClientKnownRequestError
     }
 
     async retryTransaction(fn: () => Promise<void>, retries: number = 5) {
@@ -24,11 +24,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             try {
                 await fn()
                 break
-            } catch (error) {
-                if (i === retries - 1 || !this.isDeadlockError(error)) {
-                    throw error
+            } catch (err) {
+                if (i === retries - 1 || !this.isPrismaError(err)) {
+                    throw err
                 }
-                await new Promise(resolve => setTimeout(resolve, 100))
+                console.error(err)
+                await new Promise(resolve => setTimeout(resolve, 200))
             }
         }
     }

@@ -19,6 +19,8 @@ model Tournament {
   disbursed             Boolean? @default(false)
   numberOfUsersRewarded Int      @default(0)
 
+  rounds Round[]
+
   rewards Reward[]
 
   @@index([totalStakes])
@@ -34,10 +36,10 @@ model SportTournament {
   totalStakes           Int      @default(0)
   uniqueUsers           Int      @default(0)
   paused                Boolean  @default(false)
-  disbursed             Boolean? @default(false)
   numberOfUsersRewarded Int      @default(0)
 
   rewards Reward[]
+  bets    SportBet[]
 
   @@index([totalStakes])
   @@index([start, end])
@@ -65,11 +67,13 @@ model User {
 }
 
 model Stat {
-  id           String @id @default(uuid()) @db.Uuid
-  tickets      Float  @default(0)
-  total_wins   Int    @default(0)
-  total_losses Int    @default(0)
-  total_points Float  @default(0.00)
+  id      String @id @default(uuid()) @db.Uuid
+  tickets Float  @default(0)
+  xp      Float? @default(0)
+
+  total_wins   Int   @default(0)
+  total_losses Int   @default(0)
+  total_points Float @default(0.00)
 
   total_sport_wins   Int   @default(0)
   total_sport_losses Int   @default(0)
@@ -81,6 +85,7 @@ model Stat {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.Uuid
 
+  @@index([xp])
   @@index([tickets])
   @@index([total_wins])
   @@index([total_points])
@@ -123,8 +128,11 @@ model Round {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameTournament Tournament? @relation(fields: [gameTournamentId], references: [id])
+
+  gameTournamentId String? @db.Uuid
+  userId           String  @db.Uuid
 
   @@index([point])
   @@index([stake])
@@ -143,12 +151,16 @@ model SportBet {
   elapsed         String?
   placebetOutcome PlacebetOutcome
   outcome         SportbetOutcome
+  disbursed       Boolean         @default(false)
   goals           Json?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   league          Json?
   sportRound      SportRound?
   teams           Json?
+
+  sportTournamentId String?          @db.Uuid
+  sportTournament   SportTournament? @relation(fields: [sportTournamentId], references: [id])
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
