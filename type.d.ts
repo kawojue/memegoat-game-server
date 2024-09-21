@@ -18,11 +18,13 @@ interface BlindBox {
     stake: number
     points: number
     board: string[][]
+    currentTournamentId: string
 }
 
 interface SpaceInvader {
     lives: number
     stake: number
+    currentTournamentId: string
 }
 
 interface Card {

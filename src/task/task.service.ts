@@ -187,6 +187,8 @@ export class TaskService {
         const batchSize = 50
         let cursorId: string | null = null
 
+        let hasRounds = true
+
         while (true) {
             const twentyFourHoursAgo = new Date(
                 new Date().getTime() - 24 * 60 * 60 * 1000,
@@ -210,6 +212,7 @@ export class TaskService {
             )
 
             if (roundsWithNullOutcome.length === 0) {
+                hasRounds = false
                 break
             }
 
@@ -245,9 +248,11 @@ export class TaskService {
             await new Promise((resolve) => setTimeout(resolve, 100))
         }
 
-        await this.prisma.lotteryDraw.create({
-            data: { digits: outcome },
-        })
+        if (hasRounds) {
+            await this.prisma.lotteryDraw.create({
+                data: { digits: outcome },
+            })
+        }
     }
 
 

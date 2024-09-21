@@ -101,6 +101,7 @@ export class RealtimeService {
         point: game.points,
         game_type: 'BlindBox',
         user: { connect: { id: userId } },
+        gameTournament: { connect: { id: game.currentTournamentId } }
       },
     })
   }

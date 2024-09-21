@@ -193,6 +193,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       data: {
         ...round,
         user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } }
       },
     })
 
@@ -293,6 +294,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       data: {
         ...round,
         user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } }
       },
     })
 
@@ -396,6 +398,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       data: {
         ...round,
         user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } }
       },
     })
 
@@ -578,7 +581,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     this.blindBoxGames.set(sub, {
       points: 0,
       board: board,
-      stake: tickets
+      stake: tickets,
+      currentTournamentId: currentTournament.id,
     })
 
     const newStat = await this.prisma.stat.update({
@@ -656,7 +660,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         where: { userId: sub },
         data: { total_wins: { increment: 1 } }
       })
-      await this.realtimeService.saveBlindBoxGameResult(sub, game)
+      await this.realtimeService.saveBlindBoxGameResult(sub, game,)
       this.blindBoxGames.delete(sub)
     } else {
       client.emit('box-selected', { points: game.points, remainingGems })
@@ -752,6 +756,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         game_type: 'LOTTERY',
         lottery_digits: digits,
         user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } }
       },
       include: {
         user: {
@@ -888,7 +893,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    this.spaceInvaderGames.set(sub, { lives, stake })
+    this.spaceInvaderGames.set(sub, {
+      lives, stake,
+      currentTournamentId: currentTournament.id
+    })
 
     client.emit('space-invader-started', { lives, stake })
 
@@ -923,11 +931,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       return
     }
 
-    const currentTournament = await this.prisma.currentGameTournament()
-    if (!currentTournament) {
+    const currentTournament = await this.prisma.tournament.findUnique({
+      where: { id: game.currentTournamentId }
+    })
+
+    if (!currentTournament || new Date() > currentTournament.end) {
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
-        message: 'No active tournament. Your tickets have been reversed',
+        message: 'Tournament is not active. Your tickets have been reversed',
       })
 
       await this.prisma.tournament.update({
@@ -955,21 +966,24 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         stake: game.stake,
         point: totalPoints,
         game_type: 'SpaceInvader',
-        user: { connect: { id: sub } }
+        user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } }
       }
     })
 
     client.emit('space-invader-ended', { points: totalPoints })
 
     if (round) {
-      await this.prisma.stat.update({
+      const stat = await this.prisma.stat.update({
         where: { userId: sub },
         data: {
           tickets: { decrement: game.stake },
           total_points: { increment: totalPoints }
         }
       })
-      this.spaceInvaderGames.delete(sub)
+      if (stat) {
+        this.spaceInvaderGames.delete(sub)
+      }
     }
   }
 }
