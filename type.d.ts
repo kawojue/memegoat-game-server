@@ -188,3 +188,9 @@ interface NFLResponse {
         }
     }
 }
+
+interface Rank {
+    name: string
+    minXP: number
+    maxXP: number
+}

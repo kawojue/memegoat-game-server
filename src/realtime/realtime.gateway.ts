@@ -182,7 +182,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const win = outcome === guess
     const point = win ? stake * 2 : 0
-    const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
+    const updateData = win ? {
+      total_wins: { increment: 1 },
+      total_points: { increment: point },
+      xp: { increment: Math.sqrt(point) },
+    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -200,8 +204,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.prisma.stat.update({
       where: { userId: sub },
       data: {
-        tickets: { decrement: stake },
         ...updateData,
+        tickets: { decrement: stake },
       },
     })
 
@@ -281,9 +285,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const win = sortedRolls.every((roll, index) => roll === sortedGuesses[index])
     const point = this.realtimeService.calculateDicePoint(stake, numDice, win)
-    const updateData = win
-      ? { total_wins: { increment: 1 }, total_points: { increment: point } }
-      : { total_losses: { increment: 1 } }
+    const updateData = win ? {
+      total_wins: { increment: 1 },
+      total_points: { increment: point },
+      xp: { increment: Math.sqrt(point) }
+    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -301,8 +307,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.prisma.stat.update({
       where: { userId: sub },
       data: {
-        tickets: { decrement: stake },
         ...updateData,
+        tickets: { decrement: stake },
       },
     })
 
@@ -385,7 +391,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       (betType === 'parity' && number === (outcomeParity === 'even' ? 1 : outcomeParity === 'odd' ? 2 : 0))
 
     const point = win ? betType === 'number' ? stake * 35 : stake * 2 : 0
-    const updateData = win ? { total_wins: { increment: 1 }, total_points: { increment: point } } : { total_losses: { increment: 1 } }
+    const updateData = win ? {
+      total_wins: { increment: 1 },
+      total_points: { increment: point },
+      xp: { increment: Math.sqrt(point) }
+    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -405,8 +415,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
     await this.prisma.stat.update({
       where: { userId: sub },
       data: {
+        ...updateData,
         tickets: { decrement: stake },
-        ...updateData
       },
     })
 
@@ -978,9 +988,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
         where: { userId: sub },
         data: {
           tickets: { decrement: game.stake },
-          total_points: { increment: totalPoints }
+          total_points: { increment: totalPoints },
+          xp: { increment: Math.sqrt(totalPoints) },
         }
       })
+
       if (stat) {
         this.spaceInvaderGames.delete(sub)
       }

@@ -235,7 +235,10 @@ export class TaskService {
 
                         await this.prisma.stat.update({
                             where: { userId: round.userId },
-                            data: { total_points: { increment: points } },
+                            data: {
+                                total_points: { increment: points },
+                                xp: { increment: Math.sqrt(points) },
+                            },
                         })
                     })
 

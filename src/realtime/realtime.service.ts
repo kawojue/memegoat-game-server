@@ -92,7 +92,9 @@ export class RealtimeService {
     await this.prisma.stat.update({
       where: { userId },
       data: {
+        total_sport_wins: { increment: 1 },
         total_points: { increment: game.points },
+        xp: { increment: Math.sqrt(game.points) },
       },
     })
     await this.prisma.round.create({
