@@ -14,6 +14,7 @@ import {
   makeStandardSTXPostCondition,
 } from '@stacks/transactions'
 import { Queue } from 'bullmq'
+import { ranks } from './ranks'
 import { Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { env } from 'configs/env.config'
@@ -29,8 +30,6 @@ import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 import { verifyMessageSignatureRsv } from '@stacks/encryption'
 import { StacksMainnet, StacksTestnet } from '@stacks/network'
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk'
-
-const ranks = require('./ranks.json') as Rank[]
 
 @Injectable()
 export class AuthService {
