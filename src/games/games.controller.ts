@@ -22,8 +22,6 @@ export class GamesController {
     private readonly gamesService: GamesService,
   ) { }
 
-  // TODO: BUY TIcket
-
   @Get('/overall-leaderboard')
   async overrallLeaderboard(@Query() q: PaginationDTO, @Res() res: Response) {
     const data = await this.gamesService.overallLeaderboard(q)
@@ -38,8 +36,8 @@ export class GamesController {
   }
 
   @Get('/tournament-leaderboard')
-  async tournamentLeaderboard(@Query() q: PaginationDTO, @Res() res: Response) {
-    const data = await this.gamesService.getCurrentTournamentLeaderboard(q)
+  async getCurrentGameTournamentLeaderboard(@Query() q: PaginationDTO, @Res() res: Response) {
+    const data = await this.gamesService.getCurrentGameTournamentLeaderboard(q)
     return this.response.sendSuccess(res, StatusCodes.OK, { ...data })
   }
 

@@ -1,6 +1,4 @@
-import { Response } from 'express'
 import { Injectable } from '@nestjs/common'
-import { StatusCodes } from 'enums/StatusCodes'
 import { MiscService } from 'libs/misc.service'
 import { PaginationDTO } from './dto/pagination'
 import { PrismaService } from 'prisma/prisma.service'
@@ -13,21 +11,6 @@ export class GamesService {
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
   ) { }
-
-  async buyTicket(res: Response, { sub }: ExpressUser) {
-    /* Some Web3 CONTRACT TRANSACTIONS STUFF HERE */
-
-    /* Assuming 100 tickets equal $0.05 */
-
-    const qty = 100
-
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: { tickets: { increment: qty } },
-    })
-
-    this.response.sendSuccess(res, StatusCodes.OK, {})
-  }
 
   async overallLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
     page = Number(page)
@@ -84,7 +67,7 @@ export class GamesService {
     }
   }
 
-  async getCurrentTournamentLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
+  async getCurrentGameTournamentLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
     page = Number(page)
     limit = Number(limit)
 
@@ -107,10 +90,7 @@ export class GamesService {
         rounds: {
           some: {
             point: { gte: 1 },
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            gameTournamentId: currentTournament.id,
           },
         },
       },
@@ -122,10 +102,7 @@ export class GamesService {
         rounds: {
           some: {
             point: { gte: 1 },
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            gameTournamentId: currentTournament.id,
           },
         },
       },
@@ -137,10 +114,7 @@ export class GamesService {
         rounds: {
           where: {
             point: { gte: 1 },
-            createdAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            gameTournamentId: currentTournament.id,
           },
           select: {
             point: true,
@@ -234,10 +208,7 @@ export class GamesService {
           user: {
             rounds: {
               some: {
-                createdAt: {
-                  gte: currentTournament.start,
-                  lte: currentTournament.end,
-                },
+                gameTournamentId: currentTournament.id,
               },
             },
           },

@@ -296,12 +296,8 @@ export class TaskService {
                     select: {
                         id: true,
                         rounds: {
-                            where: {
-                                gameTournamentId: tournament.id,
-                            },
-                            select: {
-                                point: true,
-                            },
+                            where: { gameTournamentId: tournament.id },
+                            select: { point: true },
                         },
                     },
                 })
@@ -412,10 +408,7 @@ export class TaskService {
                         status: 'FINISHED',
                         outcome: { in: ['WIN', 'LOSE'] },
                         disbursed: false,
-                        createdAt: {
-                            gte: tournament.start,
-                            lte: tournament.end,
-                        },
+                        sportTournamentId: tournament.id,
                     },
                     _sum: {
                         stake: true
