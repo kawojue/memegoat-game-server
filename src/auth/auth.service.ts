@@ -26,6 +26,7 @@ import { avatarSeeds } from 'utils/avatar-seeds'
 import { RandomService } from 'libs/random.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
+import { Decimal } from '@prisma/client/runtime/library'
 import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 import { verifyMessageSignatureRsv } from '@stacks/encryption'
 import { StacksMainnet, StacksTestnet } from '@stacks/network'
@@ -198,33 +199,66 @@ export class AuthService {
       where: { id: sub },
       include: {
         stat: true,
-        _count: {
-          select: {
-            rounds: true,
-          },
-        },
       },
     })
 
-    const newUser = {
-      ...user,
-      times_played: user._count.rounds,
-      _count: undefined,
-      levelName: this.getLevelName(user.stat.xp),
-    }
+    const totalBets = await this.prisma.sportBet.aggregate({
+      _sum: {
+        stake: true
+      },
+      _count: {
+        _all: true
+      }
+    })
 
-    const gameTournament = await this.prisma.currentGameTournament()
-    const sportTournament = await this.prisma.currentSportTournament()
+    const totalGames = await this.prisma.round.aggregate({
+      _sum: {
+        stake: true
+      },
+      _count: {
+        _all: true
+      }
+    })
+
+    const totalTicketStakes = totalBets._sum.stake + totalGames._sum.stake
+    const timesPlayed = totalBets._count._all + totalGames._count._all
 
     this.response.sendSuccess(res, StatusCodes.OK, {
-      data: newUser,
-      gameTournament,
-      sportTournament,
+      data: {
+        ...user,
+        timesPlayed,
+        totalTicketStakes,
+        totalSTXStaked: totalTicketStakes * 0.001,
+        levelName: this.getLevelName(user.stat.xp),
+      },
     })
   }
 
+  private getStxAmount(ticket: number) {
+    return ticket * 0.001
+  }
+
+  async tournamentStat(res: Response) {
+    let gameTournament = await this.prisma.currentGameTournament() as any
+    let sportTournament = await this.prisma.currentSportTournament() as any
+
+    gameTournament = {
+      ...gameTournament,
+      stxAmount: this.getStxAmount(gameTournament.totalStakes),
+      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0 // Current USD Amount
+    }
+
+    sportTournament = {
+      ...sportTournament,
+      stxAmount: this.getStxAmount(sportTournament.totalStakes),
+      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0 // Current USD Amount
+    }
+
+    this.response.sendSuccess(res, StatusCodes.OK, { gameTournament, sportTournament })
+  }
+
   async reward(res: Response, { sub }: ExpressUser) {
-    const isPendingReward = await this.prisma.reward.findFirst({
+    const hasOngoingReward = await this.prisma.reward.findFirst({
       where: {
         userId: sub,
         claimed: 'PENDING',
@@ -241,12 +275,14 @@ export class AuthService {
       _sum: { earning: true },
     })
 
+    const reward = earning ?? new Decimal(0)
+
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: {
-        reward: earning,
-        isClaimable: earning.toNumber() > 0,
-        status: isPendingReward ? 'PENDING' : 'DEFAULT',
-        stxAmount: earning.toNumber() * 0.001, // Just an Assumption
+        reward,
+        isClaimable: reward.toNumber() > 0,
+        status: hasOngoingReward ? 'PENDING' : 'DEFAULT',
+        stxAmount: reward.toNumber() * 0.001, // Just an Assumption
       },
     })
   }
@@ -264,7 +300,7 @@ export class AuthService {
     }
 
     const {
-      _sum: { earning },
+      _sum: { earning: reward },
     } = await this.prisma.reward.aggregate({
       where: {
         userId: sub,
@@ -276,6 +312,8 @@ export class AuthService {
     const { address } = await this.prisma.user.findUnique({
       where: { id: sub },
     })
+
+    const earning = reward ?? new Decimal(0)
 
     const networkEnv = env.wallet.network
     if (!this.walletConfig[networkEnv]) {
@@ -291,6 +329,7 @@ export class AuthService {
       account,
       transactionVersion: this.walletConfig[networkEnv].txVersion,
     })
+
     const postConditionCode = FungibleConditionCode.LessEqual
     const postConditionAmount = earning.toNumber() * ticketPriceInSTX * 1e6
     const postConditions = [

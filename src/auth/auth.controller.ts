@@ -72,4 +72,9 @@ export class AuthController {
   async claimReward(@Res() res: Response, @Req() req: IRequest) {
     await this.authService.claimReward(res, req.user)
   }
+
+  @Get('/tournament-stats')
+  async tournamentStat(@Res() res: Response) {
+    await this.authService.tournamentStat(res)
+  }
 }
