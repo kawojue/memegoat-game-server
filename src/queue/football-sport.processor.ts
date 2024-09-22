@@ -26,24 +26,24 @@ export class FootballSportsQueueProcessor extends WorkerHost {
 
         const currentSportTournament = await this.prisma.currentSportTournament()
 
-        await Promise.all(fixtures.map(async (fixture) => {
+        await Promise.all(fixtures.map(async (game) => {
             const bets = await this.prisma.sportBet.findMany({
-                where: { fixureId: String(fixture.fixture.id) }
+                where: { fixureId: String(game.fixture.id) }
             })
 
             for (const bet of bets) {
                 let outcome: SportbetOutcome = SportbetOutcome.NOT_DECIDED
 
-                const elapsed = fixture.fixture.status?.elapsed
+                const elapsed = game.fixture.status?.elapsed
                 let status: BetStatus = elapsed !== null ? BetStatus.ONGOING : BetStatus.NOT_STARTED
 
                 if (
-                    fixture.fixture.status.short === 'FT' ||
-                    fixture.fixture.status.short === 'AET' ||
-                    fixture.fixture.status.short === 'PEN'
+                    game.fixture.status.short === 'FT' ||
+                    game.fixture.status.short === 'AET' ||
+                    game.fixture.status.short === 'PEN'
                 ) {
-                    const homeWin = fixture.teams.home.winner
-                    const awayWin = fixture.teams.away.winner
+                    const homeWin = game.teams.home.winner
+                    const awayWin = game.teams.away.winner
 
                     if (bet.placebetOutcome === 'home' && homeWin) {
                         outcome = SportbetOutcome.WIN
@@ -57,8 +57,8 @@ export class FootballSportsQueueProcessor extends WorkerHost {
 
                     status = BetStatus.FINISHED
                 } else if (
-                    fixture.fixture.status.short === 'CANC' ||
-                    fixture.fixture.status.short === 'SUSP'
+                    game.fixture.status.short === 'CANC' ||
+                    game.fixture.status.short === 'SUSP'
                 ) {
                     status = BetStatus.FINISHED
                     outcome = SportbetOutcome.CANCELLED
@@ -111,8 +111,8 @@ export class FootballSportsQueueProcessor extends WorkerHost {
                         data: {
                             outcome, status,
                             goals: {
-                                home: fixture.goals.home,
-                                away: fixture.goals.away,
+                                home: game.goals.home,
+                                away: game.goals.away,
                             },
                             elapsed: elapsed === null ? null : String(elapsed)
                         },
