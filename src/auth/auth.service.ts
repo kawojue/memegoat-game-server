@@ -83,7 +83,7 @@ export class AuthService {
   }
 
   private getStxAmount(ticket: number) {
-    return ticket * 0.001
+    return ticket * 0.001 // 1 STX = 1,000 tickets
   }
 
   private getLevelName(xp: number) {
@@ -215,7 +215,7 @@ export class AuthService {
       }
     })
 
-    const totalGames = await this.prisma.round.aggregate({
+    const totalGameRounds = await this.prisma.round.aggregate({
       _sum: {
         stake: true
       },
@@ -224,16 +224,16 @@ export class AuthService {
       }
     })
 
-    const totalTicketStakes = totalBets._sum.stake + totalGames._sum.stake
-    const timesPlayed = totalBets._count._all + totalGames._count._all
+    const totalTicketStakes = totalBets._sum.stake + totalGameRounds._sum.stake
+    const timesPlayed = totalBets._count._all + totalGameRounds._count._all
 
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: {
         ...user,
         timesPlayed,
         totalTicketStakes,
-        totalSTXStaked: this.getStxAmount(totalTicketStakes),
         levelName: this.getLevelName(user.stat.xp),
+        totalSTXStaked: this.getStxAmount(totalTicketStakes),
       },
     })
   }
@@ -245,13 +245,13 @@ export class AuthService {
     gameTournament = {
       ...gameTournament,
       stxAmount: this.getStxAmount(gameTournament.totalStakes),
-      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0 // Current USD Amount
+      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0
     }
 
     sportTournament = {
       ...sportTournament,
       stxAmount: this.getStxAmount(sportTournament.totalStakes),
-      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0 // Current USD Amount
+      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0
     }
 
     this.response.sendSuccess(res, StatusCodes.OK, { gameTournament, sportTournament })
@@ -282,7 +282,7 @@ export class AuthService {
         reward,
         isClaimable: reward.toNumber() > 0,
         status: hasOngoingReward ? 'PENDING' : 'DEFAULT',
-        stxAmount: this.getStxAmount(reward.toNumber()), // Just an Assumption
+        stxAmount: this.getStxAmount(reward.toNumber()),
       },
     })
   }
