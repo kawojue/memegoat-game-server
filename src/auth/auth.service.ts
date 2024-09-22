@@ -82,6 +82,10 @@ export class AuthService {
     return true
   }
 
+  private getStxAmount(ticket: number) {
+    return ticket * 0.001
+  }
+
   private getLevelName(xp: number) {
     for (let i = 0; i < ranks.length; i++) {
       if (i === ranks.length - 1) {
@@ -228,14 +232,10 @@ export class AuthService {
         ...user,
         timesPlayed,
         totalTicketStakes,
-        totalSTXStaked: totalTicketStakes * 0.001,
+        totalSTXStaked: this.getStxAmount(totalTicketStakes),
         levelName: this.getLevelName(user.stat.xp),
       },
     })
-  }
-
-  private getStxAmount(ticket: number) {
-    return ticket * 0.001
   }
 
   async tournamentStat(res: Response) {
@@ -282,7 +282,7 @@ export class AuthService {
         reward,
         isClaimable: reward.toNumber() > 0,
         status: hasOngoingReward ? 'PENDING' : 'DEFAULT',
-        stxAmount: reward.toNumber() * 0.001, // Just an Assumption
+        stxAmount: this.getStxAmount(reward.toNumber()), // Just an Assumption
       },
     })
   }
@@ -324,14 +324,13 @@ export class AuthService {
       password: env.wallet.password,
     })
     const account = wallet.accounts[0]
-    const ticketPriceInSTX = 0.001 // 1 ticket = 1/1000 STX, example
     const postConditionAddress = getStxAddress({
       account,
       transactionVersion: this.walletConfig[networkEnv].txVersion,
     })
 
     const postConditionCode = FungibleConditionCode.LessEqual
-    const postConditionAmount = earning.toNumber() * ticketPriceInSTX * 1e6
+    const postConditionAmount = this.getStxAmount(earning.toNumber()) * 1e6
     const postConditions = [
       makeStandardSTXPostCondition(
         postConditionAddress,
