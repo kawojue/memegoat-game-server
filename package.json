@@ -59,6 +59,7 @@
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
     "mongodb": "^6.8.0",
+    "nestjs-real-ip": "^3.0.1",
     "passport-jwt": "^4.0.1",
     "pokersolver": "^2.1.4",
     "reflect-metadata": "^0.1.13",
