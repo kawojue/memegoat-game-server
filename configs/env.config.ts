@@ -22,7 +22,13 @@ export const env = {
   hiro: {
     apiKey: process.env.HIRO_API_KEY,
     channel: process.env.HIRO_CHANNEL as HiroChannel,
-    contractId: process.env.CONTRACT_ID
+    contractId: process.env.CONTRACT_ID,
+  },
+  hiroV2: {
+    apiKey: process.env.HIRO_API_KEY_V2,
+    channel: process.env.HIRO_CHANNEL_V2 as HiroChannel,
+    contractId: process.env.CONTRACT_ID_V2,
+    paymentToken: process.env.PAYMENT_TOKEN,
   },
   redis: {
     host: process.env.REDIS_HOST,
@@ -36,7 +42,6 @@ export const env = {
   wallet: {
     key: process.env.WALLET_KEY,
     password: process.env.WALLET_PASSWORD,
-    contract: process.env.CONTRACT_ADDRESS,
     network: process.env.WALLET_NETWORK as HiroChannel,
   },
   genKey: process.env.GEN_KEY,
