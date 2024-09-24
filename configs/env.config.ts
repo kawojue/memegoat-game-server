@@ -28,6 +28,7 @@ export const env = {
     channel: process.env.HIRO_CHANNEL_V2 as HiroChannel,
     contractId: process.env.CONTRACT_ID_V2,
     paymentToken: process.env.PAYMENT_TOKEN,
+    ticketPrice: process.env.TICKET_PRICE, // 1
   },
   redis: {
     host: process.env.REDIS_HOST,

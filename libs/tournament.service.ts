@@ -34,6 +34,7 @@ export class TournamentService {
       network: new StacksMainnet(),
     },
   };
+
   async startNewTournament(data: txData) {
     const networkEnv = env.wallet.network;
     const networkData = this.walletConfig[networkEnv];
@@ -50,7 +51,9 @@ export class TournamentService {
       transactionVersion: networkData.txVersion,
     });
     const postConditionCode = FungibleConditionCode.LessEqual;
+
     const postConditionAmount = data.totalSTX * 0.01; // get percentage for treasury
+
     const ca = splitCA(env.hiroV2.contractId);
     const postConditions = [
       makeContractSTXPostCondition(
