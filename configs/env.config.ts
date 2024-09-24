@@ -22,6 +22,7 @@ export const env = {
   hiro: {
     apiKey: process.env.HIRO_API_KEY,
     channel: process.env.HIRO_CHANNEL as HiroChannel,
+    contractId: process.env.CONTRACT_ID
   },
   redis: {
     host: process.env.REDIS_HOST,

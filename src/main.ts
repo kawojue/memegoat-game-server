@@ -1,3 +1,4 @@
+import * as morgan from 'morgan'
 import * as express from 'express'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app/app.module'
@@ -26,6 +27,7 @@ async function bootstrap() {
     methods: 'GET,POST,DELETE,PATCH,PUT,OPTIONS',
   })
 
+  app.use(morgan('tiny'))
   app.use(express.json({ limit: 5 << 20 }))
   app.use(cookieParser())
   app.useGlobalPipes(new ValidationPipe({ transform: true }))

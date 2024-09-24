@@ -15,7 +15,7 @@ import { StatusCodes } from 'enums/StatusCodes'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
 import { ResponseService } from 'libs/response.service'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
+import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -71,6 +71,19 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async claimReward(@Res() res: Response, @Req() req: IRequest) {
     await this.authService.claimReward(res, req.user)
+  }
+
+  @ApiBearerAuth()
+  @Post('/buy-ticket')
+  @UseGuards(JwtAuthGuard)
+  async buyTicket(
+    @Res() res: Response,
+    @Req() req: IRequest,
+    @Body() body: BuyTicketDTO,
+  ) {
+    const data = await this.authService.buyTicket(req.user, body)
+
+    return this.response.sendSuccess(res, StatusCodes.OK, { data })
   }
 
   @Get('/tournament-stats')

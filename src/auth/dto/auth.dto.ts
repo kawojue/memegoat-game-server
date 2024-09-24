@@ -1,6 +1,7 @@
+import { v4 as uuid } from 'uuid'
 import { USER_REGEX } from 'utils/regExp';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
 
 export class ConnectWalletDTO {
   @ApiProperty({
@@ -44,4 +45,11 @@ export class UsernameDTO {
   @IsString()
   @IsNotEmpty()
   username: string;
+}
+
+export class BuyTicketDTO {
+  @ApiProperty({
+    example: uuid()
+  })
+  txId: string
 }

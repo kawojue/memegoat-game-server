@@ -137,7 +137,7 @@ export class TaskService {
         }
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron(CronExpression.EVERY_5_SECONDS)
     async updateTransactions() {
         const batchSize = 100
         let cursorId: string | null = null

@@ -7,15 +7,19 @@ import { AuthController } from './auth.controller'
 import { QueueModule } from 'src/queue/queue.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
+import { HttpModule } from '@nestjs/axios'
+import { ApiService } from 'libs/api.service'
 
 @Module({
   imports: [
     JwtModule,
+    HttpModule,
     QueueModule,
     PassportModule.register({ defaultStrategy: 'jwt' })
   ],
   controllers: [AuthController],
   providers: [
+    ApiService,
     AuthService,
     MiscService,
     PrismaService,

@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   BadRequestException,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   uintCV,
@@ -20,17 +21,19 @@ import { v4 as uuidv4 } from 'uuid'
 import { env } from 'configs/env.config'
 import { enc, HmacSHA256 } from 'crypto-js'
 import { InjectQueue } from '@nestjs/bullmq'
-import { MiscService } from 'libs/misc.service'
+import { ApiService } from 'libs/api.service'
 import { StatusCodes } from 'enums/StatusCodes'
+import { MiscService } from 'libs/misc.service'
 import { avatarSeeds } from 'utils/avatar-seeds'
 import { RandomService } from 'libs/random.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { ResponseService } from 'libs/response.service'
 import { Decimal } from '@prisma/client/runtime/library'
-import { ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 import { verifyMessageSignatureRsv } from '@stacks/encryption'
 import { StacksMainnet, StacksTestnet } from '@stacks/network'
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk'
+import type { Transaction } from '@stacks/stacks-blockchain-api-types'
+import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
 
 @Injectable()
 export class AuthService {
@@ -54,6 +57,7 @@ export class AuthService {
     }
 
   constructor(
+    private readonly api: ApiService,
     private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
@@ -382,6 +386,24 @@ export class AuthService {
     this.response.sendSuccess(res, StatusCodes.OK, {
       message: 'Successful',
       txId: transaction.txid(),
+    })
+  }
+
+  async buyTicket(
+    { sub }: ExpressUser,
+    { txId }: BuyTicketDTO,
+  ) {
+    const data = await this.api.fetchTransaction<Transaction>(env.hiro.channel, txId)
+
+    return await this.prisma.transaction.create({
+      data: {
+        txId: data.tx_id,
+        tag: 'BUY-TICKETS',
+        txStatus: 'Pending',
+        txSender: data.sender_address,
+        action: 'NEW-TICKET-BOUGHT-MEMEGOAT-GAMES',
+        user: { connect: { id: sub } }
+      }
     })
   }
 }
