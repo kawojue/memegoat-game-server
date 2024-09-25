@@ -194,3 +194,11 @@ interface Rank {
     minXP: number
     maxXP: number
 }
+
+interface UploadOption {
+    folder: string
+    maxSize: number
+    public_id?: string
+    mimeTypes?: string[]
+    file: Express.Multer.File | Buffer
+}

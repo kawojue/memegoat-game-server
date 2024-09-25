@@ -36,6 +36,11 @@ export const env = {
     password: process.env.REDIS_PASSWORD,
     port: parseInt(process.env.REDIS_PORT, 10),
   },
+  cloudinary: {
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  },
   auth: {
     key: process.env.AUTH_SECRET_KEY,
   },
