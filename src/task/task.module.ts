@@ -4,6 +4,7 @@ import { TaskService } from './task.service'
 import { QueueModule } from 'src/queue/queue.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ContractService } from 'libs/contract.service'
+import { TournamentService } from 'libs/tournament.service'
 
 @Module({
     imports: [QueueModule, HttpModule],
@@ -11,6 +12,7 @@ import { ContractService } from 'libs/contract.service'
         TaskService,
         PrismaService,
         ContractService,
+        TournamentService,
     ],
     exports: [TaskService]
 })

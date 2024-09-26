@@ -16,6 +16,7 @@ datasource db {
 
 model Tournament {
   id                    String   @id @default(uuid()) @db.Uuid
+  bId                   Int?     @default(autoincrement())
   key                   String   @unique
   title                 String?
   start                 DateTime

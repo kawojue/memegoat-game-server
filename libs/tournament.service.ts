@@ -25,15 +25,15 @@ export class TournamentService {
       network: StacksTestnet | StacksMainnet;
     }
   > = {
-    testnet: {
-      txVersion: TransactionVersion.Testnet,
-      network: new StacksTestnet(),
-    },
-    mainnet: {
-      txVersion: TransactionVersion.Mainnet,
-      network: new StacksMainnet(),
-    },
-  };
+      testnet: {
+        txVersion: TransactionVersion.Testnet,
+        network: new StacksTestnet(),
+      },
+      mainnet: {
+        txVersion: TransactionVersion.Mainnet,
+        network: new StacksMainnet(),
+      },
+    };
 
   async startNewTournament(data: txData) {
     const networkEnv = env.wallet.network;
@@ -101,7 +101,12 @@ function splitCA(pair: string) {
   return data;
 }
 
-interface txData {
-  rewardData: { addr: string; amount: number }[];
+export interface txData {
+  rewardData: RewardData[];
   totalSTX: number;
+}
+
+export interface RewardData {
+  addr: string;
+  amount: number
 }
