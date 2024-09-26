@@ -3,19 +3,27 @@ import {
   CanActivate,
   ExecutionContext,
 } from '@nestjs/common'
+import * as crypto from 'crypto'
 import { Request } from 'express'
 import { env } from 'configs/env.config'
+
+const sign = (text: string, key: string) => {
+  return crypto.createHmac('sha256', Buffer.from(key, 'hex'))
+    .update(text)
+    .digest('hex')
+}
 
 @Injectable()
 export class CloudinaryApiGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
     const ctx = context.switchToHttp().getRequest<Request>()
 
-    const base64ApiKey = ctx.headers['cloudinary-api-key'] as string
+    const receivedSignedKey = ctx.headers['cloudinary-api-key'] as string
 
-    const Apibase64Key = Buffer.from(env.cloudinary.api_key).toString('base64')
+    const apiBase64Key = Buffer.from(env.cloudinary.api_key).toString('base64')
+    const signedBase64Key = sign(apiBase64Key, env.cloudinary.api_secret)
 
-    if (Apibase64Key === base64ApiKey) {
+    if (receivedSignedKey === signedBase64Key) {
       return true
     }
 
