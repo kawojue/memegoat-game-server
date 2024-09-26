@@ -34,6 +34,7 @@ export class CloudinaryController {
       file,
       folder: 'CLAIM-REWARD',
       maxSize: 2 << 20,
+      mimeTypes: ['image/png', 'image/jpeg']
     })
 
     uploadedFile = {
