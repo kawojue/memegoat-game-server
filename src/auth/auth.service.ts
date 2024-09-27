@@ -1,15 +1,14 @@
 import {
   Injectable,
+  NotFoundException,
   ForbiddenException,
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Queue } from 'bullmq';
 import { ranks } from './ranks';
 import { Response } from 'express';
 import { env } from 'configs/env.config';
 import { enc, HmacSHA256 } from 'crypto-js';
-import { InjectQueue } from '@nestjs/bullmq';
 import { ApiService } from 'libs/api.service';
 import { StatusCodes } from 'enums/StatusCodes';
 import { MiscService } from 'libs/misc.service';
@@ -32,7 +31,6 @@ export class AuthService {
     private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
-    @InjectQueue('reward-tx-queue') private rewardTxQueue: Queue,
   ) {
     this.randomService = new RandomService('md5');
   }
@@ -61,7 +59,7 @@ export class AuthService {
   }
 
   private getStxAmount(ticket: number) {
-    return ticket * 0.001; // 1 STX = 1,000 tickets
+    return ticket * env.hiroV2.ticketPrice
   }
 
   private getLevelName(xp: number) {
@@ -222,13 +220,13 @@ export class AuthService {
     gameTournament = {
       ...gameTournament,
       stxAmount: this.getStxAmount(gameTournament.totalStakes),
-      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0,
+      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0, // TODO
     };
 
     sportTournament = {
       ...sportTournament,
       stxAmount: this.getStxAmount(sportTournament.totalStakes),
-      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0,
+      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0, // TODO
     };
 
     this.response.sendSuccess(res, StatusCodes.OK, {
@@ -267,7 +265,7 @@ export class AuthService {
     });
   }
 
-  async claimReward(res: Response, { sub }: ExpressUser) {
+  async claimReward({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
     const isPendingReward = await this.prisma.reward.findFirst({
       where: {
         userId: sub,
@@ -281,61 +279,26 @@ export class AuthService {
       );
     }
 
-    const {
-      _sum: { earning: reward },
-    } = await this.prisma.reward.aggregate({
-      where: {
-        userId: sub,
-        claimed: 'DEFAULT',
-      },
-      _sum: { earning: true },
-    });
-
     const { address } = await this.prisma.user.findUnique({
       where: { id: sub },
     });
 
-    const earning = reward ?? new Decimal(0);
+    await this.prisma.reward.updateMany({
+      where: {
+        userId: sub,
+        claimed: 'DEFAULT'
+      },
+      data: { claimed: 'PENDING' }
+    })
 
-    // @raheem
-    // action let's track user claim transaction
-    // would send it here.
-    // then we update user's status if the claim transaction was successful
-    console.log(address, earning);
-
-    // update
-
-    // await this.prisma.$transaction(async (tx) => {
-    //   await tx.reward.updateMany({
-    //     where: {
-    //       userId: sub,
-    //       claimed: 'DEFAULT',
-    //     },
-    //     data: { claimed: 'PENDING' },
-    //   });
-
-    //   await tx.transaction.create({
-    //     data: {
-    //       key: uuidv4(),
-    //       txId: transaction.txid(),
-    //       amount: postConditionAmount,
-    //       tag: 'MEMEGOAT-GAMES',
-    //       txSender: postConditionAddress,
-    //       action: 'CLAIM-REWARD',
-    //       user: { connect: { id: sub } },
-    //     },
-    //   });
-    // });
-
-    // await this.rewardTxQueue.add('reward-tx-queue', {
-    //   sub,
-    //   transaction,
-    //   network: this.walletConfig[networkEnv].network,
-    // });
-
-    this.response.sendSuccess(res, StatusCodes.OK, {
-      message: 'Successful',
-    });
+    return await this.prisma.transaction.create({
+      data: {
+        txId: txId,
+        txSender: address,
+        tag: 'CLAIM-REWARDS',
+        user: { connect: { id: sub } }
+      }
+    })
   }
 
   async buyTicket({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
@@ -344,6 +307,10 @@ export class AuthService {
       txId,
     );
 
+    if (!data) {
+      throw new NotFoundException("Transaction not found")
+    }
+
     return await this.prisma.transaction.create({
       data: {
         txId: data.tx_id,
@@ -351,6 +318,26 @@ export class AuthService {
         txStatus: 'Pending',
         txSender: data.sender_address,
         action: 'NEW-TICKET-BOUGHT-MEMEGOAT-GAMES',
+        user: { connect: { id: sub } },
+      },
+    });
+  }
+
+  async burnGoat({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
+    const data = await this.api.fetchTransaction<Transaction>(
+      env.hiroV2.channel,
+      txId,
+    );
+
+    if (!data) {
+      throw new NotFoundException("Transaction not found")
+    }
+
+    return await this.prisma.transaction.create({
+      data: {
+        txId: data.tx_id,
+        tag: 'BURN-GOAT',
+        txSender: data.sender_address,
         user: { connect: { id: sub } },
       },
     });

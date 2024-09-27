@@ -9,7 +9,6 @@ import {
   Controller,
 } from '@nestjs/common'
 import { Response } from 'express'
-import { env } from 'configs/env.config'
 import { AuthService } from './auth.service'
 import { StatusCodes } from 'enums/StatusCodes'
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
@@ -31,12 +30,6 @@ export class AuthController {
     @Body() body: ConnectWalletDTO,
   ) {
     const data = await this.authService.connectWallet(body)
-
-    // res.cookie('access_token', data.access_token, {
-    //   sameSite: env.isProd ? 'none' : 'lax',
-    //   secure: env.isProd,
-    //   maxAge: 120 * 24 * 60 * 60 * 1000,
-    // })
 
     return this.response.sendSuccess(res, StatusCodes.OK, { data })
   }
@@ -69,8 +62,17 @@ export class AuthController {
   @ApiBearerAuth()
   @Post('/claim-reward')
   @UseGuards(JwtAuthGuard)
-  async claimReward(@Res() res: Response, @Req() req: IRequest) {
-    await this.authService.claimReward(res, req.user)
+  async claimReward(
+    @Res() res: Response,
+    @Req() req: IRequest,
+    @Body() body: BuyTicketDTO,
+  ) {
+    const data = await this.authService.claimReward(req.user, body)
+
+    return this.response.sendSuccess(res, StatusCodes.OK, {
+      data,
+      message: 'Transaction in progress...'
+    })
   }
 
   @ApiBearerAuth()
@@ -83,7 +85,20 @@ export class AuthController {
   ) {
     const data = await this.authService.buyTicket(req.user, body)
 
-    return this.response.sendSuccess(res, StatusCodes.OK, { data })
+    return this.response.sendSuccess(res, StatusCodes.OK, data)
+  }
+
+  @ApiBearerAuth()
+  @Post('/burn-goat')
+  @UseGuards(JwtAuthGuard)
+  async burnGoat(
+    @Res() res: Response,
+    @Req() req: IRequest,
+    @Body() body: BuyTicketDTO,
+  ) {
+    const data = await this.authService.burnGoat(req.user, body)
+
+    return this.response.sendSuccess(res, StatusCodes.OK, data)
   }
 
   @Get('/tournament-stats')

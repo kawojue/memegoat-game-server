@@ -297,12 +297,12 @@ export class SportsService {
 
         const bet = await this.prisma.sportBet.create({
             data: {
+                status: 'NOT_STARTED',
                 outcome: 'NOT_DECIDED',
                 sport_type: SportType.NFL,
-                fixureId: gameId.toString(),
+                gameId: gameId.toString(),
                 potentialWin, placebetOutcome,
                 stake, elapsed: game.game.status.timer,
-                status: 'NOT_STARTED',
                 goals: {
                     away: game.scores.away.total,
                     home: game.scores.home.total,
@@ -333,6 +333,7 @@ export class SportsService {
                     }
                 },
                 user: { connect: { id: userId } },
+                sportTournament: { connect: { id: currentTournament.id } },
             },
             include: {
                 sportRound: true

@@ -107,4 +107,20 @@ export class RealtimeService {
       },
     })
   }
+
+  async updateStat(userId: string, win: boolean, stake: number, point: number) {
+    const updatedData = win ? {
+      total_wins: { increment: 1 },
+      total_points: { increment: point },
+      xp: { increment: Math.sqrt(point) }
+    } : { total_losses: { increment: 1 } }
+
+    return await this.prisma.stat.update({
+      where: { id: userId },
+      data: {
+        tickets: { decrement: stake },
+        ...updatedData,
+      }
+    })
+  }
 }

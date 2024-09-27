@@ -26,6 +26,7 @@ export const env = {
   hiroV2: {
     apiKey: process.env.HIRO_API_KEY_V2,
     contractId: process.env.CONTRACT_ID_V2,
+    goatTokenId: process.env.GOAT_TOKEN_ID,
     paymentToken: process.env.PAYMENT_TOKEN,
     channel: process.env.HIRO_CHANNEL_V2 as HiroChannel,
     ticketPrice: parseInt(process.env.TICKET_PRICE, 10), // 1

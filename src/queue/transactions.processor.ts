@@ -1,4 +1,3 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { BigNumber } from 'bignumber.js';
 import { env } from 'configs/env.config';
@@ -7,6 +6,7 @@ import { hexToBytes } from '@stacks/common';
 import { ApiService } from 'libs/api.service';
 import { Cl, cvToValue } from '@stacks/transactions';
 import { PrismaService } from 'prisma/prisma.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 
 @Processor('transactions-queue')
 export class TransactionsQueueProcessor extends WorkerHost {
@@ -57,37 +57,71 @@ export class TransactionsQueueProcessor extends WorkerHost {
             where: {
               txId: data.transaction.txId,
               txStatus: 'Pending',
-              tag: 'BUY-TICKETS',
+              tag: { in: ['BUY-TICKETS', 'CLAIM-REWARDS', 'BURN-GOAT'] },
             },
           });
 
           if (tx) {
             if (
-              txnInfo.contract_call.contract_id === env.hiroV2.contractId &&
-              txnInfo.contract_call.function_name === 'buy-tickets'
+              txnInfo.contract_call.contract_id === env.hiroV2.contractId ||
+              txnInfo.contract_call.contract_id === env.hiroV2.goatTokenId
             ) {
-              const tickets = new BigNumber(
-                cvToValue(
-                  Cl.deserialize(
-                    hexToBytes(txnInfo.contract_call.function_args[0].hex),
+              let amount = 0
+
+              if (txnInfo.contract_call.function_name === 'buy-tickets') {
+                const tickets = new BigNumber(
+                  cvToValue(
+                    Cl.deserialize(
+                      hexToBytes(txnInfo.contract_call.function_args[0].hex),
+                    ),
                   ),
-                ),
-              ).toNumber();
+                ).toNumber();
 
-              const amount = tickets; // Assumptions
+                amount = tickets * env.hiroV2.ticketPrice
 
-              await this.prisma.stat.update({
-                where: { userId: tx.userId },
-                data: { tickets: { increment: tickets } },
-              });
+                await this.prisma.stat.update({
+                  where: { userId: tx.userId },
+                  data: { tickets: { increment: tickets } },
+                });
+              }
+
+              let txMeta: any
+
+              if (txnInfo.contract_call.function_name === 'claim-rewards') {
+                txMeta = {
+                  action: 'REWARDS-CLAIMED',
+                }
+              }
+
+              if (txnInfo.contract_call.function_name === 'burn-goat') {
+                await this.prisma.stat.update({
+                  where: { userId: tx.userId },
+                  data: { tickets: { increment: 2 } },
+                })
+
+                txMeta = {
+                  action: 'GOAT-BURN'
+                }
+              }
 
               await this.prisma.transaction.update({
                 where: { id: tx.id },
                 data: {
                   amount,
                   txStatus: 'Success',
+                  ...txMeta,
                 },
               });
+
+              await this.prisma.reward.updateMany({
+                where: {
+                  userId: tx.userId,
+                  claimed: 'PENDING',
+                },
+                data: {
+                  claimed: 'SUCCESSFUL'
+                }
+              })
 
               break;
             }

@@ -1,6 +1,5 @@
 import { Queue } from 'bullmq'
 import { subDays } from 'date-fns'
-import { v4 as uuidv4 } from 'uuid'
 import { Prisma } from '@prisma/client'
 import { env } from 'configs/env.config'
 import { Injectable } from '@nestjs/common'
@@ -356,7 +355,7 @@ export class TaskService {
             end.setDate(start.getDate() + 3)
 
             currentTournament = await this.prisma.tournament.create({
-                data: { key: uuidv4(), start, end },
+                data: { start, end },
             })
         }
     }
@@ -364,7 +363,7 @@ export class TaskService {
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
         timeZone: 'UTC',
     })
-    async rewardSportBet() {
+    async rewardAndRefreshSportTournament() {
         let currentTime = new Date(new Date().toUTCString())
 
         const whereClause: Prisma.SportTournamentWhereInput = {
@@ -398,13 +397,15 @@ export class TaskService {
                     data: { paused: true },
                 })
 
+                const whereClause: Prisma.SportBetWhereInput = {
+                    disbursed: false,
+                    status: 'FINISHED',
+                    outcome: { in: ['WIN', 'LOSE'] },
+                    sportTournamentId: tournament.id,
+                }
+
                 const betsAggregate = await this.prisma.sportBet.aggregate({
-                    where: {
-                        status: 'FINISHED',
-                        outcome: { in: ['WIN', 'LOSE'] },
-                        disbursed: false,
-                        sportTournamentId: tournament.id,
-                    },
+                    where: whereClause,
                     _sum: { stake: true }
                 })
 
@@ -414,12 +415,7 @@ export class TaskService {
                         id: true,
                         address: true,
                         sportBets: {
-                            where: {
-                                disbursed: false,
-                                status: 'FINISHED',
-                                outcome: { in: ['WIN', 'LOSE'] },
-                                sportTournamentId: tournament.id,
-                            },
+                            where: whereClause,
                             select: {
                                 id: true,
                                 sportRound: {
@@ -431,12 +427,7 @@ export class TaskService {
                 })
 
                 const groupBetsBy = await this.prisma.sportBet.groupBy({
-                    where: {
-                        disbursed: false,
-                        status: 'FINISHED',
-                        outcome: { in: ['WIN', 'LOSE'] },
-                        sportTournamentId: tournament.id,
-                    },
+                    where: whereClause,
                     by: ['userId']
                 })
 
@@ -547,13 +538,14 @@ export class TaskService {
             end.setDate(start.getDate() + 7)
 
             currentTournament = await this.prisma.sportTournament.create({
-                data: { key: uuidv4(), start, end },
+                data: { start, end },
             })
         }
 
         if (currentTournament) {
             const betsToTransfer = await this.prisma.sportBet.findMany({
                 where: {
+                    disbursed: false,
                     outcome: 'NOT_DECIDED',
                     status: { in: ['NOT_STARTED', 'ONGOING'] },
                 },

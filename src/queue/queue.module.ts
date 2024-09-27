@@ -4,8 +4,6 @@ import { BullModule } from '@nestjs/bullmq'
 import { ApiService } from 'libs/api.service'
 import { StoreModule } from 'src/store/store.module'
 import { PrismaService } from 'prisma/prisma.service'
-import { ContractService } from 'libs/contract.service'
-import { RewardTxQueueProcessor } from './reward-tx.process'
 import { CurrentTournamentProcessor } from './tournament.processor'
 import { TransactionsQueueProcessor } from './transactions.processor'
 import { FootballSportsQueueProcessor } from './football-sport.processor'
@@ -48,17 +46,6 @@ const SharedModule = BullModule.registerQueue(
       removeOnComplete: true,
     }
   },
-  {
-    name: 'reward-tx-queue',
-    defaultJobOptions: {
-      backoff: {
-        type: 'exponential',
-        delay: 5 * 60 * 1000
-      },
-      removeOnFail: true,
-      removeOnComplete: true,
-    }
-  },
 )
 
 @Module({
@@ -70,8 +57,6 @@ const SharedModule = BullModule.registerQueue(
   providers: [
     ApiService,
     PrismaService,
-    ContractService,
-    RewardTxQueueProcessor,
     CurrentTournamentProcessor,
     TransactionsQueueProcessor,
     FootballSportsQueueProcessor,

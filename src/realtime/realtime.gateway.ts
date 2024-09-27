@@ -41,6 +41,7 @@ import { BlackjackService } from 'libs/blackJack.service'
       'https://beta-games.memegoat.io',
       'https://games-server.memegoat.io',
       'https://memegoat-games.vercel.app',
+      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app'
     ],
   },
 })
@@ -182,11 +183,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const win = outcome === guess
     const point = win ? stake * 2 : 0
-    const updateData = win ? {
-      total_wins: { increment: 1 },
-      total_points: { increment: point },
-      xp: { increment: Math.sqrt(point) },
-    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -201,13 +197,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       },
     })
 
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: {
-        ...updateData,
-        tickets: { decrement: stake },
-      },
-    })
+    await this.realtimeService.updateStat(sub, win, stake, point)
 
     client.emit('coin-flip-result', { ...round, win, outcome })
 
@@ -285,11 +275,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
 
     const win = sortedRolls.every((roll, index) => roll === sortedGuesses[index])
     const point = this.realtimeService.calculateDicePoint(stake, numDice, win)
-    const updateData = win ? {
-      total_wins: { increment: 1 },
-      total_points: { increment: point },
-      xp: { increment: Math.sqrt(point) }
-    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -304,13 +289,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       },
     })
 
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: {
-        ...updateData,
-        tickets: { decrement: stake },
-      },
-    })
+    await this.realtimeService.updateStat(sub, win, stake, point)
 
     client.emit('dice-roll-result', { ...round, win, rolls })
 
@@ -391,11 +370,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       (betType === 'parity' && number === (outcomeParity === 'even' ? 1 : outcomeParity === 'odd' ? 2 : 0))
 
     const point = win ? betType === 'number' ? stake * 35 : stake * 2 : 0
-    const updateData = win ? {
-      total_wins: { increment: 1 },
-      total_points: { increment: point },
-      xp: { increment: Math.sqrt(point) }
-    } : { total_losses: { increment: 1 } }
 
     const round = {
       point: point, stake: stake,
@@ -412,13 +386,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       },
     })
 
-    await this.prisma.stat.update({
-      where: { userId: sub },
-      data: {
-        ...updateData,
-        tickets: { decrement: stake },
-      },
-    })
+    await this.realtimeService.updateStat(sub, win, stake, point)
 
     client.emit('roulette-spin-result', { ...round, win, outcome, result })
 
@@ -952,7 +920,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayInit, OnGa
       })
 
       await this.prisma.tournament.update({
-        where: { key: currentTournament.key },
+        where: { id: currentTournament.id },
         data: { totalStakes: { decrement: game.stake } }
       })
 

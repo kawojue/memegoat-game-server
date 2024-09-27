@@ -7,17 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// model TicketPrice {
-//   id        String   @id @default(uuid()) @db.Uuid
-//   price     Decimal  @db.Decimal(10, 5)
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }
-
 model Tournament {
   id                    String   @id @default(uuid()) @db.Uuid
-  bId                   Int?     @default(autoincrement())
-  key                   String   @unique
+  bId                   Int?     @unique @default(autoincrement())
   title                 String?
   start                 DateTime
   end                   DateTime
@@ -27,8 +19,7 @@ model Tournament {
   disbursed             Boolean? @default(false)
   numberOfUsersRewarded Int      @default(0)
 
-  rounds Round[]
-
+  rounds  Round[]
   rewards Reward[]
 
   @@index([totalStakes])
@@ -37,7 +28,7 @@ model Tournament {
 
 model SportTournament {
   id                    String   @id @default(uuid()) @db.Uuid
-  key                   String   @unique
+  bId                   Int?     @unique @default(autoincrement())
   title                 String?
   start                 DateTime
   end                   DateTime
@@ -71,7 +62,8 @@ model User {
   sportRounds  SportRound[]
   transactions Transaction[]
 
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model Stat {
@@ -95,13 +87,14 @@ model Stat {
 
   @@index([xp])
   @@index([tickets])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@index([total_wins])
   @@index([total_points])
   @@index([total_losses])
   @@index([total_sport_wins])
   @@index([total_sport_points])
   @@index([total_sport_losses])
-  @@index([createdAt, updatedAt])
 }
 
 model Reward {
@@ -122,7 +115,7 @@ model Reward {
   gameTournament  Tournament?      @relation(fields: [gameTournamentId], references: [id], onDelete: Cascade)
   sportTournament SportTournament? @relation(fields: [sportTournamentId], references: [id], onDelete: Cascade)
 
-  @@index([createdAt, updatedAt])
+  @@index([userId, claimed])
 }
 
 model Round {
@@ -136,16 +129,18 @@ model Round {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gameTournament Tournament? @relation(fields: [gameTournamentId], references: [id])
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameTournament Tournament @relation(fields: [gameTournamentId], references: [id])
 
-  gameTournamentId String? @db.Uuid
-  userId           String  @db.Uuid
+  gameTournamentId String @db.Uuid
+  userId           String @db.Uuid
 
   @@index([point])
   @@index([stake])
   @@index([game_type])
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([gameTournamentId])
 }
 
 model SportBet {
@@ -167,16 +162,19 @@ model SportBet {
   sportRound      SportRound?
   teams           Json?
 
-  sportTournamentId String?          @db.Uuid
-  sportTournament   SportTournament? @relation(fields: [sportTournamentId], references: [id])
+  sportTournamentId String          @db.Uuid
+  sportTournament   SportTournament @relation(fields: [sportTournamentId], references: [id])
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([fixureId])
   @@index([gameId])
-  @@index([createdAt, updatedAt])
-  @@index([status, placebetOutcome, outcome])
+  @@index([userId])
+  @@index([fixureId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status, outcome])
+  @@index([status, outcome, sportTournamentId])
 }
 
 model SportRound {
@@ -193,9 +191,11 @@ model SportRound {
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([createdAt])
+  @@index([updatedAt])
   @@index([sport_type])
   @@index([point, stake])
-  @@index([createdAt, updatedAt])
+  @@index([userId, updatedAt])
 }
 
 model Game {
@@ -209,7 +209,8 @@ model Game {
 
   players Player[]
 
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model Player {
@@ -229,7 +230,9 @@ model Player {
   gameId String @db.Uuid
   game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 model Dealer {
@@ -242,7 +245,8 @@ model Dealer {
 
   game Game?
 
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model Transaction {
@@ -261,8 +265,10 @@ model Transaction {
   userId String? @db.Uuid
 
   @@index([tag])
+  @@index([userId])
   @@index([txSender])
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model LotteryDraw {
@@ -271,7 +277,7 @@ model LotteryDraw {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([createdAt, updatedAt])
+  @@index([createdAt])
 }
 
 enum TxStatus {
