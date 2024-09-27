@@ -1,14 +1,14 @@
-import * as morgan from 'morgan'
-import * as express from 'express'
-import { NestFactory } from '@nestjs/core'
-import { AppModule } from './app/app.module'
-import * as cookieParser from 'cookie-parser'
-import { ValidationPipe } from '@nestjs/common'
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import * as morgan from 'morgan';
+import * as express from 'express';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app/app.module';
+import * as cookieParser from 'cookie-parser';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const PORT = parseInt(process.env.PORT, 10) || 2005
-  const app = await NestFactory.create(AppModule)
+  const PORT = parseInt(process.env.PORT, 10) || 2005;
+  const app = await NestFactory.create(AppModule);
 
   app.enableCors({
     origin: [
@@ -20,17 +20,18 @@ async function bootstrap() {
       'https://beta-games.memegoat.io',
       'https://games-server.memegoat.io',
       'https://memegoat-games.vercel.app',
-      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app'
+      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app',
+      'test-games.memegoat.io',
     ],
     credentials: true,
     optionsSuccessStatus: 200,
     methods: 'GET,POST,DELETE,PATCH,PUT,OPTIONS',
-  })
+  });
 
-  app.use(morgan('tiny'))
-  app.use(express.json({ limit: 5 << 20 }))
-  app.use(cookieParser())
-  app.useGlobalPipes(new ValidationPipe({ transform: true }))
+  app.use(morgan('tiny'));
+  app.use(express.json({ limit: 5 << 20 }));
+  app.use(cookieParser());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Memegoat Game')
@@ -39,16 +40,16 @@ async function bootstrap() {
     .addServer(`http://localhost:${PORT}`, 'Local')
     .addBearerAuth()
     .addCookieAuth()
-    .build()
+    .build();
 
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions)
-  SwaggerModule.setup('docs', app, swaggerDocument)
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);
+  SwaggerModule.setup('docs', app, swaggerDocument);
 
   try {
-    await app.listen(PORT)
-    console.log(`http://localhost:${PORT}`)
+    await app.listen(PORT);
+    console.log(`http://localhost:${PORT}`);
   } catch (err) {
-    console.error(err.message)
+    console.error(err.message);
   }
 }
-bootstrap()
+bootstrap();
