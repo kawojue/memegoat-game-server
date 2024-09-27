@@ -2,14 +2,12 @@ import { Injectable } from '@nestjs/common'
 import { MiscService } from 'libs/misc.service'
 import { PaginationDTO } from './dto/pagination'
 import { PrismaService } from 'prisma/prisma.service'
-import { ResponseService } from 'libs/response.service'
 
 @Injectable()
 export class GamesService {
   constructor(
     private readonly misc: MiscService,
     private readonly prisma: PrismaService,
-    private readonly response: ResponseService,
   ) { }
 
   async overallLeaderboard({ limit = 50, page = 1 }: PaginationDTO) {
