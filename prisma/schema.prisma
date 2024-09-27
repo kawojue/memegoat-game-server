@@ -79,8 +79,9 @@ model Stat {
   total_sport_losses Int   @default(0)
   total_sport_points Float @default(0.00)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastGoatBurntAt DateTime?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.Uuid
