@@ -42,7 +42,7 @@ import { BlackjackService } from 'libs/blackJack.service';
       'https://games-server.memegoat.io',
       'https://memegoat-games.vercel.app',
       'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app',
-      'test-games.memegoat.io',
+      'https://test-games.memegoat.io',
     ],
   },
 })
