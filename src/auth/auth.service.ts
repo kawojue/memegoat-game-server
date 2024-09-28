@@ -254,6 +254,7 @@ export class AuthService {
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     // Map over rewards to return the desired structure for each reward
