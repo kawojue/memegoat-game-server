@@ -351,11 +351,18 @@ export class TaskService {
       },
     });
 
-    if (!currentTournament || currentTournament.paused) {
+    if (!currentTournament) {
+      const start = currentTime;
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      currentTournament = await this.prisma.tournament.create({
+        data: { start, end },
+      });
+    } else if (currentTournament.paused) {
       const start = currentTime;
       if (currentTournament.end.getHours() + 1 > start.getHours()) {
         const end = new Date(start);
-        end.setDate(start.getDate() + 3);
+        end.setDate(start.getDate() + 7);
 
         currentTournament = await this.prisma.tournament.create({
           data: { start, end },
@@ -539,7 +546,14 @@ export class TaskService {
       },
     });
 
-    if (!currentTournament || currentTournament.paused) {
+    if (!currentTournament) {
+      const start = currentTime;
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      currentTournament = await this.prisma.tournament.create({
+        data: { start, end },
+      });
+    } else if (currentTournament.paused) {
       const start = currentTime;
       if (currentTournament.end.getHours() + 1 > start.getHours()) {
         const end = new Date(start);
