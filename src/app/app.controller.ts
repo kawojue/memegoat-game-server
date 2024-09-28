@@ -23,6 +23,7 @@ export class AppController {
   async getBlockHeight(@Res() res: Response) {
     const data = await this.apiService.getCurrentBlock<any>(env.hiro.channel);
     const result = data.results;
+    console.log(result);
     console.log(data.results['0'], 'sdjfk');
     return this.response.sendSuccess(res, StatusCodes.OK, result);
   }
