@@ -15,6 +15,7 @@ import {
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
+import { ApiService } from './api.service';
 
 @Injectable()
 export class TournamentService {
@@ -35,7 +36,9 @@ export class TournamentService {
     },
   };
 
-  async startNewTournament(data: txData) {
+  constructor(private readonly apiService: ApiService) {}
+
+  async storeTournamentRewards(data: txData, tourId: number) {
     const networkEnv = env.hiro.channel;
     const networkData = this.walletConfig[networkEnv];
     if (!networkData) {
@@ -52,7 +55,8 @@ export class TournamentService {
     });
     const postConditionCode = FungibleConditionCode.LessEqual;
 
-    const postConditionAmount = data.totalSTX * 0.01; // get percentage for treasury
+    const postConditionAmount =
+      data.totalTicketsUsed * env.hiro.ticketPrice * 0.01; // get percentage for treasury
 
     const ca = splitCA(env.hiro.contractId);
     const postConditions = [
@@ -75,10 +79,15 @@ export class TournamentService {
     const txOptions = {
       contractAddress: ca[0],
       contractName: ca[1],
-      functionName: 'start-new-tournament',
+      functionName: 'store-tournament-record ',
       functionArgs: [
+        uintCV(tourId),
         contractPrincipalCV(payToken[0], payToken[1]),
         listCV(rewardArgs),
+        tupleCV({
+          'no-of-players': uintCV(data.totalNoOfPlayers),
+          'total-tickets-used': uintCV(data.totalTicketsUsed),
+        }),
       ],
       senderKey: account.stxPrivateKey,
       validateWithAbi: true,
@@ -94,24 +103,12 @@ export class TournamentService {
     );
     return broadcastResponse;
   }
-}
 
-// export const fetchCurrNoOfBlocks = async () => {
-//   try {
-//     const config = {
-//       method: "get",
-//       maxBodyLength: Infinity,
-//       url: ApiURLS[network].getBlocks,
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//     };
-//     const response = await axios.request(config);
-//     return response.data.results[0].height;
-//   } catch (error) {
-//     console.error(error);
-//   }
-// };
+  async getBlockHeight() {
+    const data = await this.apiService.getCurrentBlock<any>(env.hiro.channel);
+    return data.results['0'].burn_block_height;
+  }
+}
 
 function splitCA(pair: string) {
   const data = pair.split('.');
@@ -120,7 +117,8 @@ function splitCA(pair: string) {
 
 export interface txData {
   rewardData: RewardData[];
-  totalSTX: number;
+  totalTicketsUsed: number;
+  totalNoOfPlayers: number;
 }
 
 export interface RewardData {

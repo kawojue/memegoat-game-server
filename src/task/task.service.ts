@@ -325,7 +325,8 @@ export class TaskService {
 
         allTxData.push({
           rewardData,
-          totalSTX: totalStakes * env.hiro.ticketPrice,
+          totalTicketsUsed: totalStakes,
+          totalNoOfPlayers: tournament.uniqueUsers,
         });
 
         await this.prisma.tournament.update({
@@ -338,8 +339,8 @@ export class TaskService {
       }, 2);
     }
     for (const tx of allTxData) {
-      await this.tournamentReward.startNewTournament(tx);
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await this.tournamentReward.storeTournamentRewards(tx, 1);
+      await new Promise((resolve) => setTimeout(resolve, 3600));
     }
 
     let currentTournament = await this.prisma.tournament.findFirst({
@@ -351,12 +352,14 @@ export class TaskService {
 
     if (!currentTournament || currentTournament.paused) {
       const start = currentTime;
-      const end = new Date(start);
-      end.setDate(start.getDate() + 3);
+      if (currentTournament.end.getHours() + 1 > start.getHours()) {
+        const end = new Date(start);
+        end.setDate(start.getDate() + 3);
 
-      currentTournament = await this.prisma.tournament.create({
-        data: { start, end },
-      });
+        currentTournament = await this.prisma.tournament.create({
+          data: { start, end },
+        });
+      }
     }
   }
 
@@ -492,7 +495,8 @@ export class TaskService {
 
         allTxData.push({
           rewardData,
-          totalSTX: totalStakes * env.hiro.ticketPrice,
+          totalTicketsUsed: totalStakes,
+          totalNoOfPlayers: tournament.uniqueUsers,
         });
 
         const sportBetIds = leaderboard.flatMap((user) =>
@@ -521,8 +525,8 @@ export class TaskService {
     }
 
     for (const tx of allTxData) {
-      await this.tournamentReward.startNewTournament(tx);
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await this.tournamentReward.storeTournamentRewards(tx, 2);
+      await new Promise((resolve) => setTimeout(resolve, 3600));
     }
 
     currentTime = new Date(new Date().toUTCString());
@@ -535,12 +539,14 @@ export class TaskService {
 
     if (!currentTournament || currentTournament.paused) {
       const start = currentTime;
-      const end = new Date(start);
-      end.setDate(start.getDate() + 7);
+      if (currentTournament.end.getHours() + 1 > start.getHours()) {
+        const end = new Date(start);
+        end.setDate(start.getDate() + 7);
 
-      currentTournament = await this.prisma.sportTournament.create({
-        data: { start, end },
-      });
+        currentTournament = await this.prisma.tournament.create({
+          data: { start, end },
+        });
+      }
     }
 
     if (currentTournament) {
