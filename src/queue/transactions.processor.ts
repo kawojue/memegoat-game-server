@@ -93,7 +93,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 };
               }
 
-              if (txnInfo.contract_call.function_name === 'burn-goat') {
+              if (txnInfo.contract_call.function_name === 'burn') {
                 await this.prisma.stat.update({
                   where: { userId: tx.userId },
                   data: { tickets: { increment: 2 } },
