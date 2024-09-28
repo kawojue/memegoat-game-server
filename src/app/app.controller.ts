@@ -22,7 +22,11 @@ export class AppController {
   @Get('/test')
   async getBlockHeight(@Res() res: Response) {
     const data = await this.apiService.getCurrentBlock<any>(env.hiro.channel);
-    // const result = data.results;
-    return this.response.sendSuccess(res, StatusCodes.OK, data);
+    const result = data.results['0'];
+    return this.response.sendSuccess(
+      res,
+      StatusCodes.OK,
+      result.burn_block_height,
+    );
   }
 }
