@@ -7,14 +7,14 @@ import {
   Patch,
   UseGuards,
   Controller,
-} from '@nestjs/common'
-import { Response } from 'express'
-import { AuthService } from './auth.service'
-import { StatusCodes } from 'enums/StatusCodes'
-import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard'
-import { ResponseService } from 'libs/response.service'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto'
+} from '@nestjs/common';
+import { Response } from 'express';
+import { AuthService } from './auth.service';
+import { StatusCodes } from 'enums/StatusCodes';
+import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard';
+import { ResponseService } from 'libs/response.service';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -22,16 +22,16 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly response: ResponseService,
-  ) { }
+  ) {}
 
   @Post('/connect-wallet')
   async connectWallet(
     @Res({ passthrough: true }) res: Response,
     @Body() body: ConnectWalletDTO,
   ) {
-    const data = await this.authService.connectWallet(body)
+    const data = await this.authService.connectWallet(body);
 
-    return this.response.sendSuccess(res, StatusCodes.OK, { data })
+    return this.response.sendSuccess(res, StatusCodes.OK, { data });
   }
 
   @ApiBearerAuth()
@@ -42,21 +42,21 @@ export class AuthController {
     @Res() res: Response,
     @Body() body: UsernameDTO,
   ) {
-    await this.authService.editUsername(res, req.user, body)
+    await this.authService.editUsername(res, req.user, body);
   }
 
   @Get('/profile')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async profile(@Res() res: Response, @Req() req: IRequest) {
-    await this.authService.profile(res, req.user)
+    await this.authService.profile(res, req.user);
   }
 
   @Get('/reward')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async reward(@Res() res: Response, @Req() req: IRequest) {
-    await this.authService.reward(res, req.user)
+    await this.authService.reward(res, req.user);
   }
 
   @ApiBearerAuth()
@@ -67,12 +67,12 @@ export class AuthController {
     @Req() req: IRequest,
     @Body() body: BuyTicketDTO,
   ) {
-    const data = await this.authService.claimReward(req.user, body)
+    const data = await this.authService.claimReward(req.user, body);
 
     return this.response.sendSuccess(res, StatusCodes.OK, {
       data,
-      message: 'Transaction in progress...'
-    })
+      message: 'Transaction in progress...',
+    });
   }
 
   @ApiBearerAuth()
@@ -83,9 +83,9 @@ export class AuthController {
     @Req() req: IRequest,
     @Body() body: BuyTicketDTO,
   ) {
-    const data = await this.authService.buyTicket(req.user, body)
+    const data = await this.authService.buyTicket(req.user, body);
 
-    return this.response.sendSuccess(res, StatusCodes.OK, data)
+    return this.response.sendSuccess(res, StatusCodes.OK, data);
   }
 
   @ApiBearerAuth()
@@ -96,13 +96,13 @@ export class AuthController {
     @Req() req: IRequest,
     @Body() body: BuyTicketDTO,
   ) {
-    const data = await this.authService.burnGoat(req.user, body)
+    const data = await this.authService.burnGoat(req.user, body);
 
-    return this.response.sendSuccess(res, StatusCodes.OK, data)
+    return this.response.sendSuccess(res, StatusCodes.OK, data);
   }
 
   @Get('/tournament-stats')
   async tournamentStat(@Res() res: Response) {
-    await this.authService.tournamentStat(res)
+    await this.authService.tournamentStat(res);
   }
 }

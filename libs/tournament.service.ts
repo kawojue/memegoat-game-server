@@ -96,6 +96,23 @@ export class TournamentService {
   }
 }
 
+// export const fetchCurrNoOfBlocks = async () => {
+//   try {
+//     const config = {
+//       method: "get",
+//       maxBodyLength: Infinity,
+//       url: ApiURLS[network].getBlocks,
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//     };
+//     const response = await axios.request(config);
+//     return response.data.results[0].height;
+//   } catch (error) {
+//     console.error(error);
+//   }
+// };
+
 function splitCA(pair: string) {
   const data = pair.split('.');
   return data;
