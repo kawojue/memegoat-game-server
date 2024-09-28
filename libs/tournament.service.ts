@@ -15,7 +15,7 @@ import {
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
-import { ApiService } from './api.service';
+// import { ApiService } from './api.service';
 
 @Injectable()
 export class TournamentService {
@@ -36,7 +36,7 @@ export class TournamentService {
     },
   };
 
-  constructor(private readonly apiService: ApiService) {}
+  // constructor(private readonly apiService: ApiService) {}
 
   async storeTournamentRewards(data: txData, tourId: number) {
     const networkEnv = env.hiro.channel;
@@ -104,10 +104,10 @@ export class TournamentService {
     return broadcastResponse;
   }
 
-  async getBlockHeight() {
-    const data = await this.apiService.getCurrentBlock<any>(env.hiro.channel);
-    return data.results['0'].burn_block_height;
-  }
+  // async getBlockHeight() {
+  //   const data = await this.apiService.getCurrentBlock<any>(env.hiro.channel);
+  //   return data.results['0'].burn_block_height;
+  // }
 }
 
 function splitCA(pair: string) {
