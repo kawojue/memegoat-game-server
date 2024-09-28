@@ -340,6 +340,7 @@ export class TaskService {
     }
     for (const tx of allTxData) {
       await this.tournamentReward.storeTournamentRewards(tx, 1);
+      console.log('GAME TOURNAMENT RECORD UPLOADED');
       await new Promise((resolve) => setTimeout(resolve, 3600));
     }
 
@@ -526,6 +527,7 @@ export class TaskService {
 
     for (const tx of allTxData) {
       await this.tournamentReward.storeTournamentRewards(tx, 2);
+      console.log('SPORT TOURNAMENT RECORD UPLOADED');
       await new Promise((resolve) => setTimeout(resolve, 3600));
     }
 
