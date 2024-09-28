@@ -236,32 +236,49 @@ export class AuthService {
   }
 
   async reward(res: Response, { sub }: ExpressUser) {
-    const hasOngoingReward = await this.prisma.reward.findFirst({
+    const rewards = await this.prisma.reward.findMany({
       where: {
         userId: sub,
-        claimed: 'PENDING',
+      },
+      include: {
+        gameTournament: {
+          // Include gameTournament data if exists
+          select: {
+            bId: true,
+          },
+        },
+        sportTournament: {
+          // Include sportTournament data if exists
+          select: {
+            bId: true,
+          },
+        },
       },
     });
 
-    const {
-      _sum: { earning },
-    } = await this.prisma.reward.aggregate({
-      where: {
-        userId: sub,
-        claimed: 'DEFAULT',
-      },
-      _sum: { earning: true },
+    // Map over rewards to return the desired structure for each reward
+    const rewardsData = rewards.map((reward) => {
+      const rewardAmount = reward.earning ?? new Decimal(0);
+      const bId =
+        reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
+      const category = reward.gameTournament
+        ? 'Games'
+        : reward.sportTournament
+          ? 'Sports'
+          : 'Uncategorized';
+      return {
+        rewardAmount,
+        isClaimable: rewardAmount.toNumber() > 0,
+        status: reward.claimed, // Use reward.claimed status directly
+        stxAmount: this.getStxAmount(rewardAmount.toNumber()),
+        bId, // Include the bId from either gameTournament or sportTournament
+        category,
+      };
     });
 
-    const reward = earning ?? new Decimal(0);
-
+    // Return the array of rewards
     this.response.sendSuccess(res, StatusCodes.OK, {
-      data: {
-        reward,
-        isClaimable: reward.toNumber() > 0,
-        status: hasOngoingReward ? 'PENDING' : 'DEFAULT',
-        stxAmount: this.getStxAmount(reward.toNumber()),
-      },
+      data: rewardsData,
     });
   }
 
