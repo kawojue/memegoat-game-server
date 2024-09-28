@@ -59,7 +59,7 @@ export class AuthService {
   }
 
   private getStxAmount(ticket: number) {
-    return ticket * env.hiroV2.ticketPrice;
+    return ticket * env.hiro.ticketPrice;
   }
 
   private getLevelName(xp: number) {
@@ -303,7 +303,7 @@ export class AuthService {
 
   async buyTicket({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
     const data = await this.api.fetchTransaction<Transaction>(
-      env.hiroV2.channel,
+      env.hiro.channel,
       txId,
     );
 
@@ -350,7 +350,7 @@ export class AuthService {
     }
 
     const data = await this.api.fetchTransaction<Transaction>(
-      env.hiroV2.channel,
+      env.hiro.channel,
       txId,
     );
 

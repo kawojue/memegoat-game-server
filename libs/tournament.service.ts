@@ -25,18 +25,18 @@ export class TournamentService {
       network: StacksTestnet | StacksMainnet;
     }
   > = {
-      testnet: {
-        txVersion: TransactionVersion.Testnet,
-        network: new StacksTestnet(),
-      },
-      mainnet: {
-        txVersion: TransactionVersion.Mainnet,
-        network: new StacksMainnet(),
-      },
-    };
+    testnet: {
+      txVersion: TransactionVersion.Testnet,
+      network: new StacksTestnet(),
+    },
+    mainnet: {
+      txVersion: TransactionVersion.Mainnet,
+      network: new StacksMainnet(),
+    },
+  };
 
   async startNewTournament(data: txData) {
-    const networkEnv = env.wallet.network;
+    const networkEnv = env.hiro.channel;
     const networkData = this.walletConfig[networkEnv];
     if (!networkData) {
       throw new Error(`Unknown network: ${networkEnv}`);
@@ -54,7 +54,7 @@ export class TournamentService {
 
     const postConditionAmount = data.totalSTX * 0.01; // get percentage for treasury
 
-    const ca = splitCA(env.hiroV2.contractId);
+    const ca = splitCA(env.hiro.contractId);
     const postConditions = [
       makeContractSTXPostCondition(
         ca[0],
@@ -71,7 +71,7 @@ export class TournamentService {
       }),
     );
 
-    const payToken = splitCA(env.hiroV2.paymentToken);
+    const payToken = splitCA(env.hiro.paymentToken);
     const txOptions = {
       contractAddress: ca[0],
       contractName: ca[1],
@@ -108,5 +108,5 @@ export interface txData {
 
 export interface RewardData {
   addr: string;
-  amount: number
+  amount: number;
 }

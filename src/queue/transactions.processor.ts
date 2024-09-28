@@ -63,10 +63,10 @@ export class TransactionsQueueProcessor extends WorkerHost {
 
           if (tx) {
             if (
-              txnInfo.contract_call.contract_id === env.hiroV2.contractId ||
-              txnInfo.contract_call.contract_id === env.hiroV2.goatTokenId
+              txnInfo.contract_call.contract_id === env.hiro.contractId ||
+              txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
-              let amount = 0
+              let amount = 0;
 
               if (txnInfo.contract_call.function_name === 'buy-tickets') {
                 const tickets = new BigNumber(
@@ -77,7 +77,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   ),
                 ).toNumber();
 
-                amount = tickets * env.hiroV2.ticketPrice
+                amount = tickets * env.hiro.ticketPrice;
 
                 await this.prisma.stat.update({
                   where: { userId: tx.userId },
@@ -85,23 +85,23 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 });
               }
 
-              let txMeta: any
+              let txMeta: any;
 
               if (txnInfo.contract_call.function_name === 'claim-rewards') {
                 txMeta = {
                   action: 'REWARDS-CLAIMED',
-                }
+                };
               }
 
               if (txnInfo.contract_call.function_name === 'burn-goat') {
                 await this.prisma.stat.update({
                   where: { userId: tx.userId },
                   data: { tickets: { increment: 2 } },
-                })
+                });
 
                 txMeta = {
-                  action: 'GOAT-BURN'
-                }
+                  action: 'GOAT-BURN',
+                };
               }
 
               await this.prisma.transaction.update({
@@ -119,9 +119,9 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   claimed: 'PENDING',
                 },
                 data: {
-                  claimed: 'SUCCESSFUL'
-                }
-              })
+                  claimed: 'SUCCESSFUL',
+                },
+              });
 
               break;
             }
