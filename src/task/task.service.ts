@@ -17,7 +17,7 @@ export class TaskService {
     private tournamentReward: TournamentService,
     @InjectQueue('sports-football-queue') private sportQueue: Queue,
     @InjectQueue('transactions-queue') private transactionQueue: Queue,
-  ) {}
+  ) { }
 
   calculateLotteryPoints(
     guess: string,
@@ -209,7 +209,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+  @Cron(CronExpression.EVERY_30_MINUTES, {
     timeZone: 'UTC',
   })
   async rewardAndRefreshGameTournament() {
