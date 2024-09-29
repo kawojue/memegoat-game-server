@@ -40,7 +40,7 @@ export class WebhookController {
     if (signature !== hashedSignature) {
       throw new HttpException('Invalid signature received', StatusCodes.Unauthorized);
     }
-
+    console.log('sent');
     try {
       await this.webhookService.enqueueRequest(res, req);
       return res.sendStatus(StatusCodes.OK).end()
