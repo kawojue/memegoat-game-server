@@ -39,69 +39,73 @@ export class TournamentService {
   // constructor(private readonly apiService: ApiService) {}
 
   async storeTournamentRewards(data: txData, tourId: number) {
-    const networkEnv = env.hiro.channel;
-    const networkData = this.walletConfig[networkEnv];
-    if (!networkData) {
-      throw new Error(`Unknown network: ${networkEnv}`);
-    }
-    const wallet = await generateWallet({
-      secretKey: env.wallet.key,
-      password: env.wallet.password,
-    });
-    const account = wallet.accounts[0];
-    const senderAddress = getStxAddress({
-      account,
-      transactionVersion: networkData.txVersion,
-    });
-    const postConditionCode = FungibleConditionCode.LessEqual;
+    try {
+      const networkEnv = env.hiro.channel;
+      const networkData = this.walletConfig[networkEnv];
+      if (!networkData) {
+        throw new Error(`Unknown network: ${networkEnv}`);
+      }
+      const wallet = await generateWallet({
+        secretKey: env.wallet.key,
+        password: env.wallet.password,
+      });
+      const account = wallet.accounts[0];
+      const senderAddress = getStxAddress({
+        account,
+        transactionVersion: networkData.txVersion,
+      });
+      const postConditionCode = FungibleConditionCode.LessEqual;
 
-    const postConditionAmount =
-      data.totalTicketsUsed * env.hiro.ticketPrice * 0.01; // get percentage for treasury
+      const postConditionAmount =
+        data.totalTicketsUsed * env.hiro.ticketPrice * 0.01; // get percentage for treasury
 
-    const ca = splitCA(env.hiro.contractId);
-    const postConditions = [
-      makeContractSTXPostCondition(
-        ca[0],
-        'memegoat-vault',
-        postConditionCode,
-        postConditionAmount,
-      ),
-    ];
+      const ca = splitCA(env.hiro.contractId);
+      const postConditions = [
+        makeContractSTXPostCondition(
+          ca[0],
+          'memegoat-vault',
+          postConditionCode,
+          postConditionAmount,
+        ),
+      ];
 
-    const rewardArgs = data.rewardData.map((reward) =>
-      tupleCV({
-        addr: standardPrincipalCV(reward.addr),
-        amount: uintCV(reward.amount),
-      }),
-    );
-
-    const payToken = splitCA(env.hiro.paymentToken);
-    const txOptions = {
-      contractAddress: ca[0],
-      contractName: ca[1],
-      functionName: 'store-tournament-record ',
-      functionArgs: [
-        uintCV(tourId),
-        contractPrincipalCV(payToken[0], payToken[1]),
-        listCV(rewardArgs),
+      const rewardArgs = data.rewardData.map((reward) =>
         tupleCV({
-          'no-of-players': uintCV(data.totalNoOfPlayers),
-          'total-tickets-used': uintCV(data.totalTicketsUsed),
+          addr: standardPrincipalCV(reward.addr),
+          amount: uintCV(reward.amount),
         }),
-      ],
-      senderKey: account.stxPrivateKey,
-      validateWithAbi: true,
-      network: networkData.network,
-      postConditions,
-      anchorMode: AnchorMode.Any,
-      address: senderAddress,
-    };
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(
-      transaction,
-      networkData.network,
-    );
-    return broadcastResponse;
+      );
+
+      const payToken = splitCA(env.hiro.paymentToken);
+      const txOptions = {
+        contractAddress: ca[0],
+        contractName: ca[1],
+        functionName: 'store-tournament-record',
+        functionArgs: [
+          uintCV(tourId),
+          contractPrincipalCV(payToken[0], payToken[1]),
+          listCV(rewardArgs),
+          tupleCV({
+            'no-of-players': uintCV(data.totalNoOfPlayers),
+            'total-tickets-used': uintCV(data.totalTicketsUsed),
+          }),
+        ],
+        senderKey: account.stxPrivateKey,
+        validateWithAbi: true,
+        network: networkData.network,
+        postConditions,
+        anchorMode: AnchorMode.Any,
+        address: senderAddress,
+      };
+      const transaction = await makeContractCall(txOptions);
+      const broadcastResponse = await broadcastTransaction(
+        transaction,
+        networkData.network,
+      );
+      return broadcastResponse;
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   // async getBlockHeight() {
