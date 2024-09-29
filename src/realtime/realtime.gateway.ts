@@ -221,104 +221,100 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() { numDice, guesses, stake }: DiceDTO,
   ) {
-    try {
-      if (numDice < 1 || numDice > 5) {
-        client.emit('error', {
-          status: StatusCodes.BadRequest,
-          message: 'Number of dice must be between 1 and 5',
-        })
-        return
-      }
-
-      if (
-        guesses.length !== numDice ||
-        !guesses.every((guess) => guess >= 1 && guess <= 6)
-      ) {
-        client.emit('error', {
-          status: StatusCodes.BadRequest,
-          message: 'Invalid guesses for the number of dice',
-        })
-        return
-      }
-
-      const user = this.clients.get(client)
-      if (!user) {
-        client.emit('error', {
-          status: StatusCodes.Unauthorized,
-          message: 'User not connected',
-        })
-        client.disconnect()
-        return
-      }
-
-      const { sub } = user
-
-      const stat = await this.prisma.stat.findFirst({
-        where: {
-          userId: sub,
-          tickets: { gte: stake },
-        },
+    if (numDice < 1 || numDice > 5) {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Number of dice must be between 1 and 5',
       })
+      return
+    }
 
-      if (!stat) {
-        client.emit('error', {
-          status: StatusCodes.UnprocessableEntity,
-          message: 'Out of tickets. Buy more tickets',
-        })
-        return
-      }
-
-      const currentTournament = await this.prisma.currentGameTournament()
-      if (!currentTournament) {
-        client.emit('error', {
-          status: StatusCodes.UnprocessableEntity,
-          message: 'No active tournament',
-        })
-        return
-      }
-
-      const rolls = Array.from(
-        { length: numDice },
-        () => Math.floor(this.random.randomize().random * 6) + 1,
-      )
-
-      const sortedRolls = [...rolls].sort()
-      const sortedGuesses = [...guesses].sort()
-
-      const win = sortedRolls.every(
-        (roll, index) => roll === sortedGuesses[index],
-      )
-      const point = this.realtimeService.calculateDicePoint(stake, numDice, win)
-
-      const round = {
-        point: point,
-        stake: stake,
-        game_type: 'Dice' as GameType,
-      }
-
-      const savedRound = await this.prisma.round.create({
-        data: {
-          ...round,
-          user: { connect: { id: sub } },
-          gameTournament: { connect: { id: currentTournament.id } },
-        },
+    if (
+      guesses.length !== numDice ||
+      !guesses.every((guess) => guess >= 1 && guess <= 6)
+    ) {
+      client.emit('error', {
+        status: StatusCodes.BadRequest,
+        message: 'Invalid guesses for the number of dice',
       })
+      return
+    }
 
-      await this.realtimeService.updateStat(sub, win, stake, point)
+    const user = this.clients.get(client)
+    if (!user) {
+      client.emit('error', {
+        status: StatusCodes.Unauthorized,
+        message: 'User not connected',
+      })
+      client.disconnect()
+      return
+    }
 
-      client.emit('dice-roll-result', { ...round, win, rolls })
+    const { sub } = user
 
-      if (savedRound) {
-        await this.tournamentQueue.add('game', {
-          stake,
-          userId: sub,
-          id: currentTournament.id,
-          end: currentTournament.end,
-          start: currentTournament.start,
-        })
-      }
-    } catch (err) {
-      console.error(err)
+    const stat = await this.prisma.stat.findFirst({
+      where: {
+        userId: sub,
+        tickets: { gte: stake },
+      },
+    })
+
+    if (!stat) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Out of tickets. Buy more tickets',
+      })
+      return
+    }
+
+    const currentTournament = await this.prisma.currentGameTournament()
+    if (!currentTournament) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'No active tournament',
+      })
+      return
+    }
+
+    const rolls = Array.from(
+      { length: numDice },
+      () => Math.floor(this.random.randomize().random * 6) + 1,
+    )
+
+    const sortedRolls = [...rolls].sort()
+    const sortedGuesses = [...guesses].sort()
+
+    const win = sortedRolls.every(
+      (roll, index) => roll === sortedGuesses[index],
+    )
+    const point = this.realtimeService.calculateDicePoint(stake, numDice, win)
+
+    const round = {
+      point: point,
+      stake: stake,
+      game_type: 'Dice' as GameType,
+    }
+
+    const savedRound = await this.prisma.round.create({
+      data: {
+        ...round,
+        user: { connect: { id: sub } },
+        gameTournament: { connect: { id: currentTournament.id } },
+      },
+    })
+
+    await this.realtimeService.updateStat(sub, win, stake, point)
+
+    client.emit('dice-roll-result', { ...round, win, rolls })
+
+    if (savedRound) {
+      await this.tournamentQueue.add('game', {
+        stake,
+        userId: sub,
+        id: currentTournament.id,
+        end: currentTournament.end,
+        start: currentTournament.start,
+      })
     }
   }
 
