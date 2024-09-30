@@ -17,7 +17,7 @@ export class AppController {
     return this.appService.base(userAgent, ip);
   }
 
-  @Post()
+  @Post('test')
   async testTransaction(@Res() res: Response, @Body() body: TxDataDTO) {
     const data = await this.appService.testTransaction(body);
     return this.response.sendSuccess(res, StatusCodes.OK, {
