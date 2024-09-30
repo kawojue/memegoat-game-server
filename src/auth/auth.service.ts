@@ -1,4 +1,10 @@
 import {
+  UsernameDTO,
+  BuyTicketDTO,
+  ClaimRewardDTO,
+  ConnectWalletDTO,
+} from './dto/auth.dto';
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -19,12 +25,6 @@ import { ResponseService } from 'libs/response.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import type { Transaction } from '@stacks/stacks-blockchain-api-types';
-import {
-  BuyTicketDTO,
-  ClaimRewardDTO,
-  ConnectWalletDTO,
-  UsernameDTO,
-} from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -247,13 +247,11 @@ export class AuthService {
       },
       include: {
         gameTournament: {
-          // Include gameTournament data if exists
           select: {
             bId: true,
           },
         },
         sportTournament: {
-          // Include sportTournament data if exists
           select: {
             bId: true,
           },
@@ -262,7 +260,6 @@ export class AuthService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map over rewards to return the desired structure for each reward
     const rewardsData = rewards.map((reward) => {
       const rewardAmount = reward.earning ?? new Decimal(0);
       const bId =
@@ -275,14 +272,13 @@ export class AuthService {
       return {
         rewardAmount,
         isClaimable: reward.claimable,
-        status: reward.claimed, // Use reward.claimed status directly
+        status: reward.claimed,
         stxAmount: this.getStxAmount(rewardAmount.toNumber()),
-        bId, // Include the bId from either gameTournament or sportTournament
+        bId,
         category,
       };
     });
 
-    // Return the array of rewards
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: rewardsData,
     });

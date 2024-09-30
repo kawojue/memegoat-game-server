@@ -1,6 +1,7 @@
 import { Job } from "bullmq"
 import { PrismaService } from "prisma/prisma.service"
 import { Processor, WorkerHost } from "@nestjs/bullmq"
+import { Tournament } from "@prisma/client"
 
 @Processor('current-tournament-queue')
 export class CurrentTournamentProcessor extends WorkerHost {
@@ -54,8 +55,10 @@ export class CurrentTournamentProcessor extends WorkerHost {
                     }
                 })
 
+                let tournament: Tournament
+
                 if (gameRounds <= 1) {
-                    await this.prisma.tournament.update({
+                    tournament = await this.prisma.tournament.update({
                         where: { id },
                         data: {
                             uniqueUsers: { increment: 1 },
@@ -63,11 +66,13 @@ export class CurrentTournamentProcessor extends WorkerHost {
                         }
                     })
                 } else {
-                    await this.prisma.tournament.update({
+                    tournament = await this.prisma.tournament.update({
                         where: { id },
                         data: { totalStakes: { increment: stake } }
                     })
                 }
+
+                console.log(tournament)
                 break
 
             default:
