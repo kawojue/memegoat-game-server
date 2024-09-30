@@ -28,12 +28,11 @@ export function calculatePayableTickets(
   const payableTickets = currPayableRatio * currTournament.totalTicketsUsed;
 
   const rolloverTickets =
-    currPaidTickets + currPayableRatio - currTournament.totalTicketsUsed;
-  const rolloverRatio = currPayableRatio;
+    currPaidTickets + currFreeTickets - currTournament.totalTicketsUsed;
 
   return {
     payableTickets: payableTickets,
     rolloverTickets: rolloverTickets,
-    rolloverRatio: rolloverRatio,
+    rolloverRatio: currPayableRatio,
   };
 }

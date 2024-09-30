@@ -16,6 +16,7 @@ import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
 import { IsArray, IsNumber } from 'class-validator';
+import { PrismaService } from 'prisma/prisma.service';
 // import { ApiService } from './api.service';
 
 @Injectable()
@@ -37,7 +38,7 @@ export class TournamentService {
     },
   };
 
-  // constructor(private readonly apiService: ApiService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async storeTournamentRewards(data: txData, tourId: number) {
     try {
@@ -104,7 +105,17 @@ export class TournamentService {
         transaction,
         networkData.network,
       );
-      return broadcastResponse;
+
+      return await this.prisma.transaction.create({
+        data: {
+          txId: broadcastResponse.txid,
+          tag: 'STORE-TOURNAMENT-RECORD',
+          txStatus: 'Pending',
+          txSender: senderAddress,
+          action: 'REWARDS-UPLOADED-MEMEGOAT-GAMES',
+          tournament: { connect: { id: data.tournamentId } },
+        },
+      });
     } catch (e) {
       console.log(e);
     }
@@ -125,6 +136,7 @@ export interface txData {
   rewardData: RewardData[];
   totalTicketsUsed: number;
   totalNoOfPlayers: number;
+  tournamentId: string;
 }
 
 export interface RewardData {

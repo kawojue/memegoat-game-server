@@ -8,6 +8,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { contractDTO, ContractService } from 'libs/contract.service';
 import { RewardData, TournamentService, txData } from 'libs/tournament.service';
+import { calculatePayableTickets } from 'utils/math';
 
 @Injectable()
 export class TaskService {
@@ -261,6 +262,7 @@ export class TaskService {
         });
 
         let totalTournamentPoints = 0;
+
         const leaderboardWithPoints = leaderboard.map((user) => {
           const totalPoints = user.rounds.reduce(
             (acc, round) => acc + round?.point || 0,
@@ -295,13 +297,68 @@ export class TaskService {
           0,
         );
 
-        const totalStakes = tournament.totalStakes;
+        const ticketRecord = await this.prisma.ticketRecords.findFirst({
+          where: {
+            rolloverRatio: 0,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        let rolloverTickets = 0;
+        let rolloverRatio = 0;
+        let totalSold = 0;
+        let totalFree = 0;
+
+        if (ticketRecord) {
+          if (ticketRecord.lastId) {
+            const prevRecord = await this.prisma.ticketRecords.findUnique({
+              where: { id: ticketRecord.lastId },
+            });
+            if (prevRecord) {
+              rolloverRatio = prevRecord.rolloverRatio;
+              rolloverTickets = prevRecord.rolloverTickets;
+            }
+          }
+          totalFree = ticketRecord.freeTickets;
+          totalSold = ticketRecord.boughtTickets;
+        }
+
+        const payableRecord = calculatePayableTickets(
+          {
+            rolloverTickets: rolloverTickets,
+            rolloverRatio: rolloverRatio,
+          },
+          {
+            totalTicketsUsed: tournament.totalStakes,
+            totalFreeTickets: totalFree,
+            totalTicketsBought: totalSold,
+          },
+        );
+
+        await this.prisma.ticketRecords.update({
+          where: { id: ticketRecord.id },
+          data: {
+            usedTickets: tournament.totalStakes,
+            rolloverRatio: payableRecord.rolloverRatio,
+            rolloverTickets: payableRecord.rolloverTickets,
+          },
+        });
+
+        // create new tracker with last ticketRecord id
+        await this.prisma.ticketRecords.create({
+          data: {
+            lastId: ticketRecord.id,
+          },
+        });
 
         const rewardData: RewardData[] = [];
 
         for (const user of usersToReward) {
           const userProportion = user.totalPoints / totalPointsForPickedUsers;
-          const userEarnings = totalStakes * userProportion * 0.98;
+          const userEarnings =
+            payableRecord.payableTickets * userProportion * 0.98;
 
           if (userEarnings) {
             await this.prisma.reward.create({
@@ -325,8 +382,9 @@ export class TaskService {
 
         allTxData.push({
           rewardData,
-          totalTicketsUsed: totalStakes,
+          totalTicketsUsed: payableRecord.payableTickets,
           totalNoOfPlayers: tournament.uniqueUsers,
+          tournamentId: tournament.id,
         });
 
         await this.prisma.tournament.update({
@@ -443,6 +501,7 @@ export class TaskService {
         });
 
         let totalTournamentPoints = 0;
+
         const leaderboardWithPoints = leaderboard.map((user) => {
           const totalPoints = user.sportBets.reduce(
             (acc, bet) => acc + (bet.sportRound?.point || 0),
@@ -473,13 +532,70 @@ export class TaskService {
           0,
         );
 
+        const ticketRecord = await this.prisma.ticketRecords.findFirst({
+          where: {
+            rolloverRatio: 0,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        let rolloverTickets = 0;
+        let rolloverRatio = 0;
+        let totalSold = 0;
+        let totalFree = 0;
+
+        if (ticketRecord) {
+          if (ticketRecord.lastId) {
+            const prevRecord = await this.prisma.ticketRecords.findUnique({
+              where: { id: ticketRecord.lastId },
+            });
+            if (prevRecord) {
+              rolloverRatio = prevRecord.rolloverRatio;
+              rolloverTickets = prevRecord.rolloverTickets;
+            }
+          }
+          totalFree = ticketRecord.freeTickets;
+          totalSold = ticketRecord.boughtTickets;
+        }
+
         const totalStakes = betsAggregate._sum.stake;
+
+        const payableRecord = calculatePayableTickets(
+          {
+            rolloverTickets: rolloverTickets,
+            rolloverRatio: rolloverRatio,
+          },
+          {
+            totalTicketsUsed: totalStakes,
+            totalFreeTickets: totalFree,
+            totalTicketsBought: totalSold,
+          },
+        );
+
+        await this.prisma.ticketRecords.update({
+          where: { id: ticketRecord.id },
+          data: {
+            usedTickets: totalStakes,
+            rolloverRatio: payableRecord.rolloverRatio,
+            rolloverTickets: payableRecord.rolloverTickets,
+          },
+        });
+
+        // create new tracker with last ticketRecord id
+        await this.prisma.ticketRecords.create({
+          data: {
+            lastId: ticketRecord.id,
+          },
+        });
 
         const rewardData: RewardData[] = [];
 
         for (const user of usersToReward) {
           const userProportion = user.totalPoints / totalPointsForPickedUsers;
-          const userEarnings = totalStakes * userProportion;
+          const userEarnings =
+            payableRecord.payableTickets * userProportion * 0.98;
 
           if (userEarnings) {
             await this.prisma.reward.create({
@@ -503,8 +619,9 @@ export class TaskService {
 
         allTxData.push({
           rewardData,
-          totalTicketsUsed: totalStakes,
+          totalTicketsUsed: payableRecord.payableTickets,
           totalNoOfPlayers: tournament.uniqueUsers,
+          tournamentId: tournament.id,
         });
 
         const sportBetIds = leaderboard.flatMap((user) =>
