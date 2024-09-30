@@ -18,7 +18,7 @@ export class TaskService {
     private tournamentReward: TournamentService,
     @InjectQueue('sports-football-queue') private sportQueue: Queue,
     @InjectQueue('transactions-queue') private transactionQueue: Queue,
-  ) {}
+  ) { }
 
   calculateLotteryPoints(
     guess: string,
@@ -232,8 +232,6 @@ export class TaskService {
       ],
       paused: false,
       disbursed: false,
-      totalStakes: { gte: 1 },
-      uniqueUsers: { gte: 1 },
     };
 
     const tournamentsToProcess = await this.prisma.tournament.findMany({
@@ -256,19 +254,32 @@ export class TaskService {
             address: true,
             rounds: {
               where: { gameTournamentId: tournament.id },
-              select: { point: true },
+              select: { stake: true, point: true },
             },
           },
         });
 
-        let totalTournamentPoints = 0;
+        let { _sum: {
+          point: totalTournamentPoints,
+          stake: totalTournamentStakes
+        } } = await this.prisma.round.aggregate({
+          where: { gameTournamentId: tournament.id },
+          _sum: {
+            stake: true,
+            point: true,
+          }
+        })
+
+        const groupRoundsByUser = await this.prisma.round.groupBy({
+          where: { gameTournamentId: tournament.id },
+          by: ['userId'],
+        })
 
         const leaderboardWithPoints = leaderboard.map((user) => {
           const totalPoints = user.rounds.reduce(
             (acc, round) => acc + round?.point || 0,
             0,
           );
-          totalTournamentPoints += totalPoints;
           return { ...user, totalPoints };
         });
 
@@ -276,14 +287,16 @@ export class TaskService {
           (a, b) => b.totalPoints - a.totalPoints,
         );
 
-        let numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 10);
+        const participatedUsers = groupRoundsByUser.length
 
-        if (tournament.uniqueUsers <= 10) {
-          numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 3);
+        let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
+
+        if (participatedUsers <= 10) {
+          numberOfUsersToReward = Math.ceil(participatedUsers / 3);
         }
 
-        if (tournament.uniqueUsers <= 5) {
-          numberOfUsersToReward = Math.ceil(tournament.uniqueUsers / 2);
+        if (participatedUsers <= 5) {
+          numberOfUsersToReward = Math.ceil(participatedUsers / 2);
         }
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
@@ -331,7 +344,7 @@ export class TaskService {
             rolloverRatio: rolloverRatio,
           },
           {
-            totalTicketsUsed: tournament.totalStakes,
+            totalTicketsUsed: totalTournamentStakes,
             totalFreeTickets: totalFree,
             totalTicketsBought: totalSold,
           },
@@ -340,13 +353,12 @@ export class TaskService {
         await this.prisma.ticketRecords.update({
           where: { id: ticketRecord.id },
           data: {
-            usedTickets: tournament.totalStakes,
+            usedTickets: totalTournamentStakes,
             rolloverRatio: payableRecord.rolloverRatio,
             rolloverTickets: payableRecord.rolloverTickets,
           },
         });
 
-        // create new tracker with last ticketRecord id
         await this.prisma.ticketRecords.create({
           data: {
             lastId: ticketRecord.id,
@@ -383,7 +395,7 @@ export class TaskService {
         allTxData.push({
           rewardData,
           totalTicketsUsed: payableRecord.payableTickets,
-          totalNoOfPlayers: tournament.uniqueUsers,
+          totalNoOfPlayers: participatedUsers,
           tournamentId: tournament.id,
         });
 
@@ -448,9 +460,7 @@ export class TaskService {
             lte: currentTime,
           },
         },
-      ],
-      totalStakes: { gte: 1 },
-      uniqueUsers: { gte: 1 },
+      ]
     };
 
     const tournamentsToProcess = await this.prisma.sportTournament.findMany({
@@ -515,14 +525,16 @@ export class TaskService {
           (a, b) => b.totalPoints - a.totalPoints,
         );
 
-        let numberOfUsersToReward = Math.ceil(groupBetsBy.length / 10);
+        const participatedUsers = groupBetsBy.length
 
-        if (groupBetsBy.length <= 10) {
-          numberOfUsersToReward = Math.ceil(groupBetsBy.length / 5);
+        let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
+
+        if (participatedUsers <= 10) {
+          numberOfUsersToReward = Math.ceil(participatedUsers / 5);
         }
 
-        if (groupBetsBy.length <= 5) {
-          numberOfUsersToReward = Math.ceil(groupBetsBy.length / 2);
+        if (participatedUsers <= 5) {
+          numberOfUsersToReward = Math.ceil(participatedUsers / 2);
         }
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
@@ -583,7 +595,6 @@ export class TaskService {
           },
         });
 
-        // create new tracker with last ticketRecord id
         await this.prisma.ticketRecords.create({
           data: {
             lastId: ticketRecord.id,
@@ -620,7 +631,7 @@ export class TaskService {
         allTxData.push({
           rewardData,
           totalTicketsUsed: payableRecord.payableTickets,
-          totalNoOfPlayers: tournament.uniqueUsers,
+          totalNoOfPlayers: participatedUsers,
           tournamentId: tournament.id,
         });
 
@@ -642,7 +653,7 @@ export class TaskService {
           data: {
             totalStakes,
             paused: false,
-            uniqueUsers: groupBetsBy.length,
+            uniqueUsers: participatedUsers,
             numberOfUsersRewarded: { increment: usersToReward.length },
           },
         });
