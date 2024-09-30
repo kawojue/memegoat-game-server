@@ -15,7 +15,6 @@ import {
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
-import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNumber } from 'class-validator';
 // import { ApiService } from './api.service';
 
@@ -133,21 +132,12 @@ export interface RewardData {
 }
 
 export class TxDataDTO {
-  @ApiProperty({
-    example: 'x0b1cy...',
-  })
   @IsArray()
   rewardData: RewardData[];
 
-  @ApiProperty({
-    example: 'x0b1cy...',
-  })
   @IsNumber()
   totalTicketsUsed: number;
 
-  @ApiProperty({
-    example: 'Ticket',
-  })
   @IsNumber()
   totalNoOfPlayers: number;
 }
