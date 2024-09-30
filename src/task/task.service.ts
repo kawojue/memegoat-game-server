@@ -319,6 +319,8 @@ export class TaskService {
           },
         });
 
+        console.log(ticketRecord);
+
         let rolloverTickets = 0;
         let rolloverRatio = 0;
         let totalSold = 0;
@@ -329,6 +331,7 @@ export class TaskService {
             const prevRecord = await this.prisma.ticketRecords.findUnique({
               where: { id: ticketRecord.lastId },
             });
+            console.log(prevRecord);
             if (prevRecord) {
               rolloverRatio = prevRecord.rolloverRatio;
               rolloverTickets = prevRecord.rolloverTickets;
@@ -558,11 +561,14 @@ export class TaskService {
         let totalSold = 0;
         let totalFree = 0;
 
+        console.log(ticketRecord);
+
         if (ticketRecord) {
           if (ticketRecord.lastId) {
             const prevRecord = await this.prisma.ticketRecords.findUnique({
               where: { id: ticketRecord.lastId },
             });
+            console.log(prevRecord);
             if (prevRecord) {
               rolloverRatio = prevRecord.rolloverRatio;
               rolloverTickets = prevRecord.rolloverTickets;

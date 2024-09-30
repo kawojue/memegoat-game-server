@@ -91,6 +91,8 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   },
                 });
 
+                console.log(ticketRecord);
+
                 if (ticketRecord) {
                   await this.prisma.ticketRecords.update({
                     where: { id: ticketRecord.id },
@@ -132,6 +134,8 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     createdAt: 'desc',
                   },
                 });
+
+                console.log(ticketRecord);
 
                 if (ticketRecord) {
                   await this.prisma.ticketRecords.update({
