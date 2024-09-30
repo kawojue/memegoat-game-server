@@ -21,13 +21,14 @@ export function calculatePayableTickets(
 
   const currPaidTickets =
     currTournament.totalTicketsBought + prevPaidTicketsLeft;
+
   const currFreeTickets =
     currTournament.totalFreeTickets + (prevTicketsLeft - prevPaidTicketsLeft);
 
   const currPayableRatio =
     currPaidTickets / (currPaidTickets + currFreeTickets);
 
-  const payableTickets = currPayableRatio * (currPaidTickets + currFreeTickets);
+  const payableTickets = currPayableRatio * currTournament.totalTicketsUsed;
 
   return payableTickets;
 }
