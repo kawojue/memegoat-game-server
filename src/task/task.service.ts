@@ -17,7 +17,7 @@ export class TaskService {
     private tournamentReward: TournamentService,
     @InjectQueue('sports-football-queue') private sportQueue: Queue,
     @InjectQueue('transactions-queue') private transactionQueue: Queue,
-  ) { }
+  ) {}
 
   calculateLotteryPoints(
     guess: string,
@@ -301,7 +301,7 @@ export class TaskService {
 
         for (const user of usersToReward) {
           const userProportion = user.totalPoints / totalPointsForPickedUsers;
-          const userEarnings = totalStakes * userProportion;
+          const userEarnings = totalStakes * userProportion * 0.98;
 
           if (userEarnings) {
             await this.prisma.reward.create({
