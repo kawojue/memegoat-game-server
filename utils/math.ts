@@ -5,30 +5,35 @@ export interface record {
 }
 
 export function calculatePayableTickets(
-  prevTournament: record,
+  prevTournament: {
+    rolloverTickets: number;
+    rolloverRatio: number;
+  },
   currTournament: record,
 ) {
-  const prevTicketsLeft =
-    prevTournament.totalTicketsBought +
-    prevTournament.totalFreeTickets -
-    prevTournament.totalTicketsUsed;
+  const prevPaidTicketsLeft =
+    prevTournament.rolloverTickets * prevTournament.rolloverRatio;
 
-  const prevPayableRatio =
-    prevTournament.totalTicketsBought /
-    (prevTournament.totalTicketsBought + prevTournament.totalFreeTickets);
-
-  const prevPaidTicketsLeft = prevTicketsLeft * prevPayableRatio;
+  const prevFreeTickets =
+    prevTournament.rolloverTickets * (1 - prevTournament.rolloverRatio);
 
   const currPaidTickets =
     currTournament.totalTicketsBought + prevPaidTicketsLeft;
 
-  const currFreeTickets =
-    currTournament.totalFreeTickets + (prevTicketsLeft - prevPaidTicketsLeft);
+  const currFreeTickets = currTournament.totalFreeTickets + prevFreeTickets;
 
   const currPayableRatio =
     currPaidTickets / (currPaidTickets + currFreeTickets);
 
   const payableTickets = currPayableRatio * currTournament.totalTicketsUsed;
 
-  return payableTickets;
+  const rolloverTickets =
+    currPaidTickets + currPayableRatio - currTournament.totalTicketsUsed;
+  const rolloverRatio = currPayableRatio;
+
+  return {
+    payableTickets: payableTickets,
+    rolloverTickets: rolloverTickets,
+    rolloverRatio: rolloverRatio,
+  };
 }
