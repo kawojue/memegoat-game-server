@@ -15,6 +15,8 @@ import {
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsNumber } from 'class-validator';
 // import { ApiService } from './api.service';
 
 @Injectable()
@@ -72,7 +74,7 @@ export class TournamentService {
       const rewardArgs = data.rewardData.map((reward) =>
         tupleCV({
           addr: standardPrincipalCV(reward.addr),
-          amount: uintCV(reward.amount),
+          amount: uintCV(Number(reward.amount)),
         }),
       );
 
@@ -82,12 +84,12 @@ export class TournamentService {
         contractName: ca[1],
         functionName: 'store-tournament-record',
         functionArgs: [
-          uintCV(tourId),
+          uintCV(Number(tourId)),
           contractPrincipalCV(payToken[0], payToken[1]),
           listCV(rewardArgs),
           tupleCV({
-            'no-of-players': uintCV(data.totalNoOfPlayers),
-            'total-tickets-used': uintCV(data.totalTicketsUsed),
+            'no-of-players': uintCV(Number(data.totalNoOfPlayers)),
+            'total-tickets-used': uintCV(Number(data.totalTicketsUsed)),
           }),
         ],
         senderKey: account.stxPrivateKey,
@@ -128,4 +130,24 @@ export interface txData {
 export interface RewardData {
   addr: string;
   amount: number;
+}
+
+export class TxDataDTO {
+  @ApiProperty({
+    example: 'x0b1cy...',
+  })
+  @IsArray()
+  rewardData: RewardData[];
+
+  @ApiProperty({
+    example: 'x0b1cy...',
+  })
+  @IsNumber()
+  totalTicketsUsed: number;
+
+  @ApiProperty({
+    example: 'Ticket',
+  })
+  @IsNumber()
+  totalNoOfPlayers: number;
 }
