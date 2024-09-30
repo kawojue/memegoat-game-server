@@ -18,7 +18,7 @@ export class CurrentTournamentProcessor extends WorkerHost {
     }>) {
         switch (name) {
             case 'sport':
-                const sportRounds = await this.prisma.sportRound.count({
+                const sportRounds = await this.prisma.sportRound.findFirst({
                     where: {
                         userId,
                         updatedAt: {
@@ -28,7 +28,7 @@ export class CurrentTournamentProcessor extends WorkerHost {
                     }
                 })
 
-                if (sportRounds <= 1) {
+                if (!sportRounds) {
                     await this.prisma.sportTournament.update({
                         where: { id },
                         data: {
@@ -45,19 +45,16 @@ export class CurrentTournamentProcessor extends WorkerHost {
                 break
 
             case 'game':
-                const gameRounds = await this.prisma.round.count({
+                const gameRounds = await this.prisma.round.findFirst({
                     where: {
                         userId,
-                        createdAt: {
-                            gte: start,
-                            lte: end,
-                        }
+                        gameTournamentId: id,
                     }
                 })
 
                 let tournament: Tournament
 
-                if (gameRounds <= 1) {
+                if (!gameRounds) {
                     tournament = await this.prisma.tournament.update({
                         where: { id },
                         data: {
