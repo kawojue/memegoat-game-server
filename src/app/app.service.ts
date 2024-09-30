@@ -1,6 +1,6 @@
 import { UAParser } from 'ua-parser-js';
 import { Injectable } from '@nestjs/common';
-import { TournamentService, txData } from 'libs/tournament.service';
+import { TournamentService } from 'libs/tournament.service';
 
 @Injectable()
 export class AppService {
@@ -15,9 +15,5 @@ export class AppService {
     const deviceType = parser.device.type;
 
     return { ip, os, device, browser, deviceType, cpu };
-  }
-
-  async testTransaction(tx: txData) {
-    await this.txService.storeTournamentRewards(tx, 1);
   }
 }
