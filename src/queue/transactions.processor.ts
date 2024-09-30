@@ -83,11 +83,34 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   where: { userId: tx.userId },
                   data: { tickets: { increment: tickets } },
                 });
+
+                const ticketRecord = await this.prisma.ticketRecords.findFirst({
+                  where: { rolloverRatio: 0 },
+                  orderBy: {
+                    createdAt: 'desc',
+                  },
+                });
+
+                if (ticketRecord) {
+                  await this.prisma.ticketRecords.update({
+                    where: { id: ticketRecord.id },
+                    data: { boughtTickets: { increment: tickets } },
+                  });
+                } else {
+                  await this.prisma.ticketRecords.create({
+                    data: { boughtTickets: tickets },
+                  });
+                }
               }
 
               let txMeta: any;
 
               if (txnInfo.contract_call.function_name === 'claim-rewards') {
+                await this.prisma.reward.update({
+                  where: { id: tx.key, userId: tx.userId },
+                  data: { claimed: 'SUCCESSFUL' },
+                });
+
                 txMeta = {
                   action: 'REWARDS-CLAIMED',
                 };
@@ -102,6 +125,39 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 txMeta = {
                   action: 'GOAT-BURN',
                 };
+
+                const ticketRecord = await this.prisma.ticketRecords.findFirst({
+                  where: { rolloverRatio: 0 },
+                  orderBy: {
+                    createdAt: 'desc',
+                  },
+                });
+
+                if (ticketRecord) {
+                  await this.prisma.ticketRecords.update({
+                    where: { id: ticketRecord.id },
+                    data: { freeTickets: { increment: 2 } },
+                  });
+                } else {
+                  await this.prisma.ticketRecords.create({
+                    data: { freeTickets: 2 },
+                  });
+                }
+              }
+
+              if (
+                txnInfo.contract_call.function_name ===
+                'store-tournament-record'
+              ) {
+                await this.prisma.reward.updateMany({
+                  where: {
+                    OR: [
+                      { gameTournamentId: tx.tourId },
+                      { sportTournamentId: tx.tourId },
+                    ],
+                  },
+                  data: { claimable: true },
+                });
               }
 
               await this.prisma.transaction.update({

@@ -22,12 +22,15 @@ export class WebhookController {
   constructor(
     private readonly response: ResponseService,
     private readonly webhookService: WebhookService,
-  ) { }
+  ) {}
 
   @Post()
   async receiveWebhook(@Res() res: Response, @Req() req: Request) {
     if (!req.body || !req.body?.event || !req.body?.data) {
-      throw new HttpException('Invalid request body received', StatusCodes.BadRequest);
+      throw new HttpException(
+        'Invalid request body received',
+        StatusCodes.BadRequest,
+      );
     }
 
     const signature = req.headers['x-webhook-signature'];
@@ -38,28 +41,39 @@ export class WebhookController {
       .digest('hex');
 
     if (signature !== hashedSignature) {
-      throw new HttpException('Invalid signature received', StatusCodes.Unauthorized);
+      throw new HttpException(
+        'Invalid signature received',
+        StatusCodes.Unauthorized,
+      );
     }
 
     try {
       await this.webhookService.enqueueRequest(res, req);
-      return res.sendStatus(StatusCodes.OK).end()
+      return res.sendStatus(StatusCodes.OK).end();
     } catch (err) {
       console.error(err);
-      throw new HttpException("Internal server error", StatusCodes.InternalServerError);
+      throw new HttpException(
+        'Internal server error',
+        StatusCodes.InternalServerError,
+      );
     }
   }
 
   @Get('transactions')
   async fetchTransactions(@Res() res: Response, @Query() body: FetchTxDTO) {
-    const transactions = await this.webhookService.fetchRecentTransactions(body);
-    return this.response.sendSuccess(res, StatusCodes.OK, { data: transactions });
+    const transactions =
+      await this.webhookService.fetchRecentTransactions(body);
+    return this.response.sendSuccess(res, StatusCodes.OK, {
+      data: transactions,
+    });
   }
 
   @Get('uniqueAddresses')
   async fetchUniqueAddresses(@Res() res: Response) {
     const uniqueAddresses = await this.webhookService.countUniqueAddresses();
-    return this.response.sendSuccess(res, StatusCodes.OK, { data: uniqueAddresses });
+    return this.response.sendSuccess(res, StatusCodes.OK, {
+      data: uniqueAddresses,
+    });
   }
 
   @Get('transactionCount')

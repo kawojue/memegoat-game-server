@@ -15,6 +15,8 @@ import {
 import { generateWallet, getStxAddress } from '@stacks/wallet-sdk';
 import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
+import { IsArray, IsNumber } from 'class-validator';
+import { PrismaService } from 'prisma/prisma.service';
 // import { ApiService } from './api.service';
 
 @Injectable()
@@ -36,7 +38,7 @@ export class TournamentService {
     },
   };
 
-  // constructor(private readonly apiService: ApiService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async storeTournamentRewards(data: txData, tourId: number) {
     try {
@@ -57,7 +59,7 @@ export class TournamentService {
       const postConditionCode = FungibleConditionCode.LessEqual;
 
       const postConditionAmount =
-        data.totalTicketsUsed * env.hiro.ticketPrice * 0.01; // get percentage for treasury
+        data.totalTicketsUsed * env.hiro.ticketPrice * 0.02; // get percentage for treasury
 
       const ca = splitCA(env.hiro.contractId);
       const postConditions = [
@@ -72,7 +74,7 @@ export class TournamentService {
       const rewardArgs = data.rewardData.map((reward) =>
         tupleCV({
           addr: standardPrincipalCV(reward.addr),
-          amount: uintCV(reward.amount),
+          amount: uintCV(Number(reward.amount)),
         }),
       );
 
@@ -82,14 +84,15 @@ export class TournamentService {
         contractName: ca[1],
         functionName: 'store-tournament-record',
         functionArgs: [
-          uintCV(tourId),
+          uintCV(Number(tourId)),
           contractPrincipalCV(payToken[0], payToken[1]),
           listCV(rewardArgs),
           tupleCV({
-            'no-of-players': uintCV(data.totalNoOfPlayers),
-            'total-tickets-used': uintCV(data.totalTicketsUsed),
+            'no-of-players': uintCV(Number(data.totalNoOfPlayers)),
+            'total-tickets-used': uintCV(Number(data.totalTicketsUsed)),
           }),
         ],
+        fee: 500000n,
         senderKey: account.stxPrivateKey,
         validateWithAbi: true,
         network: networkData.network,
@@ -102,7 +105,17 @@ export class TournamentService {
         transaction,
         networkData.network,
       );
-      return broadcastResponse;
+
+      return await this.prisma.transaction.create({
+        data: {
+          txId: broadcastResponse.txid,
+          tag: 'STORE-TOURNAMENT-RECORD',
+          txStatus: 'Pending',
+          txSender: senderAddress,
+          action: 'REWARDS-UPLOADED-MEMEGOAT-GAMES',
+          tournament: { connect: { id: data.tournamentId } },
+        },
+      });
     } catch (e) {
       console.log(e);
     }
@@ -123,9 +136,21 @@ export interface txData {
   rewardData: RewardData[];
   totalTicketsUsed: number;
   totalNoOfPlayers: number;
+  tournamentId: string;
 }
 
 export interface RewardData {
   addr: string;
   amount: number;
+}
+
+export class TxDataDTO {
+  @IsArray()
+  rewardData: RewardData[];
+
+  @IsNumber()
+  totalTicketsUsed: number;
+
+  @IsNumber()
+  totalNoOfPlayers: number;
 }

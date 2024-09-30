@@ -19,7 +19,12 @@ import { ResponseService } from 'libs/response.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import type { Transaction } from '@stacks/stacks-blockchain-api-types';
-import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
+import {
+  BuyTicketDTO,
+  ClaimRewardDTO,
+  ConnectWalletDTO,
+  UsernameDTO,
+} from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -269,7 +274,7 @@ export class AuthService {
           : 'Uncategorized';
       return {
         rewardAmount,
-        isClaimable: rewardAmount.toNumber() > 0,
+        isClaimable: reward.claimable,
         status: reward.claimed, // Use reward.claimed status directly
         stxAmount: this.getStxAmount(rewardAmount.toNumber()),
         bId, // Include the bId from either gameTournament or sportTournament
@@ -283,9 +288,10 @@ export class AuthService {
     });
   }
 
-  async claimReward({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
+  async claimReward({ sub }: ExpressUser, { txId, rewardId }: ClaimRewardDTO) {
     const isPendingReward = await this.prisma.reward.findFirst({
       where: {
+        id: rewardId,
         userId: sub,
         claimed: 'PENDING',
       },
@@ -301,16 +307,17 @@ export class AuthService {
       where: { id: sub },
     });
 
-    await this.prisma.reward.updateMany({
+    await this.prisma.reward.update({
       where: {
+        id: rewardId,
         userId: sub,
-        claimed: 'DEFAULT',
       },
       data: { claimed: 'PENDING' },
     });
 
     return await this.prisma.transaction.create({
       data: {
+        key: rewardId,
         txId: txId,
         txSender: address,
         tag: 'CLAIM-REWARDS',

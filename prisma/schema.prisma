@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model TicketRecords {
+  id              String   @id @default(uuid()) @db.Uuid
+  lastId          String?
+  boughtTickets   Int      @default(0)
+  freeTickets     Int      @default(0)
+  usedTickets     Int      @default(0)
+  rolloverTickets Int      @default(0)
+  rolloverRatio   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
 model Tournament {
   id                    String   @id @default(uuid()) @db.Uuid
   bId                   Int?     @unique @default(autoincrement())
@@ -19,8 +34,9 @@ model Tournament {
   disbursed             Boolean? @default(false)
   numberOfUsersRewarded Int      @default(0)
 
-  rounds  Round[]
-  rewards Reward[]
+  rounds      Round[]
+  rewards     Reward[]
+  Transaction Transaction[]
 
   @@index([totalStakes])
   @@index([start, end])
@@ -104,6 +120,7 @@ model Reward {
   points                Float?
   type                  RewardType
   claimed               Claim
+  claimable             Boolean    @default(false)
   totalTournamentPoints Float?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
@@ -262,8 +279,10 @@ model Transaction {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  user   User?   @relation(references: [id], fields: [userId])
-  userId String? @db.Uuid
+  user       User?       @relation(references: [id], fields: [userId])
+  userId     String?     @db.Uuid
+  tournament Tournament? @relation(references: [id], fields: [tourId])
+  tourId     String?     @db.Uuid
 
   @@index([tag])
   @@index([userId])
