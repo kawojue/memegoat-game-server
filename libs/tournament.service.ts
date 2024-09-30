@@ -91,7 +91,7 @@ export class TournamentService {
             'total-tickets-used': uintCV(Number(data.totalTicketsUsed)),
           }),
         ],
-        fee: 50000n,
+        fee: 500000n,
         senderKey: account.stxPrivateKey,
         validateWithAbi: true,
         network: networkData.network,
