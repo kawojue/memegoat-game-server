@@ -17,6 +17,7 @@ import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
 import { IsArray, IsNumber } from 'class-validator';
 import { PrismaService } from 'prisma/prisma.service';
+import BigNumber from 'bignumber.js';
 // import { ApiService } from './api.service';
 
 @Injectable()
@@ -57,9 +58,12 @@ export class TournamentService {
         transactionVersion: networkData.txVersion,
       });
       const postConditionCode = FungibleConditionCode.LessEqual;
+      const postConditionAmount = new BigNumber(data.totalTicketsUsed)
+        .multipliedBy(new BigNumber(Number(env.hiro.ticketPrice)))
+        .multipliedBy(new BigNumber(0.02))
+        .toFixed(0);
 
-      const postConditionAmount =
-        Number(data.totalTicketsUsed) * Number(env.hiro.ticketPrice) * 0.02; // get percentage for treasury
+      // get percentage for treasury
 
       const ca = splitCA(env.hiro.contractId);
       const postConditions = [
@@ -67,14 +71,14 @@ export class TournamentService {
           ca[0],
           'memegoat-vault',
           postConditionCode,
-          postConditionAmount,
+          BigInt(postConditionAmount),
         ),
       ];
 
       const rewardArgs = data.rewardData.map((reward) =>
         tupleCV({
           addr: standardPrincipalCV(reward.addr),
-          amount: uintCV(Number(reward.amount)),
+          amount: uintCV(BigInt(new BigNumber(reward.amount).toFixed(0))),
         }),
       );
 
@@ -88,8 +92,12 @@ export class TournamentService {
           contractPrincipalCV(payToken[0], payToken[1]),
           listCV(rewardArgs),
           tupleCV({
-            'no-of-players': uintCV(Number(data.totalNoOfPlayers)),
-            'total-tickets-used': uintCV(Number(data.totalTicketsUsed)),
+            'no-of-players': uintCV(
+              BigInt(new BigNumber(data.totalNoOfPlayers).toFixed(0)),
+            ),
+            'total-tickets-used': uintCV(
+              BigInt(new BigNumber(data.totalTicketsUsed).toFixed(0)),
+            ),
           }),
         ],
         fee: 500000n,

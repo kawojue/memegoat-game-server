@@ -378,7 +378,7 @@ export class TaskService {
             await this.prisma.reward.create({
               data: {
                 userId: user.id,
-                earning: userEarnings,
+                earning: userEarnings.toFixed(0),
                 points: user.totalPoints,
                 gameTournamentId: tournament.id,
                 claimed: 'DEFAULT',
@@ -389,7 +389,7 @@ export class TaskService {
 
             rewardData.push({
               addr: user.address,
-              amount: userEarnings * env.hiro.ticketPrice,
+              amount: Number(userEarnings.toFixed(0)) * env.hiro.ticketPrice,
             });
           }
         }
@@ -617,7 +617,7 @@ export class TaskService {
             await this.prisma.reward.create({
               data: {
                 userId: user.id,
-                earning: userEarnings,
+                earning: userEarnings.toFixed(0),
                 points: user.totalPoints,
                 sportTournamentId: tournament.id,
                 claimed: 'DEFAULT',
@@ -628,7 +628,7 @@ export class TaskService {
 
             rewardData.push({
               addr: user.address,
-              amount: userEarnings * env.hiro.ticketPrice,
+              amount: Number(userEarnings.toFixed(0)) * env.hiro.ticketPrice,
             });
           }
         }
