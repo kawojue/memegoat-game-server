@@ -57,7 +57,14 @@ export class TransactionsQueueProcessor extends WorkerHost {
             where: {
               txId: data.transaction.txId,
               txStatus: 'Pending',
-              tag: { in: ['BUY-TICKETS', 'CLAIM-REWARDS', 'BURN-GOAT'] },
+              tag: {
+                in: [
+                  'BUY-TICKETS',
+                  'CLAIM-REWARDS',
+                  'BURN-GOAT',
+                  'STORE-TOURNAMENT-RECORD',
+                ],
+              },
             },
           });
 
@@ -66,8 +73,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
               txnInfo.contract_call.contract_id === env.hiro.contractId ||
               txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
-              console.log(tx);
-              console.log(txnInfo);
               await this.prisma.$transaction(async (prisma) => {
                 let amount = 0;
                 let txMeta: any;
