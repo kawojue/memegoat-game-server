@@ -612,22 +612,15 @@ export class RealtimeGateway
       currentTournamentId: currentTournament.id,
     })
 
-    const newStat = await this.prisma.stat.update({
-      where: { userId: sub },
-      data: { tickets: { decrement: tickets } },
-    })
-
     client.emit('blindbox-started', { boardSize: 4, tickets })
 
-    if (newStat) {
-      await this.tournamentQueue.add('game', {
-        id: currentTournament.id,
-        end: currentTournament.end,
-        stake: tickets,
-        userId: sub,
-        start: currentTournament.start,
-      })
-    }
+    await this.tournamentQueue.add('game', {
+      id: currentTournament.id,
+      end: currentTournament.end,
+      stake: tickets,
+      userId: sub,
+      start: currentTournament.start,
+    })
   }
 
   @SubscribeMessage('select-box')
@@ -658,12 +651,15 @@ export class RealtimeGateway
     const { board, stake } = game
     const selected = board[row][column]
     if (selected === 'bomb') {
-      this.blindBoxGames.delete(sub)
       client.emit('blindbox-game-over', { points: 0 })
       await this.prisma.stat.update({
         where: { userId: sub },
-        data: { total_losses: { increment: 1 } },
+        data: {
+          tickets: { decrement: stake },
+          total_losses: { increment: 1 }
+        },
       })
+      this.blindBoxGames.delete(sub)
       return
     }
 
@@ -776,6 +772,19 @@ export class RealtimeGateway
       client.emit('error', {
         status: StatusCodes.UnprocessableEntity,
         message: 'No active tournament',
+      })
+      return
+    }
+
+    const now = new Date()
+    const tomorrowDrawTime = new Date()
+    tomorrowDrawTime.setUTCDate(now.getUTCDate() + 1)
+    tomorrowDrawTime.setUTCHours(16, 0, 0, 0)
+
+    if (currentTournament.end < tomorrowDrawTime) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Staking is not allowed as the tournament will end before 16:00 tomorrow',
       })
       return
     }
