@@ -58,13 +58,11 @@ export class TournamentService {
         transactionVersion: networkData.txVersion,
       });
       const postConditionCode = FungibleConditionCode.LessEqual;
-      console.log(data.totalTicketsUsed, Number(env.hiro.ticketPrice));
       const postConditionAmount = new BigNumber(data.totalTicketsUsed)
         .multipliedBy(new BigNumber(Number(env.hiro.ticketPrice)))
         .multipliedBy(new BigNumber(0.02))
         .toFixed(0);
 
-      console.log(postConditionAmount);
       // get percentage for treasury
 
       const ca = splitCA(env.hiro.contractId);
@@ -80,7 +78,7 @@ export class TournamentService {
       const rewardArgs = data.rewardData.map((reward) =>
         tupleCV({
           addr: standardPrincipalCV(reward.addr),
-          amount: uintCV(Number(reward.amount)),
+          amount: uintCV(BigInt(new BigNumber(reward.amount).toFixed(0))),
         }),
       );
 
@@ -94,8 +92,12 @@ export class TournamentService {
           contractPrincipalCV(payToken[0], payToken[1]),
           listCV(rewardArgs),
           tupleCV({
-            'no-of-players': uintCV(Number(data.totalNoOfPlayers)),
-            'total-tickets-used': uintCV(Number(data.totalTicketsUsed)),
+            'no-of-players': uintCV(
+              BigInt(new BigNumber(data.totalNoOfPlayers).toFixed(0)),
+            ),
+            'total-tickets-used': uintCV(
+              BigInt(new BigNumber(data.totalTicketsUsed).toFixed(0)),
+            ),
           }),
         ],
         fee: 500000n,
