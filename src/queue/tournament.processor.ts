@@ -44,8 +44,8 @@ export class CurrentTournamentProcessor extends WorkerHost {
             data: { totalStakes: { increment: stake } },
           });
         }
-        break;
 
+        break;
       case 'game':
         const gameRounds = await this.prisma.round.findFirst({
           where: {
