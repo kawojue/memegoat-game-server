@@ -66,6 +66,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
               txnInfo.contract_call.contract_id === env.hiro.contractId ||
               txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
+              console.log(tx);
               await this.prisma.$transaction(async (prisma) => {
                 let amount = 0;
                 let txMeta: any;
