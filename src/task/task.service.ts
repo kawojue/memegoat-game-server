@@ -370,7 +370,8 @@ export class TaskService {
         const rewardData: RewardData[] = [];
 
         const remaining =
-          payableRecord.payableTickets - payableRecord.payableTickets * 0.02;
+          payableRecord.payableTickets -
+          Number((payableRecord.payableTickets * 0.02).toFixed(6));
 
         for (const user of usersToReward) {
           const userProportion = user.totalPoints / totalPointsForPickedUsers;
