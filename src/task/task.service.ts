@@ -18,7 +18,7 @@ export class TaskService {
     private tournamentReward: TournamentService,
     @InjectQueue('sports-football-queue') private sportQueue: Queue,
     @InjectQueue('transactions-queue') private transactionQueue: Queue,
-  ) { }
+  ) {}
 
   calculateLotteryPoints(
     guess: string,
@@ -259,21 +259,20 @@ export class TaskService {
           },
         });
 
-        let { _sum: {
-          point: totalTournamentPoints,
-          stake: totalTournamentStakes
-        } } = await this.prisma.round.aggregate({
+        const {
+          _sum: { point: totalTournamentPoints, stake: totalTournamentStakes },
+        } = await this.prisma.round.aggregate({
           where: { gameTournamentId: tournament.id },
           _sum: {
             stake: true,
             point: true,
-          }
-        })
+          },
+        });
 
         const groupRoundsByUser = await this.prisma.round.groupBy({
           where: { gameTournamentId: tournament.id },
           by: ['userId'],
-        })
+        });
 
         const leaderboardWithPoints = leaderboard.map((user) => {
           const totalPoints = user.rounds.reduce(
@@ -287,7 +286,7 @@ export class TaskService {
           (a, b) => b.totalPoints - a.totalPoints,
         );
 
-        const participatedUsers = groupRoundsByUser.length
+        const participatedUsers = groupRoundsByUser.length;
 
         let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
 
@@ -357,7 +356,7 @@ export class TaskService {
           where: { id: ticketRecord.id },
           data: {
             usedTickets: totalTournamentStakes,
-            rolloverRatio: payableRecord.rolloverRatio,
+            rolloverRatio: payableRecord.rolloverRatio * 1e6,
             rolloverTickets: payableRecord.rolloverTickets,
           },
         });
@@ -463,7 +462,7 @@ export class TaskService {
             lte: currentTime,
           },
         },
-      ]
+      ],
     };
 
     const tournamentsToProcess = await this.prisma.sportTournament.findMany({
@@ -528,7 +527,7 @@ export class TaskService {
           (a, b) => b.totalPoints - a.totalPoints,
         );
 
-        const participatedUsers = groupBetsBy.length
+        const participatedUsers = groupBetsBy.length;
 
         let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
 
@@ -596,7 +595,7 @@ export class TaskService {
           where: { id: ticketRecord.id },
           data: {
             usedTickets: totalStakes,
-            rolloverRatio: payableRecord.rolloverRatio,
+            rolloverRatio: payableRecord.rolloverRatio * 1e6,
             rolloverTickets: payableRecord.rolloverTickets,
           },
         });
