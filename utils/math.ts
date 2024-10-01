@@ -11,11 +11,11 @@ export function calculatePayableTickets(
   },
   currTournament: record,
 ) {
-  const prevPaidTicketsLeft =
-    prevTournament.rolloverTickets * prevTournament.rolloverRatio;
+  const rolloverRatio = prevTournament.rolloverRatio / 1e6;
 
-  const prevFreeTickets =
-    prevTournament.rolloverTickets * (1 - prevTournament.rolloverRatio);
+  const prevPaidTicketsLeft = prevTournament.rolloverTickets * rolloverRatio;
+
+  const prevFreeTickets = prevTournament.rolloverTickets * (1 - rolloverRatio);
 
   const currPaidTickets =
     currTournament.totalTicketsBought + prevPaidTicketsLeft;

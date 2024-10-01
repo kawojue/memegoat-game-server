@@ -59,7 +59,7 @@ export class TournamentService {
       const postConditionCode = FungibleConditionCode.LessEqual;
 
       const postConditionAmount =
-        data.totalTicketsUsed * env.hiro.ticketPrice * 0.02; // get percentage for treasury
+        Number(data.totalTicketsUsed) * Number(env.hiro.ticketPrice) * 0.02; // get percentage for treasury
 
       const ca = splitCA(env.hiro.contractId);
       const postConditions = [
