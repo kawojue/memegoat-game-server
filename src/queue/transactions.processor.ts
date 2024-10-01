@@ -86,11 +86,15 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     ),
                   ).toNumber();
 
-                  amount = tickets * env.hiro.ticketPrice;
+                  const twentyPercent = (20 / 100) * tickets
+
+                  const accredited = twentyPercent + tickets
+
+                  amount = accredited * env.hiro.ticketPrice;
 
                   await prisma.stat.update({
                     where: { userId: tx.userId },
-                    data: { tickets: { increment: tickets } },
+                    data: { tickets: { increment: Math.round(accredited) } },
                   });
 
                   const ticketRecord = await prisma.ticketRecords.findFirst({
@@ -100,11 +104,17 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   if (ticketRecord) {
                     await prisma.ticketRecords.update({
                       where: { id: ticketRecord.id },
-                      data: { boughtTickets: { increment: tickets } },
+                      data: {
+                        boughtTickets: { increment: tickets },
+                        freeTickets: { increment: Math.round(twentyPercent) }
+                      },
                     });
                   } else {
                     await prisma.ticketRecords.create({
-                      data: { boughtTickets: tickets },
+                      data: {
+                        boughtTickets: tickets,
+                        freeTickets: Math.round(twentyPercent),
+                      },
                     });
                   }
                 }
