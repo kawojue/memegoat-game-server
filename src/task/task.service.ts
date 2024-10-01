@@ -210,7 +210,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES, {
+  @Cron(CronExpression.EVERY_5_MINUTES, {
     timeZone: 'UTC',
   })
   async rewardAndRefreshGameTournament() {
