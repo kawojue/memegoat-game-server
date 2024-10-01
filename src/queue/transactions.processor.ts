@@ -57,7 +57,14 @@ export class TransactionsQueueProcessor extends WorkerHost {
             where: {
               txId: data.transaction.txId,
               txStatus: 'Pending',
-              tag: { in: ['BUY-TICKETS', 'CLAIM-REWARDS', 'BURN-GOAT'] },
+              tag: {
+                in: [
+                  'BUY-TICKETS',
+                  'CLAIM-REWARDS',
+                  'BURN-GOAT',
+                  'STORE-TOURNAMENT-RECORD',
+                ],
+              },
             },
           });
 
@@ -66,118 +73,102 @@ export class TransactionsQueueProcessor extends WorkerHost {
               txnInfo.contract_call.contract_id === env.hiro.contractId ||
               txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
-              let amount = 0;
+              await this.prisma.$transaction(async (prisma) => {
+                let amount = 0;
+                let txMeta: any;
 
-              if (txnInfo.contract_call.function_name === 'buy-tickets') {
-                const tickets = new BigNumber(
-                  cvToValue(
-                    Cl.deserialize(
-                      hexToBytes(txnInfo.contract_call.function_args[0].hex),
+                if (txnInfo.contract_call.function_name === 'buy-tickets') {
+                  const tickets = new BigNumber(
+                    cvToValue(
+                      Cl.deserialize(
+                        hexToBytes(txnInfo.contract_call.function_args[0].hex),
+                      ),
                     ),
-                  ),
-                ).toNumber();
+                  ).toNumber();
 
-                amount = tickets * env.hiro.ticketPrice;
+                  amount = tickets * env.hiro.ticketPrice;
 
-                await this.prisma.stat.update({
-                  where: { userId: tx.userId },
-                  data: { tickets: { increment: tickets } },
-                });
-
-                const ticketRecord = await this.prisma.ticketRecords.findFirst({
-                  where: { rolloverRatio: 0 },
-                  orderBy: {
-                    createdAt: 'desc',
-                  },
-                });
-
-                if (ticketRecord) {
-                  await this.prisma.ticketRecords.update({
-                    where: { id: ticketRecord.id },
-                    data: { boughtTickets: { increment: tickets } },
+                  await prisma.stat.update({
+                    where: { userId: tx.userId },
+                    data: { tickets: { increment: tickets } },
                   });
-                } else {
-                  await this.prisma.ticketRecords.create({
-                    data: { boughtTickets: tickets },
+
+                  const ticketRecord = await prisma.ticketRecords.findFirst({
+                    where: { rolloverRatio: 0 },
+                    orderBy: { createdAt: 'desc' },
+                  });
+                  if (ticketRecord) {
+                    await prisma.ticketRecords.update({
+                      where: { id: ticketRecord.id },
+                      data: { boughtTickets: { increment: tickets } },
+                    });
+                  } else {
+                    await prisma.ticketRecords.create({
+                      data: { boughtTickets: tickets },
+                    });
+                  }
+                }
+
+                if (txnInfo.contract_call.function_name === 'claim-rewards') {
+                  await prisma.reward.update({
+                    where: {
+                      id: tx.id,
+                      userId: tx.userId
+                    },
+                    data: { claimed: 'SUCCESSFUL' },
+                  });
+
+                  txMeta = { action: 'REWARDS-CLAIMED' };
+                }
+
+                if (txnInfo.contract_call.function_name === 'burn') {
+                  await prisma.stat.update({
+                    where: { userId: tx.userId },
+                    data: { tickets: { increment: 2 } },
+                  });
+
+                  txMeta = { action: 'GOAT-BURN' };
+
+                  const ticketRecord = await prisma.ticketRecords.findFirst({
+                    where: { rolloverRatio: 0 },
+                    orderBy: { createdAt: 'desc' },
+                  });
+                  if (ticketRecord) {
+                    await prisma.ticketRecords.update({
+                      where: { id: ticketRecord.id },
+                      data: { freeTickets: { increment: 2 } },
+                    });
+                  } else {
+                    await prisma.ticketRecords.create({
+                      data: { freeTickets: 2 },
+                    });
+                  }
+                }
+
+                if (
+                  txnInfo.contract_call.function_name ===
+                  'store-tournament-record'
+                ) {
+                  await prisma.reward.updateMany({
+                    where: {
+                      OR: [
+                        { gameTournamentId: tx.tourId },
+                        { sportTournamentId: tx.tourId },
+                      ],
+                    },
+                    data: { claimable: true },
                   });
                 }
-              }
 
-              let txMeta: any;
-
-              if (txnInfo.contract_call.function_name === 'claim-rewards') {
-                await this.prisma.reward.update({
-                  where: { id: tx.key, userId: tx.userId },
-                  data: { claimed: 'SUCCESSFUL' },
-                });
-
-                txMeta = {
-                  action: 'REWARDS-CLAIMED',
-                };
-              }
-
-              if (txnInfo.contract_call.function_name === 'burn') {
-                await this.prisma.stat.update({
-                  where: { userId: tx.userId },
-                  data: { tickets: { increment: 2 } },
-                });
-
-                txMeta = {
-                  action: 'GOAT-BURN',
-                };
-
-                const ticketRecord = await this.prisma.ticketRecords.findFirst({
-                  where: { rolloverRatio: 0 },
-                  orderBy: {
-                    createdAt: 'desc',
+                await prisma.transaction.update({
+                  where: { id: tx.id },
+                  data: {
+                    amount,
+                    txStatus: 'Success',
+                    ...txMeta,
                   },
                 });
-
-                if (ticketRecord) {
-                  await this.prisma.ticketRecords.update({
-                    where: { id: ticketRecord.id },
-                    data: { freeTickets: { increment: 2 } },
-                  });
-                } else {
-                  await this.prisma.ticketRecords.create({
-                    data: { freeTickets: 2 },
-                  });
-                }
-              }
-
-              if (
-                txnInfo.contract_call.function_name ===
-                'store-tournament-record'
-              ) {
-                await this.prisma.reward.updateMany({
-                  where: {
-                    OR: [
-                      { gameTournamentId: tx.tourId },
-                      { sportTournamentId: tx.tourId },
-                    ],
-                  },
-                  data: { claimable: true },
-                });
-              }
-
-              await this.prisma.transaction.update({
-                where: { id: tx.id },
-                data: {
-                  amount,
-                  txStatus: 'Success',
-                  ...txMeta,
-                },
-              });
-
-              await this.prisma.reward.updateMany({
-                where: {
-                  userId: tx.userId,
-                  claimed: 'PENDING',
-                },
-                data: {
-                  claimed: 'SUCCESSFUL',
-                },
-              });
+              })
 
               break;
             }

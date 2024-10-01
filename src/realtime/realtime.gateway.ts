@@ -37,12 +37,11 @@ import { BlackjackService } from 'libs/blackJack.service'
   cors: {
     origin: [
       'http://localhost:3000',
+      'https://app.memegoat.io',
       'https://games.memegoat.io',
-      'https://beta-games.memegoat.io',
-      'https://games-server.memegoat.io',
-      'https://memegoat-games.vercel.app',
-      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app',
+      'https://fluksy.memegoat.io',
       'https://test-games.memegoat.io',
+      'https://games-server.memegoat.io',
     ],
   },
 })
@@ -612,22 +611,15 @@ export class RealtimeGateway
       currentTournamentId: currentTournament.id,
     })
 
-    const newStat = await this.prisma.stat.update({
-      where: { userId: sub },
-      data: { tickets: { decrement: tickets } },
-    })
-
     client.emit('blindbox-started', { boardSize: 4, tickets })
 
-    if (newStat) {
-      await this.tournamentQueue.add('game', {
-        id: currentTournament.id,
-        end: currentTournament.end,
-        stake: tickets,
-        userId: sub,
-        start: currentTournament.start,
-      })
-    }
+    await this.tournamentQueue.add('game', {
+      id: currentTournament.id,
+      end: currentTournament.end,
+      stake: tickets,
+      userId: sub,
+      start: currentTournament.start,
+    })
   }
 
   @SubscribeMessage('select-box')
@@ -658,12 +650,15 @@ export class RealtimeGateway
     const { board, stake } = game
     const selected = board[row][column]
     if (selected === 'bomb') {
-      this.blindBoxGames.delete(sub)
       client.emit('blindbox-game-over', { points: 0 })
       await this.prisma.stat.update({
         where: { userId: sub },
-        data: { total_losses: { increment: 1 } },
+        data: {
+          tickets: { decrement: stake },
+          total_losses: { increment: 1 }
+        },
       })
+      this.blindBoxGames.delete(sub)
       return
     }
 
@@ -780,6 +775,19 @@ export class RealtimeGateway
       return
     }
 
+    const now = new Date()
+    const tomorrowDrawTime = new Date()
+    tomorrowDrawTime.setUTCDate(now.getUTCDate() + 1)
+    tomorrowDrawTime.setUTCHours(16, 0, 0, 0)
+
+    if (currentTournament.end < tomorrowDrawTime) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Staking is not allowed as the tournament will end before 16:00 tomorrow',
+      })
+      return
+    }
+
     const round = await this.prisma.round.create({
       data: {
         stake,
@@ -822,8 +830,17 @@ export class RealtimeGateway
 
   @SubscribeMessage('get-latest-lottery-rounds')
   async getLatestRounds(@ConnectedSocket() client: Socket) {
+    const now = new Date(new Date().toUTCString())
+    const threeDaysAgo = new Date(now)
+    threeDaysAgo.setDate(now.getDate() - 3)
+
     const latestRounds = await this.prisma.round.findMany({
-      where: { game_type: 'LOTTERY' },
+      where: {
+        game_type: 'LOTTERY',
+        createdAt: {
+          gte: threeDaysAgo,
+        },
+      },
       take: 15,
       include: {
         user: {
@@ -876,13 +893,13 @@ export class RealtimeGateway
   @SubscribeMessage('lottery-draws')
   async lotteryDraws(@ConnectedSocket() client: Socket) {
     const now = new Date(new Date().toUTCString())
-    const thirtyDaysAgo = new Date(now)
-    thirtyDaysAgo.setDate(now.getDate() - 30)
+    const tenDaysAgo = new Date(now)
+    tenDaysAgo.setDate(now.getDate() - 10)
 
     const draws = await this.prisma.lotteryDraw.findMany({
       where: {
-        createdAt: {
-          gte: thirtyDaysAgo,
+        updatedAt: {
+          gte: tenDaysAgo,
         },
       },
     })

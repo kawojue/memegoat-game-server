@@ -1,4 +1,10 @@
 import {
+  UsernameDTO,
+  BuyTicketDTO,
+  ClaimRewardDTO,
+  ConnectWalletDTO,
+} from './dto/auth.dto';
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -19,12 +25,6 @@ import { ResponseService } from 'libs/response.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import type { Transaction } from '@stacks/stacks-blockchain-api-types';
-import {
-  BuyTicketDTO,
-  ClaimRewardDTO,
-  ConnectWalletDTO,
-  UsernameDTO,
-} from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -67,17 +67,22 @@ export class AuthService {
     return ticket * env.hiro.ticketPrice;
   }
 
-  private getLevelName(xp: number) {
+  private getLevelName(xp: number): Rank {
     for (let i = 0; i < ranks.length; i++) {
       if (i === ranks.length - 1) {
         if (xp >= ranks[i].minXP) {
-          return ranks[i].name;
+          return ranks[i];
         }
       } else if (xp >= ranks[i].minXP && xp <= ranks[i].maxXP) {
-        return ranks[i].name;
+        return ranks[i];
       }
     }
-    return 'Unknown Rank';
+
+    return {
+      maxXP: 0,
+      minXP: 0,
+      name: 'Unknown Rank'
+    };
   }
 
   async connectWallet({
@@ -212,7 +217,7 @@ export class AuthService {
         ...user,
         timesPlayed,
         totalTicketStakes,
-        levelName: this.getLevelName(user.stat.xp),
+        experience: this.getLevelName(user.stat.xp),
         totalSTXStaked: this.getStxAmount(totalTicketStakes),
       },
     });
@@ -247,13 +252,11 @@ export class AuthService {
       },
       include: {
         gameTournament: {
-          // Include gameTournament data if exists
           select: {
             bId: true,
           },
         },
         sportTournament: {
-          // Include sportTournament data if exists
           select: {
             bId: true,
           },
@@ -262,11 +265,9 @@ export class AuthService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map over rewards to return the desired structure for each reward
     const rewardsData = rewards.map((reward) => {
       const rewardAmount = reward.earning ?? new Decimal(0);
-      const bId =
-        reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
+      const bId = reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
       const category = reward.gameTournament
         ? 'Games'
         : reward.sportTournament
@@ -274,15 +275,15 @@ export class AuthService {
           : 'Uncategorized';
       return {
         rewardAmount,
+        rewardId: reward.id,
         isClaimable: reward.claimable,
-        status: reward.claimed, // Use reward.claimed status directly
+        status: reward.claimed,
         stxAmount: this.getStxAmount(rewardAmount.toNumber()),
-        bId, // Include the bId from either gameTournament or sportTournament
+        bId,
         category,
       };
     });
 
-    // Return the array of rewards
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: rewardsData,
     });
@@ -317,8 +318,8 @@ export class AuthService {
 
     return await this.prisma.transaction.create({
       data: {
-        key: rewardId,
         txId: txId,
+        key: rewardId,
         txSender: address,
         tag: 'CLAIM-REWARDS',
         user: { connect: { id: sub } },
