@@ -776,6 +776,19 @@ export class RealtimeGateway
       return
     }
 
+    const now = new Date()
+    const tomorrowDrawTime = new Date()
+    tomorrowDrawTime.setUTCDate(now.getUTCDate() + 1)
+    tomorrowDrawTime.setUTCHours(16, 0, 0, 0)
+
+    if (currentTournament.end < tomorrowDrawTime) {
+      client.emit('error', {
+        status: StatusCodes.UnprocessableEntity,
+        message: 'Staking is not allowed as the tournament will end before 16:00 tomorrow',
+      })
+      return
+    }
+
     const round = await this.prisma.round.create({
       data: {
         stake,

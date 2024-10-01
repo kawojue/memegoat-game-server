@@ -4,11 +4,11 @@ import { Prisma } from '@prisma/client';
 import { env } from 'configs/env.config';
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { calculatePayableTickets } from 'utils/math';
 import { PrismaService } from 'prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { contractDTO, ContractService } from 'libs/contract.service';
 import { RewardData, TournamentService, txData } from 'libs/tournament.service';
-import { calculatePayableTickets } from 'utils/math';
 
 @Injectable()
 export class TaskService {
