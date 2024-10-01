@@ -17,6 +17,7 @@ import { StacksMainnet, StacksTestnet } from '@stacks/network';
 import { env } from 'configs/env.config';
 import { IsArray, IsNumber } from 'class-validator';
 import { PrismaService } from 'prisma/prisma.service';
+import BigNumber from 'bignumber.js';
 // import { ApiService } from './api.service';
 
 @Injectable()
@@ -57,9 +58,14 @@ export class TournamentService {
         transactionVersion: networkData.txVersion,
       });
       const postConditionCode = FungibleConditionCode.LessEqual;
+      console.log(data.totalTicketsUsed, Number(env.hiro.ticketPrice));
+      const postConditionAmount = new BigNumber(data.totalTicketsUsed)
+        .multipliedBy(new BigNumber(Number(env.hiro.ticketPrice)))
+        .multipliedBy(new BigNumber(0.02))
+        .toFixed(0);
 
-      const postConditionAmount =
-        Number(data.totalTicketsUsed) * Number(env.hiro.ticketPrice) * 0.02; // get percentage for treasury
+      console.log(postConditionAmount);
+      // get percentage for treasury
 
       const ca = splitCA(env.hiro.contractId);
       const postConditions = [
@@ -67,7 +73,7 @@ export class TournamentService {
           ca[0],
           'memegoat-vault',
           postConditionCode,
-          postConditionAmount,
+          BigInt(postConditionAmount),
         ),
       ];
 
