@@ -57,7 +57,14 @@ export class TransactionsQueueProcessor extends WorkerHost {
             where: {
               txId: data.transaction.txId,
               txStatus: 'Pending',
-              tag: { in: ['BUY-TICKETS', 'CLAIM-REWARDS', 'BURN-GOAT'] },
+              tag: {
+                in: [
+                  'BUY-TICKETS',
+                  'CLAIM-REWARDS',
+                  'BURN-GOAT',
+                  'STORE-TOURNAMENT-RECORD',
+                ],
+              },
             },
           });
 
@@ -66,6 +73,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
               txnInfo.contract_call.contract_id === env.hiro.contractId ||
               txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
+              console.log(txnInfo);
               await this.prisma.$transaction(async (prisma) => {
                 let amount = 0;
                 let txMeta: any;
@@ -142,6 +150,8 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   }
                 }
 
+                // console.log(txnInfo.contract_call.function_name);
+
                 if (
                   txnInfo.contract_call.function_name ===
                   'store-tournament-record'
@@ -165,17 +175,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     amount,
                     txStatus: 'Success',
                     ...txMeta,
-                  },
-                });
-
-                // Update all pending rewards for the user to 'SUCCESSFUL'
-                await prisma.reward.updateMany({
-                  where: {
-                    userId: tx.userId,
-                    claimed: 'PENDING',
-                  },
-                  data: {
-                    claimed: 'SUCCESSFUL',
                   },
                 });
               });
