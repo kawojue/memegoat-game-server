@@ -47,7 +47,7 @@ async function bootstrap() {
 
   try {
     await app.listen(PORT);
-    console.log(`http://localhost:${PORT}`);
+    console.info(`http://localhost:${PORT}`);
   } catch (err) {
     console.error(err.message);
   }

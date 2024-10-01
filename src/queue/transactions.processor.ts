@@ -73,7 +73,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
               txnInfo.contract_call.contract_id === env.hiro.contractId ||
               txnInfo.contract_call.contract_id === env.hiro.goatTokenId
             ) {
-              console.log(txnInfo);
               await this.prisma.$transaction(async (prisma) => {
                 let amount = 0;
                 let txMeta: any;
@@ -89,18 +88,15 @@ export class TransactionsQueueProcessor extends WorkerHost {
 
                   amount = tickets * env.hiro.ticketPrice;
 
-                  // Update user's ticket count in stats
                   await prisma.stat.update({
                     where: { userId: tx.userId },
                     data: { tickets: { increment: tickets } },
                   });
 
-                  // Check for the latest ticket record and update or create a new one
                   const ticketRecord = await prisma.ticketRecords.findFirst({
                     where: { rolloverRatio: 0 },
                     orderBy: { createdAt: 'desc' },
                   });
-                  console.log(ticketRecord);
                   if (ticketRecord) {
                     await prisma.ticketRecords.update({
                       where: { id: ticketRecord.id },
@@ -114,7 +110,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 }
 
                 if (txnInfo.contract_call.function_name === 'claim-rewards') {
-                  // Update reward claim status
                   await prisma.reward.update({
                     where: { id: tx.key, userId: tx.userId },
                     data: { claimed: 'SUCCESSFUL' },
@@ -124,7 +119,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 }
 
                 if (txnInfo.contract_call.function_name === 'burn') {
-                  // Update user tickets count after burn
                   await prisma.stat.update({
                     where: { userId: tx.userId },
                     data: { tickets: { increment: 2 } },
@@ -132,12 +126,10 @@ export class TransactionsQueueProcessor extends WorkerHost {
 
                   txMeta = { action: 'GOAT-BURN' };
 
-                  // Handle ticket record update or creation
                   const ticketRecord = await prisma.ticketRecords.findFirst({
                     where: { rolloverRatio: 0 },
                     orderBy: { createdAt: 'desc' },
                   });
-                  console.log(ticketRecord);
                   if (ticketRecord) {
                     await prisma.ticketRecords.update({
                       where: { id: ticketRecord.id },
@@ -150,13 +142,10 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   }
                 }
 
-                // console.log(txnInfo.contract_call.function_name);
-
                 if (
                   txnInfo.contract_call.function_name ===
                   'store-tournament-record'
                 ) {
-                  // Mark rewards claimable for the given tournament
                   await prisma.reward.updateMany({
                     where: {
                       OR: [
@@ -168,7 +157,6 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   });
                 }
 
-                // Update the transaction status
                 await prisma.transaction.update({
                   where: { id: tx.id },
                   data: {
@@ -179,7 +167,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                 });
               });
 
-              break; // Ensure this loop or block ends after successful transaction handling
+              break;
             }
           }
         }
