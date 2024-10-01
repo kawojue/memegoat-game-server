@@ -111,7 +111,10 @@ export class TransactionsQueueProcessor extends WorkerHost {
 
                 if (txnInfo.contract_call.function_name === 'claim-rewards') {
                   await prisma.reward.update({
-                    where: { id: tx.key, userId: tx.userId },
+                    where: {
+                      id: tx.id,
+                      userId: tx.userId
+                    },
                     data: { claimed: 'SUCCESSFUL' },
                   });
 
@@ -165,7 +168,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     ...txMeta,
                   },
                 });
-              });
+              })
 
               break;
             }

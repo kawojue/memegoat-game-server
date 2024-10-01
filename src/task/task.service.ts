@@ -123,9 +123,12 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4PM, {
+  @Cron(CronExpression.EVERY_MINUTE, {
     timeZone: 'UTC',
   })
+  // @Cron(CronExpression.EVERY_DAY_AT_4PM, {
+  //   timeZone: 'UTC',
+  // })
   async updateLotterySession() {
     const data: contractDTO = {
       contract: 'memegoat-lottery-rng',
@@ -139,7 +142,7 @@ export class TaskService {
     const batchSize = 50;
     let cursorId: string | null = null;
 
-    let hasRounds = true;
+    let isLotteryDrawCreated = false;
 
     while (true) {
       const twentyFourHoursAgo = new Date(
@@ -164,7 +167,6 @@ export class TaskService {
       );
 
       if (roundsWithNullOutcome.length === 0) {
-        hasRounds = false;
         break;
       }
 
@@ -190,6 +192,8 @@ export class TaskService {
               data: {
                 total_points: { increment: points },
                 xp: { increment: Math.sqrt(points) },
+                ...(points > round.stake && {total_wins: {increment: 1}}),
+                ...(points < round.stake && {total_losses: {increment: 1}}),
               },
             });
           });
@@ -201,12 +205,13 @@ export class TaskService {
       cursorId = recentRounds[recentRounds.length - 1].id;
 
       await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    if (hasRounds) {
-      await this.prisma.lotteryDraw.create({
-        data: { digits: outcome },
-      });
+      
+      if (!isLotteryDrawCreated) {
+        await this.prisma.lotteryDraw.create({
+          data: { digits: outcome },
+        });
+        isLotteryDrawCreated = true;
+      }
     }
   }
 
@@ -258,12 +263,11 @@ export class TaskService {
         });
 
         const {
-          _sum: { point: totalTournamentPoints, stake: totalTournamentStakes },
+          _sum: { stake: totalTournamentStakes },
         } = await this.prisma.round.aggregate({
           where: { gameTournamentId: tournament.id },
           _sum: {
             stake: true,
-            point: true,
           },
         });
 
@@ -408,6 +412,7 @@ export class TaskService {
         });
       }, 2);
     }
+
     for (const tx of allTxData) {
       await this.tournamentReward.storeTournamentRewards(tx, 1);
       await new Promise((resolve) => setTimeout(resolve, 3600));

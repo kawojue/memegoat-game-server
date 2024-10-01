@@ -37,12 +37,11 @@ import { BlackjackService } from 'libs/blackJack.service'
   cors: {
     origin: [
       'http://localhost:3000',
+      'https://app.memegoat.io',
       'https://games.memegoat.io',
-      'https://beta-games.memegoat.io',
-      'https://games-server.memegoat.io',
-      'https://memegoat-games.vercel.app',
-      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app',
+      'https://fluksy.memegoat.io',
       'https://test-games.memegoat.io',
+      'https://games-server.memegoat.io',
     ],
   },
 })
@@ -831,8 +830,17 @@ export class RealtimeGateway
 
   @SubscribeMessage('get-latest-lottery-rounds')
   async getLatestRounds(@ConnectedSocket() client: Socket) {
+    const now = new Date(new Date().toUTCString())
+    const threeDaysAgo = new Date(now)
+    threeDaysAgo.setDate(now.getDate() - 3)
+
     const latestRounds = await this.prisma.round.findMany({
-      where: { game_type: 'LOTTERY' },
+      where: {
+        game_type: 'LOTTERY',
+        createdAt: {
+          gte: threeDaysAgo,
+        },
+      },
       take: 15,
       include: {
         user: {
@@ -885,13 +893,13 @@ export class RealtimeGateway
   @SubscribeMessage('lottery-draws')
   async lotteryDraws(@ConnectedSocket() client: Socket) {
     const now = new Date(new Date().toUTCString())
-    const thirtyDaysAgo = new Date(now)
-    thirtyDaysAgo.setDate(now.getDate() - 30)
+    const tenDaysAgo = new Date(now)
+    tenDaysAgo.setDate(now.getDate() - 10)
 
     const draws = await this.prisma.lotteryDraw.findMany({
       where: {
-        createdAt: {
-          gte: thirtyDaysAgo,
+        updatedAt: {
+          gte: tenDaysAgo,
         },
       },
     })

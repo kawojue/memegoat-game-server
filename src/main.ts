@@ -17,15 +17,12 @@ async function bootstrap() {
       `http://localhost:${PORT}`,
       'https://games.memegoat.io',
       'https://fluksy.memegoat.io',
-      'https://beta-games.memegoat.io',
-      'https://games-server.memegoat.io',
-      'https://memegoat-games.vercel.app',
-      'https://memegoat-games-git-main-game-osas2211s-projects.vercel.app',
       'https://test-games.memegoat.io',
+      'https://games-server.memegoat.io',
     ],
     credentials: true,
     optionsSuccessStatus: 200,
-    methods: 'GET,POST,DELETE,PATCH,PUT,OPTIONS',
+    methods: 'GET,POST,DELETE,PATCH,PUT',
   });
 
   app.use(morgan('tiny'));

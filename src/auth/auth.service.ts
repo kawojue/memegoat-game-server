@@ -267,8 +267,7 @@ export class AuthService {
 
     const rewardsData = rewards.map((reward) => {
       const rewardAmount = reward.earning ?? new Decimal(0);
-      const bId =
-        reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
+      const bId = reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
       const category = reward.gameTournament
         ? 'Games'
         : reward.sportTournament
@@ -276,6 +275,7 @@ export class AuthService {
           : 'Uncategorized';
       return {
         rewardAmount,
+        rewardId: reward.id,
         isClaimable: reward.claimable,
         status: reward.claimed,
         stxAmount: this.getStxAmount(rewardAmount.toNumber()),
@@ -318,8 +318,8 @@ export class AuthService {
 
     return await this.prisma.transaction.create({
       data: {
-        key: rewardId,
         txId: txId,
+        key: rewardId,
         txSender: address,
         tag: 'CLAIM-REWARDS',
         user: { connect: { id: sub } },
