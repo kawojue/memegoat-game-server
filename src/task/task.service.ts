@@ -389,7 +389,7 @@ export class TaskService {
 
             rewardData.push({
               addr: user.address,
-              amount: userEarnings * env.hiro.ticketPrice,
+              amount: Number(userEarnings.toFixed(0)) * env.hiro.ticketPrice,
             });
           }
         }
@@ -628,7 +628,7 @@ export class TaskService {
 
             rewardData.push({
               addr: user.address,
-              amount: userEarnings * env.hiro.ticketPrice,
+              amount: Number(userEarnings.toFixed(0)) * env.hiro.ticketPrice,
             });
           }
         }
