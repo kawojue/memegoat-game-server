@@ -67,17 +67,22 @@ export class AuthService {
     return ticket * env.hiro.ticketPrice;
   }
 
-  private getLevelName(xp: number) {
+  private getLevelName(xp: number): Rank {
     for (let i = 0; i < ranks.length; i++) {
       if (i === ranks.length - 1) {
         if (xp >= ranks[i].minXP) {
-          return ranks[i].name;
+          return ranks[i];
         }
       } else if (xp >= ranks[i].minXP && xp <= ranks[i].maxXP) {
-        return ranks[i].name;
+        return ranks[i];
       }
     }
-    return 'Unknown Rank';
+
+    return {
+      maxXP: 0,
+      minXP: 0,
+      name: 'Unknown Rank'
+    };
   }
 
   async connectWallet({
@@ -212,7 +217,7 @@ export class AuthService {
         ...user,
         timesPlayed,
         totalTicketStakes,
-        levelName: this.getLevelName(user.stat.xp),
+        experience: this.getLevelName(user.stat.xp),
         totalSTXStaked: this.getStxAmount(totalTicketStakes),
       },
     });
