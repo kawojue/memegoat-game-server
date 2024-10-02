@@ -24,6 +24,7 @@ import { ResponseService } from 'libs/response.service';
     SportsService,
     PrismaService,
     ResponseService,
+    MiscService,
   ],
   exports: [SportsService],
 })
