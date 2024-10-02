@@ -214,7 +214,7 @@ export class TaskService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async rewardAndRefreshGameTournament() {
-    const currentTime = new Date(new Date().toUTCString());
+    let currentTime = new Date(new Date().toUTCString());
 
     const whereClause: Prisma.TournamentWhereInput = {
       OR: [
@@ -415,6 +415,7 @@ export class TaskService {
       await new Promise((resolve) => setTimeout(resolve, 3600));
     }
 
+    currentTime = new Date(new Date().toUTCString());
     let currentTournament = await this.prisma.tournament.findFirst({
       where: {
         start: { lte: currentTime },
@@ -422,25 +423,18 @@ export class TaskService {
       },
     });
 
+    if (currentTournament && currentTournament.paused) {
+      return;
+    }
+
     if (!currentTournament) {
       const start = currentTime;
       const end = new Date(start);
-      end.setDate(start.getDate() + 3);
+      end.setDate(start.getDate() + 7);
+
       currentTournament = await this.prisma.tournament.create({
         data: { start, end },
       });
-    } else if (currentTournament?.paused) {
-      return;
-    } else {
-      const start = currentTime;
-      if (currentTournament.end.getHours() + 1 > start.getHours()) {
-        const end = new Date(start);
-        end.setDate(start.getDate() + 3);
-
-        currentTournament = await this.prisma.tournament.create({
-          data: { start, end },
-        });
-      }
     }
   }
 
@@ -674,25 +668,18 @@ export class TaskService {
       },
     });
 
+    if (currentTournament && currentTournament.paused) {
+      return;
+    }
+
     if (!currentTournament) {
       const start = currentTime;
       const end = new Date(start);
       end.setDate(start.getDate() + 7);
-      currentTournament = await this.prisma.tournament.create({
+
+      currentTournament = await this.prisma.sportTournament.create({
         data: { start, end },
       });
-    } else if (currentTournament.paused) {
-      return;
-    } else {
-      const start = currentTime;
-      if (currentTournament.end.getHours() + 1 > start.getHours()) {
-        const end = new Date(start);
-        end.setDate(start.getDate() + 7);
-
-        currentTournament = await this.prisma.tournament.create({
-          data: { start, end },
-        });
-      }
     }
 
     if (currentTournament) {
