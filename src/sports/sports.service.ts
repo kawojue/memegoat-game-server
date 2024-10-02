@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ApiService } from 'libs/api.service';
+import { MiscService } from 'libs/misc.service';
 import { Prisma, SportType } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { PaginationDTO } from 'src/games/dto/pagination';
@@ -21,6 +22,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 @Injectable()
 export class SportsService {
   constructor(
+    private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly apiService: ApiService,
     @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
@@ -469,7 +471,7 @@ export class SportsService {
 
         const earnings = _sum?.earning ?? new Decimal(0);
 
-        return { ...l, earnings };
+        return { ...l, earnings: this.misc.getStxAmount(earnings.toNumber()) };
       }),
     );
 
