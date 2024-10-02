@@ -81,7 +81,7 @@ export class AuthService {
     return {
       maxXP: 0,
       minXP: 0,
-      name: 'Unknown Rank'
+      name: 'Unknown Rank',
     };
   }
 
@@ -223,26 +223,48 @@ export class AuthService {
     });
   }
 
-  async tournamentStat(res: Response) {
-    let gameTournament = (await this.prisma.currentGameTournament()) as any;
-    let sportTournament = (await this.prisma.currentSportTournament()) as any;
+  async tournamentStat() {
+    let currentGameTournament = await this.prisma.currentGameTournament();
+    console.log({ currentGameTournament });
+    let currentSportTournament = await this.prisma.currentSportTournament();
 
-    gameTournament = {
-      ...gameTournament,
-      stxAmount: this.getStxAmount(gameTournament.totalStakes),
-      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0, // TODO
+    delete currentGameTournament?.totalStakes;
+    delete currentSportTournament?.totalStakes;
+
+    let totalGameStakes: number = 0;
+    let totalSportStakes: number = 0;
+
+    if (currentGameTournament) {
+      const roundAggregate = await this.prisma.round.aggregate({
+        where: { gameTournamentId: currentGameTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalGameStakes = roundAggregate._sum.stake ?? 0;
+    }
+
+    if (currentSportTournament) {
+      const betAggregate = await this.prisma.sportBet.aggregate({
+        where: { sportTournamentId: currentSportTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalSportStakes = betAggregate._sum.stake ?? 0;
+    }
+
+    const gameTournament = {
+      ...currentGameTournament,
+      totalTicketStakes: totalGameStakes,
+      stxAmount: this.getStxAmount(totalGameStakes),
     };
 
-    sportTournament = {
-      ...sportTournament,
-      stxAmount: this.getStxAmount(sportTournament.totalStakes),
-      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0, // TODO
+    const sportTournament = {
+      ...currentSportTournament,
+      totalTicketStakes: totalSportStakes,
+      stxAmount: this.getStxAmount(totalSportStakes),
     };
 
-    this.response.sendSuccess(res, StatusCodes.OK, {
-      gameTournament,
-      sportTournament,
-    });
+    return { gameTournament, sportTournament };
   }
 
   async reward(res: Response, { sub }: ExpressUser) {
@@ -267,7 +289,8 @@ export class AuthService {
 
     const rewardsData = rewards.map((reward) => {
       const rewardAmount = reward.earning ?? new Decimal(0);
-      const bId = reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
+      const bId =
+        reward.gameTournament?.bId ?? reward.sportTournament?.bId ?? null;
       const category = reward.gameTournament
         ? 'Games'
         : reward.sportTournament
