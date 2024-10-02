@@ -123,12 +123,9 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE, {
+  @Cron(CronExpression.EVERY_DAY_AT_4PM, {
     timeZone: 'UTC',
   })
-  // @Cron(CronExpression.EVERY_DAY_AT_4PM, {
-  //   timeZone: 'UTC',
-  // })
   async updateLotterySession() {
     const data: contractDTO = {
       contract: 'memegoat-lottery-rng',
