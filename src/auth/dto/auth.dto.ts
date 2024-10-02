@@ -53,3 +53,15 @@ export class BuyTicketDTO {
   })
   txId: string;
 }
+
+export class ClaimRewardDTO {
+  @ApiProperty({
+    example: uuid(),
+  })
+  txId: string;
+
+  @ApiProperty({
+    example: uuid(),
+  })
+  rewardId: string;
+}

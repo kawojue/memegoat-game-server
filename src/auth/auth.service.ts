@@ -1,4 +1,10 @@
 import {
+  UsernameDTO,
+  BuyTicketDTO,
+  ClaimRewardDTO,
+  ConnectWalletDTO,
+} from './dto/auth.dto';
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -19,7 +25,6 @@ import { ResponseService } from 'libs/response.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import type { Transaction } from '@stacks/stacks-blockchain-api-types';
-import { BuyTicketDTO, ConnectWalletDTO, UsernameDTO } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -58,21 +63,22 @@ export class AuthService {
     return true;
   }
 
-  private getStxAmount(ticket: number) {
-    return ticket * env.hiro.ticketPrice;
-  }
-
-  private getLevelName(xp: number) {
+  private getLevelName(xp: number): Rank {
     for (let i = 0; i < ranks.length; i++) {
       if (i === ranks.length - 1) {
         if (xp >= ranks[i].minXP) {
-          return ranks[i].name;
+          return ranks[i];
         }
       } else if (xp >= ranks[i].minXP && xp <= ranks[i].maxXP) {
-        return ranks[i].name;
+        return ranks[i];
       }
     }
-    return 'Unknown Rank';
+
+    return {
+      maxXP: 0,
+      minXP: 0,
+      name: 'Unknown Rank',
+    };
   }
 
   async connectWallet({
@@ -182,6 +188,7 @@ export class AuthService {
     });
 
     const totalBets = await this.prisma.sportBet.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
@@ -191,6 +198,7 @@ export class AuthService {
     });
 
     const totalGameRounds = await this.prisma.round.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
@@ -207,32 +215,53 @@ export class AuthService {
         ...user,
         timesPlayed,
         totalTicketStakes,
-        levelName: this.getLevelName(user.stat.xp),
-        totalSTXStaked: this.getStxAmount(totalTicketStakes),
+        experience: this.getLevelName(user.stat.xp),
+        totalSTXStaked: this.misc.getStxAmount(totalTicketStakes),
       },
     });
   }
 
-  async tournamentStat(res: Response) {
-    let gameTournament = (await this.prisma.currentGameTournament()) as any;
-    let sportTournament = (await this.prisma.currentSportTournament()) as any;
+  async tournamentStat() {
+    let currentGameTournament = await this.prisma.currentGameTournament();
+    let currentSportTournament = await this.prisma.currentSportTournament();
 
-    gameTournament = {
-      ...gameTournament,
-      stxAmount: this.getStxAmount(gameTournament.totalStakes),
-      usdAmount: this.getStxAmount(gameTournament.totalStakes) * 0, // TODO
+    delete currentGameTournament?.totalStakes;
+    delete currentSportTournament?.totalStakes;
+
+    let totalGameStakes: number = 0;
+    let totalSportStakes: number = 0;
+
+    if (currentGameTournament) {
+      const roundAggregate = await this.prisma.round.aggregate({
+        where: { gameTournamentId: currentGameTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalGameStakes = roundAggregate._sum.stake ?? 0;
+    }
+
+    if (currentSportTournament) {
+      const betAggregate = await this.prisma.sportBet.aggregate({
+        where: { sportTournamentId: currentSportTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalSportStakes = betAggregate._sum.stake ?? 0;
+    }
+
+    const gameTournament = {
+      ...currentGameTournament,
+      totalTicketStakes: totalGameStakes,
+      stxAmount: this.misc.getStxAmount(totalGameStakes),
     };
 
-    sportTournament = {
-      ...sportTournament,
-      stxAmount: this.getStxAmount(sportTournament.totalStakes),
-      usdAmount: this.getStxAmount(sportTournament.totalStakes) * 0, // TODO
+    const sportTournament = {
+      ...currentSportTournament,
+      totalTicketStakes: totalSportStakes,
+      stxAmount: this.misc.getStxAmount(totalSportStakes),
     };
 
-    this.response.sendSuccess(res, StatusCodes.OK, {
-      gameTournament,
-      sportTournament,
-    });
+    return { gameTournament, sportTournament };
   }
 
   async reward(res: Response, { sub }: ExpressUser) {
@@ -242,13 +271,11 @@ export class AuthService {
       },
       include: {
         gameTournament: {
-          // Include gameTournament data if exists
           select: {
             bId: true,
           },
         },
         sportTournament: {
-          // Include sportTournament data if exists
           select: {
             bId: true,
           },
@@ -257,7 +284,6 @@ export class AuthService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map over rewards to return the desired structure for each reward
     const rewardsData = rewards.map((reward) => {
       const rewardAmount = reward.earning ?? new Decimal(0);
       const bId =
@@ -269,23 +295,24 @@ export class AuthService {
           : 'Uncategorized';
       return {
         rewardAmount,
-        isClaimable: rewardAmount.toNumber() > 0,
-        status: reward.claimed, // Use reward.claimed status directly
-        stxAmount: this.getStxAmount(rewardAmount.toNumber()),
-        bId, // Include the bId from either gameTournament or sportTournament
+        rewardId: reward.id,
+        isClaimable: reward.claimable,
+        status: reward.claimed,
+        stxAmount: this.misc.getStxAmount(rewardAmount.toNumber()),
+        bId,
         category,
       };
     });
 
-    // Return the array of rewards
     this.response.sendSuccess(res, StatusCodes.OK, {
       data: rewardsData,
     });
   }
 
-  async claimReward({ sub }: ExpressUser, { txId }: BuyTicketDTO) {
+  async claimReward({ sub }: ExpressUser, { txId, rewardId }: ClaimRewardDTO) {
     const isPendingReward = await this.prisma.reward.findFirst({
       where: {
+        id: rewardId,
         userId: sub,
         claimed: 'PENDING',
       },
@@ -301,10 +328,10 @@ export class AuthService {
       where: { id: sub },
     });
 
-    await this.prisma.reward.updateMany({
+    await this.prisma.reward.update({
       where: {
+        id: rewardId,
         userId: sub,
-        claimed: 'DEFAULT',
       },
       data: { claimed: 'PENDING' },
     });
@@ -312,6 +339,7 @@ export class AuthService {
     return await this.prisma.transaction.create({
       data: {
         txId: txId,
+        key: rewardId,
         txSender: address,
         tag: 'CLAIM-REWARDS',
         user: { connect: { id: sub } },
