@@ -24,4 +24,10 @@ export class AppController {
   //     data: tickets,
   //   });
   // }
+
+  @Get('/analysis')
+  async analysis(@Res() res: Response) {
+    const data = await this.appService.analysis();
+    return this.response.sendSuccess(res, StatusCodes.OK, data);
+  }
 }
