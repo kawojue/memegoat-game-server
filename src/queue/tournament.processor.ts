@@ -10,27 +10,22 @@ export class CurrentTournamentProcessor extends WorkerHost {
 
   async process({
     name,
-    data: { id, userId, start, end, stake },
+    data: { id, userId, stake },
   }: Job<{
     id: string;
-    end: Date;
-    start: Date;
     stake: number;
     userId: string;
   }>) {
     switch (name) {
       case 'sport':
-        const sportRounds = await this.prisma.sportRound.findFirst({
+        const sportBet = await this.prisma.sportBet.findFirst({
           where: {
             userId,
-            updatedAt: {
-              gte: start,
-              lte: end,
-            },
+            sportTournamentId: id,
           },
         });
 
-        if (!sportRounds) {
+        if (!sportBet) {
           await this.prisma.sportTournament.update({
             where: { id },
             data: {
@@ -47,14 +42,14 @@ export class CurrentTournamentProcessor extends WorkerHost {
 
         break;
       case 'game':
-        const gameRounds = await this.prisma.round.findFirst({
+        const gameRound = await this.prisma.round.findFirst({
           where: {
             userId,
             gameTournamentId: id,
           },
         });
 
-        if (!gameRounds) {
+        if (!gameRound) {
           await this.prisma.tournament.update({
             where: { id },
             data: {

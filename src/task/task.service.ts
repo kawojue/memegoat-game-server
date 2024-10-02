@@ -18,7 +18,7 @@ export class TaskService {
     private tournamentReward: TournamentService,
     @InjectQueue('sports-football-queue') private sportQueue: Queue,
     @InjectQueue('transactions-queue') private transactionQueue: Queue,
-  ) { }
+  ) {}
 
   calculateLotteryPoints(
     guess: string,
@@ -192,8 +192,8 @@ export class TaskService {
               data: {
                 total_points: { increment: points },
                 xp: { increment: Math.sqrt(points) },
-                ...(points > round.stake && {total_wins: {increment: 1}}),
-                ...(points < round.stake && {total_losses: {increment: 1}}),
+                ...(points > round.stake && { total_wins: { increment: 1 } }),
+                ...(points < round.stake && { total_losses: { increment: 1 } }),
               },
             });
           });
@@ -205,7 +205,7 @@ export class TaskService {
       cursorId = recentRounds[recentRounds.length - 1].id;
 
       await new Promise((resolve) => setTimeout(resolve, 100));
-      
+
       if (!isLotteryDrawCreated) {
         await this.prisma.lotteryDraw.create({
           data: { digits: outcome },
