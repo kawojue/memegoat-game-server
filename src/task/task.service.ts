@@ -430,7 +430,7 @@ export class TaskService {
     if (!currentTournament) {
       const start = currentTime;
       const end = new Date(start);
-      end.setDate(start.getDate() + 7);
+      end.setUTCDate(start.getUTCDate() + 7);
 
       currentTournament = await this.prisma.tournament.create({
         data: { start, end },
@@ -675,7 +675,7 @@ export class TaskService {
     if (!currentTournament) {
       const start = currentTime;
       const end = new Date(start);
-      end.setDate(start.getDate() + 7);
+      end.setUTCDate(start.getUTCDate() + 7);
 
       currentTournament = await this.prisma.sportTournament.create({
         data: { start, end },
