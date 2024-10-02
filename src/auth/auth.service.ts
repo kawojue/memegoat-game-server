@@ -188,6 +188,7 @@ export class AuthService {
     });
 
     const totalBets = await this.prisma.sportBet.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
@@ -197,6 +198,7 @@ export class AuthService {
     });
 
     const totalGameRounds = await this.prisma.round.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
