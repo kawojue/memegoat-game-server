@@ -12,6 +12,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { StoreModule } from 'src/store/store.module';
 import { GamesModule } from 'src/games/games.module';
 import { PrismaService } from 'prisma/prisma.service';
+import { ContractService } from 'libs/contract.service';
 import { ResponseService } from 'libs/response.service';
 import { SportsModule } from 'src/sports/sports.module';
 import { WebhookModule } from 'src/webhook/webhook.module';
@@ -53,6 +54,7 @@ import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.middleware';
     MiscService,
     PrismaService,
     ResponseService,
+    ContractService,
     TournamentService,
   ],
   exports: [AppService],

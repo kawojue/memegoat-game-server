@@ -25,7 +25,7 @@ export class WebhookService {
     private readonly prisma: PrismaService,
     private readonly response: ResponseService,
     @InjectQueue('transactions-queue') private readonly transactionQueue: Queue,
-  ) { }
+  ) {}
 
   private processing = false;
   private requestQueue: Request[] = [];
@@ -67,7 +67,7 @@ export class WebhookService {
           txStatus: data.txStatus as TxStatus,
         } as WhTxPayload;
 
-        await this.transactionQueue.add('wh.transaction', { payload })
+        await this.transactionQueue.add('wh.transaction', { payload });
         break;
       default:
         return this.response.sendError(
@@ -88,9 +88,11 @@ export class WebhookService {
         },
         txStatus: status ? status : undefined,
         tag: tag ? { equals: tag, mode: 'insensitive' } : undefined,
-        txSender: address ? { equals: address, mode: 'insensitive' } : undefined,
+        txSender: address
+          ? { equals: address, mode: 'insensitive' }
+          : undefined,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     return transactions;

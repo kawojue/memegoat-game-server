@@ -1,8 +1,10 @@
 import { UAParser } from 'ua-parser-js';
 import { Injectable } from '@nestjs/common';
+import { contractDTO, ContractService } from 'libs/contract.service';
 
 @Injectable()
 export class AppService {
+  constructor(private contract: ContractService) {}
 
   base(userAgent: string, ip: string) {
     const parser = new UAParser(userAgent).getResult();
@@ -15,4 +17,14 @@ export class AppService {
 
     return { ip, os, device, browser, deviceType, cpu };
   }
+
+  // async getSTXdeposit(address: string) {
+  //   const data: contractDTO = {
+  //     contract: 'memegoat-games-master',
+  //     function: 'get-user-tickets-record ',
+  //     arguments: [{ arg: address, type: 'principal' }],
+  //   };
+
+  //   return await this.contract.readContract(data);
+  // }
 }
