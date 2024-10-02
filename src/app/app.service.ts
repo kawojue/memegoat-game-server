@@ -18,13 +18,13 @@ export class AppService {
     return { ip, os, device, browser, deviceType, cpu };
   }
 
-  async getSTXdeposit(address: string) {
-    const data: contractDTO = {
-      contract: 'memegoat-games-master',
-      function: 'get-user-tickets-record ',
-      arguments: [{ arg: address, type: 'principal' }],
-    };
+  // async getSTXdeposit(address: string) {
+  //   const data: contractDTO = {
+  //     contract: 'memegoat-games-master',
+  //     function: 'get-user-tickets-record ',
+  //     arguments: [{ arg: address, type: 'principal' }],
+  //   };
 
-    return await this.contract.readContract(data);
-  }
+  //   return await this.contract.readContract(data);
+  // }
 }

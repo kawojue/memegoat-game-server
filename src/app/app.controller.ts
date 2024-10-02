@@ -17,11 +17,11 @@ export class AppController {
     return this.appService.base(userAgent, ip);
   }
 
-  @Post('tickets')
-  getTickets(@Res() res: Response, @Query() body: { address: string }) {
-    const tickets = this.appService.getSTXdeposit(body.address);
-    return this.response.sendSuccess(res, StatusCodes.OK, {
-      data: tickets,
-    });
-  }
+  // @Post('tickets')
+  // getTickets(@Res() res: Response, @Query() body: { address: string }) {
+  //   const tickets = this.appService.getSTXdeposit(body.address);
+  //   return this.response.sendSuccess(res, StatusCodes.OK, {
+  //     data: tickets,
+  //   });
+  // }
 }
