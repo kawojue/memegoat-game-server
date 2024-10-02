@@ -27,12 +27,7 @@ export class GamesService {
     });
 
     let leaderboard = await this.prisma.user.findMany({
-      where: {
-        active: true,
-        stat: {
-          total_points: { gte: 1 },
-        },
-      },
+      where: { active: true },
       select: {
         id: true,
         stat: {
@@ -107,7 +102,6 @@ export class GamesService {
         active: true,
         rounds: {
           some: {
-            point: { gte: 1 },
             gameTournamentId: currentTournament.id,
           },
         },
@@ -119,7 +113,6 @@ export class GamesService {
         active: true,
         rounds: {
           some: {
-            point: { gte: 1 },
             gameTournamentId: currentTournament.id,
           },
         },
@@ -131,7 +124,6 @@ export class GamesService {
         username: true,
         rounds: {
           where: {
-            point: { gte: 1 },
             gameTournamentId: currentTournament.id,
           },
           select: {
