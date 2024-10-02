@@ -29,17 +29,17 @@ export class TournamentService {
       network: StacksTestnet | StacksMainnet;
     }
   > = {
-    testnet: {
-      txVersion: TransactionVersion.Testnet,
-      network: new StacksTestnet(),
-    },
-    mainnet: {
-      txVersion: TransactionVersion.Mainnet,
-      network: new StacksMainnet(),
-    },
-  };
+      testnet: {
+        txVersion: TransactionVersion.Testnet,
+        network: new StacksTestnet(),
+      },
+      mainnet: {
+        txVersion: TransactionVersion.Mainnet,
+        network: new StacksMainnet(),
+      },
+    };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async storeTournamentRewards(data: txData, tourId: number) {
     try {
@@ -124,8 +124,8 @@ export class TournamentService {
           tournament: { connect: { id: data.tournamentId } },
         },
       });
-    } catch (e) {
-      console.log(e);
+    } catch (err) {
+      throw err
     }
   }
 

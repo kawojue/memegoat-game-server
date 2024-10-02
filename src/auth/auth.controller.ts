@@ -8,18 +8,18 @@ import {
   UseGuards,
   Controller,
 } from '@nestjs/common';
+import {
+  UsernameDTO,
+  BuyTicketDTO,
+  ClaimRewardDTO,
+  ConnectWalletDTO,
+} from './dto/auth.dto';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { StatusCodes } from 'enums/StatusCodes';
 import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard';
 import { ResponseService } from 'libs/response.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  BuyTicketDTO,
-  ClaimRewardDTO,
-  ConnectWalletDTO,
-  UsernameDTO,
-} from './dto/auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -35,7 +35,6 @@ export class AuthController {
     @Body() body: ConnectWalletDTO,
   ) {
     const data = await this.authService.connectWallet(body);
-
     return this.response.sendSuccess(res, StatusCodes.OK, { data });
   }
 
@@ -102,12 +101,12 @@ export class AuthController {
     @Body() body: BuyTicketDTO,
   ) {
     const data = await this.authService.burnGoat(req.user, body);
-
     return this.response.sendSuccess(res, StatusCodes.OK, data);
   }
 
   @Get('/tournament-stats')
   async tournamentStat(@Res() res: Response) {
-    await this.authService.tournamentStat(res);
+    const data = await this.authService.tournamentStat();
+    return this.response.sendSuccess(res, StatusCodes.OK, data);
   }
 }

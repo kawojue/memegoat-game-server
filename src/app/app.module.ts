@@ -15,11 +15,11 @@ import { PrismaService } from 'prisma/prisma.service';
 import { ResponseService } from 'libs/response.service';
 import { SportsModule } from 'src/sports/sports.module';
 import { WebhookModule } from 'src/webhook/webhook.module';
+import { TournamentService } from 'libs/tournament.service';
 import { RealtimeModule } from 'src/realtime/realtime.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { CustomAuthMiddleware } from 'src/middlewares/custom-auth.middleware';
-import { TournamentService } from 'libs/tournament.service';
 
 @Module({
   imports: [
