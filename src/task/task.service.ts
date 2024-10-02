@@ -429,7 +429,9 @@ export class TaskService {
       currentTournament = await this.prisma.tournament.create({
         data: { start, end },
       });
-    } else if (currentTournament.paused) {
+    } else if (currentTournament?.paused) {
+      return;
+    } else {
       const start = currentTime;
       if (currentTournament.end.getHours() + 1 > start.getHours()) {
         const end = new Date(start);
@@ -680,6 +682,8 @@ export class TaskService {
         data: { start, end },
       });
     } else if (currentTournament.paused) {
+      return;
+    } else {
       const start = currentTime;
       if (currentTournament.end.getHours() + 1 > start.getHours()) {
         const end = new Date(start);

@@ -63,10 +63,6 @@ export class AuthService {
     return true;
   }
 
-  private getStxAmount(ticket: number) {
-    return ticket * env.hiro.ticketPrice;
-  }
-
   private getLevelName(xp: number): Rank {
     for (let i = 0; i < ranks.length; i++) {
       if (i === ranks.length - 1) {
@@ -192,6 +188,7 @@ export class AuthService {
     });
 
     const totalBets = await this.prisma.sportBet.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
@@ -201,6 +198,7 @@ export class AuthService {
     });
 
     const totalGameRounds = await this.prisma.round.aggregate({
+      where: { userId: sub },
       _sum: {
         stake: true,
       },
@@ -218,7 +216,7 @@ export class AuthService {
         timesPlayed,
         totalTicketStakes,
         experience: this.getLevelName(user.stat.xp),
-        totalSTXStaked: this.getStxAmount(totalTicketStakes),
+        totalSTXStaked: this.misc.getStxAmount(totalTicketStakes),
       },
     });
   }
@@ -254,13 +252,13 @@ export class AuthService {
     const gameTournament = {
       ...currentGameTournament,
       totalTicketStakes: totalGameStakes,
-      stxAmount: this.getStxAmount(totalGameStakes),
+      stxAmount: this.misc.getStxAmount(totalGameStakes),
     };
 
     const sportTournament = {
       ...currentSportTournament,
       totalTicketStakes: totalSportStakes,
-      stxAmount: this.getStxAmount(totalSportStakes),
+      stxAmount: this.misc.getStxAmount(totalSportStakes),
     };
 
     return { gameTournament, sportTournament };
@@ -300,7 +298,7 @@ export class AuthService {
         rewardId: reward.id,
         isClaimable: reward.claimable,
         status: reward.claimed,
-        stxAmount: this.getStxAmount(rewardAmount.toNumber()),
+        stxAmount: this.misc.getStxAmount(rewardAmount.toNumber()),
         bId,
         category,
       };
