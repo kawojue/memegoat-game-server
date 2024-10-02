@@ -225,7 +225,6 @@ export class AuthService {
 
   async tournamentStat() {
     let currentGameTournament = await this.prisma.currentGameTournament();
-    console.log({ currentGameTournament });
     let currentSportTournament = await this.prisma.currentSportTournament();
 
     delete currentGameTournament?.totalStakes;
