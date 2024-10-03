@@ -390,8 +390,6 @@ export class SportsService {
         stake,
         userId,
         id: currentTournament.id,
-        end: currentTournament.end,
-        start: currentTournament.start,
       });
     }
 
@@ -424,7 +422,7 @@ export class SportsService {
     const whereClause = {
       active: true,
       stat: {
-        total_sport_points: { gte: 1 },
+        total_sport_points: { gt: 0 },
       },
     } as Prisma.UserWhereInput;
 
@@ -511,19 +509,16 @@ export class SportsService {
     const whereClause = {
       active: true,
       stat: {
-        total_sport_points: { gte: 1 },
+        total_sport_points: { gt: 0 },
       },
     } as Prisma.UserWhereInput;
 
     const totalUsers = await this.prisma.user.count({
       where: {
         ...whereClause,
-        sportRounds: {
+        sportBets: {
           some: {
-            updatedAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            sportTournamentId: currentTournament.id,
           },
         },
       },
@@ -532,12 +527,9 @@ export class SportsService {
     const leaderboard = await this.prisma.user.findMany({
       where: {
         ...whereClause,
-        sportRounds: {
+        sportBets: {
           some: {
-            updatedAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            sportTournamentId: currentTournament.id,
           },
         },
       },
@@ -546,15 +538,17 @@ export class SportsService {
         avatar: true,
         address: true,
         username: true,
-        sportRounds: {
+        sportBets: {
           where: {
-            updatedAt: {
-              gte: currentTournament.start,
-              lte: currentTournament.end,
-            },
+            status: 'FINISHED',
+            sportTournamentId: currentTournament.id,
           },
           select: {
-            point: true,
+            sportRound: {
+              select: {
+                point: true,
+              },
+            },
           },
         },
       },
@@ -563,16 +557,17 @@ export class SportsService {
     let totalTournamentPoints = 0;
     const sortedLeaderboard = leaderboard
       .map((user) => {
-        const totalPoints = user.sportRounds.reduce(
-          (acc, round) => acc + round.point,
+        const totalPoints = user.sportBets.reduce(
+          (acc, bet) => acc + bet.sportRound.point,
           0,
         );
+
         totalTournamentPoints += totalPoints;
+
         return {
           ...user,
           totalPoints,
-          totalRounds: user.sportRounds.length,
-          sportRounds: undefined,
+          sportBets: undefined,
         };
       })
       .sort((a, b) => b.totalPoints - a.totalPoints)
@@ -599,9 +594,7 @@ export class SportsService {
 
     const whereClause = {
       active: true,
-      stat: {
-        total_sport_points: { gte: 1 },
-      },
+      stat: { total_sport_points: { gt: 0 } },
     } as Prisma.UserWhereInput;
 
     if (userId) {
@@ -653,9 +646,8 @@ export class SportsService {
             active: true,
             sportRounds: {
               some: {
-                updatedAt: {
-                  gte: currentTournament.start,
-                  lte: currentTournament.end,
+                bet: {
+                  sportTournamentId: currentTournament.id,
                 },
               },
             },

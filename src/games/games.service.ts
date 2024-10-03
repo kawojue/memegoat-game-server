@@ -27,7 +27,12 @@ export class GamesService {
     });
 
     let leaderboard = await this.prisma.user.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+        stat: {
+          total_points: { gt: 0 },
+        },
+      },
       select: {
         id: true,
         stat: {
