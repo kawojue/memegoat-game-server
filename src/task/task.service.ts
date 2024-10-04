@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { subDays } from 'date-fns';
+import BigNumber from 'bignumber.js';
 import { Prisma } from '@prisma/client';
 import { env } from 'configs/env.config';
 import { Injectable } from '@nestjs/common';
@@ -9,7 +10,6 @@ import { PrismaService } from 'prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { contractDTO, ContractService } from 'libs/contract.service';
 import { RewardData, TournamentService, txData } from 'libs/tournament.service';
-import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class TaskService {
@@ -376,6 +376,7 @@ export class TaskService {
           where: { id: ticketRecord.id },
           data: {
             usedTickets: totalTournamentStakes,
+            payableTickets: payableRecord.payableTickets,
             rolloverRatio: payableRecord.rolloverRatio * 1e6,
             rolloverTickets: payableRecord.rolloverTickets,
           },
@@ -615,6 +616,7 @@ export class TaskService {
           where: { id: ticketRecord.id },
           data: {
             usedTickets: totalStakes,
+            payableTickets: payableRecord.payableTickets,
             rolloverRatio: payableRecord.rolloverRatio * 1e6,
             rolloverTickets: payableRecord.rolloverTickets,
           },
