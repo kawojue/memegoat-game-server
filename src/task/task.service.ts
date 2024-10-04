@@ -312,7 +312,16 @@ export class TaskService {
         const numberOfUsersToReward =
           this.calculateNumberOfUsersToReward(participatedUsers);
 
-        const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+        let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+
+        const lastRewardedPoints =
+          usersToReward[numberOfUsersToReward - 1]?.totalPoints;
+
+        usersToReward = sortedLeaderboard.filter(
+          (user, index) =>
+            index < numberOfUsersToReward ||
+            user.totalPoints === lastRewardedPoints,
+        );
 
         if (usersToReward.length === 0) {
           return;
@@ -544,7 +553,16 @@ export class TaskService {
         const numberOfUsersToReward =
           this.calculateNumberOfUsersToReward(participatedUsers);
 
-        const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+        let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+
+        const lastRewardedPoints =
+          usersToReward[numberOfUsersToReward - 1]?.totalPoints;
+
+        usersToReward = sortedLeaderboard.filter(
+          (user, index) =>
+            index < numberOfUsersToReward ||
+            user.totalPoints === lastRewardedPoints,
+        );
 
         const totalPointsForPickedUsers = usersToReward.reduce(
           (acc, user) => acc + user.totalPoints,
