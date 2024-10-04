@@ -309,7 +309,7 @@ export class TaskService {
 
         const participatedUsers = groupRoundsByUser.length;
 
-        let numberOfUsersToReward =
+        const numberOfUsersToReward =
           this.calculateNumberOfUsersToReward(participatedUsers);
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
@@ -380,40 +380,36 @@ export class TaskService {
 
         const rewardData: RewardData[] = [];
 
+        const ticketPrice = new BigNumber(env.hiro.ticketPrice);
+
         const remaining = new BigNumber(payableRecord.payableTickets)
-          .multipliedBy(new BigNumber('98'))
+          .multipliedBy(ticketPrice)
+          .multipliedBy(new BigNumber('97.95'))
           .div(new BigNumber('100'));
 
         for (const user of usersToReward) {
           const userProportion = new BigNumber(user.totalPoints).div(
             new BigNumber(totalPointsForPickedUsers),
           );
+
           const userEarnings = remaining.multipliedBy(userProportion);
 
-          const roundedUserEarnings = userEarnings.decimalPlaces(
-            3,
-            BigNumber.ROUND_FLOOR,
-          );
+          await this.prisma.reward.create({
+            data: {
+              userId: user.id,
+              earning: userEarnings.dividedBy(ticketPrice).toString(),
+              points: user.totalPoints,
+              gameTournamentId: tournament.id,
+              claimed: 'DEFAULT',
+              type: 'GAME',
+              totalTournamentPoints: totalPointsForPickedUsers,
+            },
+          });
 
-          if (userEarnings) {
-            await this.prisma.reward.create({
-              data: {
-                userId: user.id,
-                earning: roundedUserEarnings.toString(),
-                points: user.totalPoints,
-                gameTournamentId: tournament.id,
-                claimed: 'DEFAULT',
-                type: 'GAME',
-                totalTournamentPoints: totalPointsForPickedUsers,
-              },
-            });
-
-            rewardData.push({
-              addr: user.address,
-              amount:
-                Number(roundedUserEarnings.toString()) * env.hiro.ticketPrice,
-            });
-          }
+          rewardData.push({
+            addr: user.address,
+            amount: userEarnings.toNumber(),
+          });
         }
 
         allTxData.push({
@@ -545,7 +541,7 @@ export class TaskService {
 
         const participatedUsers = groupBetsBy.length;
 
-        let numberOfUsersToReward =
+        const numberOfUsersToReward =
           this.calculateNumberOfUsersToReward(participatedUsers);
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
@@ -614,39 +610,36 @@ export class TaskService {
 
         const rewardData: RewardData[] = [];
 
+        const ticketPrice = new BigNumber(env.hiro.ticketPrice);
+
         const remaining = new BigNumber(payableRecord.payableTickets)
-          .multipliedBy(new BigNumber('98'))
+          .multipliedBy(ticketPrice)
+          .multipliedBy(new BigNumber('97.95'))
           .div(new BigNumber('100'));
 
         for (const user of usersToReward) {
           const userProportion = new BigNumber(user.totalPoints).div(
             new BigNumber(totalPointsForPickedUsers),
           );
+
           const userEarnings = remaining.multipliedBy(userProportion);
 
-          const roundedUserEarnings = userEarnings.decimalPlaces(
-            3,
-            BigNumber.ROUND_FLOOR,
-          );
+          await this.prisma.reward.create({
+            data: {
+              userId: user.id,
+              earning: userEarnings.dividedBy(ticketPrice).toString(),
+              points: user.totalPoints,
+              gameTournamentId: tournament.id,
+              claimed: 'DEFAULT',
+              type: 'SPORT',
+              totalTournamentPoints: totalPointsForPickedUsers,
+            },
+          });
 
-          if (userEarnings) {
-            await this.prisma.reward.create({
-              data: {
-                userId: user.id,
-                earning: roundedUserEarnings.toString(),
-                points: user.totalPoints,
-                sportTournamentId: tournament.id,
-                claimed: 'DEFAULT',
-                type: 'SPORT',
-                totalTournamentPoints: totalPointsForPickedUsers,
-              },
-            });
-
-            rewardData.push({
-              addr: user.address,
-              amount: Number(userEarnings.toString()) * env.hiro.ticketPrice,
-            });
-          }
+          rewardData.push({
+            addr: user.address,
+            amount: userEarnings.toNumber(),
+          });
         }
 
         allTxData.push({
