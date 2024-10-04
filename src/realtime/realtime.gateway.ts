@@ -19,12 +19,10 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Queue } from 'bullmq';
 import { env } from 'configs/env.config';
 import { JwtService } from '@nestjs/jwt';
 import { GameType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
-import { InjectQueue } from '@nestjs/bullmq';
 import { StatusCodes } from 'enums/StatusCodes';
 import { MiscService } from 'libs/misc.service';
 import { RandomService } from 'libs/random.service';
@@ -57,7 +55,6 @@ export class RealtimeGateway
     private readonly jwtService: JwtService,
     private readonly realtimeService: RealtimeService,
     private readonly blackjackService: BlackjackService,
-    @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
   ) {}
 
   private clients: Map<Socket, JwtPayload> = new Map();
@@ -206,7 +203,7 @@ export class RealtimeGateway
     client.emit('coin-flip-result', { ...round, win, outcome });
 
     if (savedRound) {
-      await this.tournamentQueue.add('game', {
+      await this.prisma.tournamentArg('game', {
         stake,
         userId: sub,
         id: currentTournament.id,
@@ -306,7 +303,7 @@ export class RealtimeGateway
     client.emit('dice-roll-result', { ...round, win, rolls });
 
     if (savedRound) {
-      await this.tournamentQueue.add('game', {
+      await this.prisma.tournamentArg('game', {
         stake,
         userId: sub,
         id: currentTournament.id,
@@ -414,7 +411,7 @@ export class RealtimeGateway
     client.emit('roulette-spin-result', { ...round, win, outcome, result });
 
     if (savedRound) {
-      await this.tournamentQueue.add('game', {
+      await this.prisma.tournamentArg('game', {
         stake,
         userId: sub,
         id: currentTournament.id,
@@ -608,7 +605,7 @@ export class RealtimeGateway
 
     client.emit('blindbox-started', { boardSize: 4, tickets });
 
-    await this.tournamentQueue.add('game', {
+    await this.prisma.tournamentArg('game', {
       userId: sub,
       stake: tickets,
       id: currentTournament.id,
@@ -812,7 +809,7 @@ export class RealtimeGateway
     client.broadcast.emit('new-lottery-round', { round });
 
     if (round) {
-      await this.tournamentQueue.add('game', {
+      await this.prisma.tournamentArg('game', {
         stake,
         userId: sub,
         id: currentTournament.id,
@@ -1022,13 +1019,12 @@ export class RealtimeGateway
         },
       });
 
-      await this.tournamentQueue.add('game', {
-        userId: sub,
-        stake: game.stake,
-        id: currentTournament.id,
-      });
-
       if (stat) {
+        await this.prisma.tournamentArg('game', {
+          userId: sub,
+          stake: game.stake,
+          id: currentTournament.id,
+        });
         this.spaceInvaderGames.delete(sub);
       }
     }

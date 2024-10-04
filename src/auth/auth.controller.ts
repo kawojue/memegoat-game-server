@@ -105,8 +105,8 @@ export class AuthController {
   }
 
   @Get('/tournament-stats')
-  async tournamentStat(@Res() res: Response) {
-    const data = await this.authService.tournamentStat();
+  async tournamentStatS(@Res() res: Response) {
+    const data = await this.authService.tournamentStatS();
     return this.response.sendSuccess(res, StatusCodes.OK, data);
   }
 }

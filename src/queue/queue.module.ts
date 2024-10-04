@@ -4,7 +4,6 @@ import { BullModule } from '@nestjs/bullmq';
 import { ApiService } from 'libs/api.service';
 import { StoreModule } from 'src/store/store.module';
 import { PrismaService } from 'prisma/prisma.service';
-import { CurrentTournamentProcessor } from './tournament.processor';
 import { TransactionsQueueProcessor } from './transactions.processor';
 import { FootballSportsQueueProcessor } from './football-sport.processor';
 
@@ -30,13 +29,6 @@ const SharedModule = BullModule.registerQueue(
       removeOnComplete: true,
     },
   },
-  {
-    name: 'current-tournament-queue',
-    defaultJobOptions: {
-      removeOnFail: true,
-      removeOnComplete: true,
-    },
-  },
 );
 
 @Module({
@@ -44,7 +36,6 @@ const SharedModule = BullModule.registerQueue(
   providers: [
     ApiService,
     PrismaService,
-    CurrentTournamentProcessor,
     TransactionsQueueProcessor,
     FootballSportsQueueProcessor,
   ],
