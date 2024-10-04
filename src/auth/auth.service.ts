@@ -221,36 +221,19 @@ export class AuthService {
     });
   }
 
-  async tournamentStat() {
+  async tournamentStatS() {
     let currentGameTournament = await this.prisma.currentGameTournament();
     let currentSportTournament = await this.prisma.currentSportTournament();
+
+    let totalGameStakes = currentGameTournament?.totalStakes || 0;
+    let totalSportStakes = currentSportTournament?.totalStakes || 0;
 
     delete currentGameTournament?.totalStakes;
     delete currentSportTournament?.totalStakes;
 
-    let totalGameStakes: number = 0;
-    let totalSportStakes: number = 0;
-
-    if (currentGameTournament) {
-      const roundAggregate = await this.prisma.round.aggregate({
-        where: { gameTournamentId: currentGameTournament.id },
-        _sum: { stake: true },
-      });
-
-      totalGameStakes = roundAggregate._sum.stake ?? 0;
-    }
-
-    if (currentSportTournament) {
-      const betAggregate = await this.prisma.sportBet.aggregate({
-        where: { sportTournamentId: currentSportTournament.id },
-        _sum: { stake: true },
-      });
-
-      totalSportStakes = betAggregate._sum.stake ?? 0;
-    }
-
     const gameTournament = {
       ...currentGameTournament,
+      totalStakes: undefined,
       totalTicketStakes: totalGameStakes,
       stxAmount: this.misc.getStxAmount(totalGameStakes),
     };

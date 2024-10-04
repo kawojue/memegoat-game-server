@@ -3,7 +3,6 @@ import {
   FetchFixturesDTO,
   PlaceFootballBetDTO,
 } from './sports.dto';
-import { Queue } from 'bullmq';
 import {
   Injectable,
   ConflictException,
@@ -11,7 +10,6 @@ import {
   BadRequestException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
 import { ApiService } from 'libs/api.service';
 import { MiscService } from 'libs/misc.service';
 import { Prisma, SportType } from '@prisma/client';
@@ -25,7 +23,6 @@ export class SportsService {
     private readonly misc: MiscService,
     private readonly prisma: PrismaService,
     private readonly apiService: ApiService,
-    @InjectQueue('current-tournament-queue') private tournamentQueue: Queue,
   ) {}
 
   private paginateArray<T>(array: Array<T>, page = 1, limit = 10) {
@@ -240,12 +237,10 @@ export class SportsService {
         },
       });
 
-      await this.tournamentQueue.add('sport', {
+      await this.prisma.tournamentArg('sport', {
         stake,
         userId,
         id: currentTournament.id,
-        end: currentTournament.end,
-        start: currentTournament.start,
       });
     }
 
@@ -386,7 +381,7 @@ export class SportsService {
         },
       });
 
-      await this.tournamentQueue.add('sport', {
+      await this.prisma.tournamentArg('sport', {
         stake,
         userId,
         id: currentTournament.id,

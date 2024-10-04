@@ -1,22 +1,20 @@
-import { Module } from '@nestjs/common'
-import { JwtService } from '@nestjs/jwt'
-import { MiscService } from 'libs/misc.service'
-import { RandomService } from 'libs/random.service'
-import { RealtimeGateway } from './realtime.gateway'
-import { RealtimeService } from './realtime.service'
-import { QueueModule } from 'src/queue/queue.module'
-import { PrismaService } from 'prisma/prisma.service'
-import { ResponseService } from 'libs/response.service'
-import { BlackjackService } from 'libs/blackJack.service'
+import { Module } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { MiscService } from 'libs/misc.service';
+import { RandomService } from 'libs/random.service';
+import { RealtimeGateway } from './realtime.gateway';
+import { RealtimeService } from './realtime.service';
+import { PrismaService } from 'prisma/prisma.service';
+import { ResponseService } from 'libs/response.service';
+import { BlackjackService } from 'libs/blackJack.service';
 
 @Module({
-  imports: [QueueModule],
   providers: [
     RealtimeGateway,
     RealtimeService,
     {
       provide: RandomService,
-      useFactory: () => new RandomService('sha256')
+      useFactory: () => new RandomService('sha256'),
     },
     JwtService,
     MiscService,
@@ -25,4 +23,4 @@ import { BlackjackService } from 'libs/blackJack.service'
     BlackjackService,
   ],
 })
-export class RealtimeModule { }
+export class RealtimeModule {}

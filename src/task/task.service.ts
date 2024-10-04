@@ -235,7 +235,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async rewardAndRefreshGameTournament() {
     let currentTime = new Date(new Date().toUTCString());
 
