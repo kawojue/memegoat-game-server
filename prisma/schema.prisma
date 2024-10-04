@@ -15,6 +15,7 @@ model TicketRecords {
   usedTickets     Int      @default(0)
   rolloverTickets Int      @default(0)
   rolloverRatio   Int      @default(0)
+  payableTickets  Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
