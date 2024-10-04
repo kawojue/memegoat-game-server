@@ -43,6 +43,28 @@ export class TaskService {
     return points;
   }
 
+  calculateNumberOfUsersToReward(participatedUsers: number) {
+    let percentage: number;
+
+    if (participatedUsers <= 5) {
+      percentage = 50;
+    } else if (participatedUsers <= 10) {
+      percentage = 33;
+    } else if (participatedUsers <= 100) {
+      percentage = 20;
+    } else if (participatedUsers <= 1000) {
+      percentage = 10;
+    } else {
+      percentage = 5;
+    }
+
+    let numberOfUsersToReward = Math.ceil(
+      (participatedUsers * percentage) / 100,
+    );
+
+    return numberOfUsersToReward;
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
   async refreshFootballBets() {
     const batchSize = 19; // max is 20, I am just being skeptical
@@ -230,7 +252,6 @@ export class TaskService {
           },
         },
       ],
-      paused: false,
       disbursed: false,
     };
 
@@ -287,15 +308,8 @@ export class TaskService {
 
         const participatedUsers = groupRoundsByUser.length;
 
-        let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
-
-        if (participatedUsers <= 10) {
-          numberOfUsersToReward = Math.ceil(participatedUsers / 3);
-        }
-
-        if (participatedUsers <= 5) {
-          numberOfUsersToReward = Math.ceil(participatedUsers / 2);
-        }
+        let numberOfUsersToReward =
+          this.calculateNumberOfUsersToReward(participatedUsers);
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
 
@@ -430,7 +444,7 @@ export class TaskService {
     if (!currentTournament) {
       const start = currentTime;
       const end = new Date(start);
-      end.setUTCDate(start.getUTCDate() + 7);
+      end.setUTCDate(start.getUTCDate() + 3);
 
       currentTournament = await this.prisma.tournament.create({
         data: { start, end },
@@ -522,15 +536,8 @@ export class TaskService {
 
         const participatedUsers = groupBetsBy.length;
 
-        let numberOfUsersToReward = Math.ceil(participatedUsers / 10);
-
-        if (participatedUsers <= 10) {
-          numberOfUsersToReward = Math.ceil(participatedUsers / 5);
-        }
-
-        if (participatedUsers <= 5) {
-          numberOfUsersToReward = Math.ceil(participatedUsers / 2);
-        }
+        let numberOfUsersToReward =
+          this.calculateNumberOfUsersToReward(participatedUsers);
 
         const usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
 
