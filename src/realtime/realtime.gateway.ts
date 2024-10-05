@@ -985,6 +985,11 @@ export class RealtimeGateway
       return;
     }
 
+    this.spaceInvaderGames.set(sub, {
+      ...game,
+      currentTournamentId: currentTournament.id,
+    });
+
     let totalPoints = points * game.lives;
     const throttle = Math.floor(points / game.stake);
 
@@ -1003,7 +1008,7 @@ export class RealtimeGateway
         point: totalPoints,
         game_type: 'SpaceInvader',
         user: { connect: { id: sub } },
-        gameTournament: { connect: { id: currentTournament.id } },
+        gameTournament: { connect: { id: game.currentTournamentId } },
       },
     });
 
@@ -1023,7 +1028,7 @@ export class RealtimeGateway
         await this.prisma.tournamentArg('game', {
           userId: sub,
           stake: game.stake,
-          id: currentTournament.id,
+          id: game.currentTournamentId,
         });
         this.spaceInvaderGames.delete(sub);
       }

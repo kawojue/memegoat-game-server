@@ -75,23 +75,21 @@ export class PrismaService
             },
           });
 
-          if (!sportBet) {
-            await this.sportTournament.update({
-              where: { id },
-              data: {
-                uniqueUsers: { increment: 1 },
-                totalStakes: { increment: stake },
-              },
-            });
-          } else {
-            await this.sportTournament.update({
-              where: { id },
-              data: { totalStakes: { increment: stake } },
-            });
-          }
-        });
-
+          await this.sportTournament.update({
+            where: { id },
+            data:
+              sportBet === null
+                ? {
+                    uniqueUsers: { increment: 1 },
+                    totalStakes: { increment: stake },
+                  }
+                : {
+                    totalStakes: { increment: stake },
+                  },
+          });
+        }, 2);
         break;
+
       case 'game':
         await this.retryTransaction(async () => {
           const gameRound = await this.round.findFirst({
@@ -101,25 +99,23 @@ export class PrismaService
             },
           });
 
-          if (!gameRound) {
-            await this.tournament.update({
-              where: { id },
-              data: {
-                uniqueUsers: { increment: 1 },
-                totalStakes: { increment: stake },
-              },
-            });
-          } else {
-            await this.tournament.update({
-              where: { id },
-              data: { totalStakes: { increment: stake } },
-            });
-          }
-        });
+          await this.tournament.update({
+            where: { id },
+            data:
+              gameRound === null
+                ? {
+                    uniqueUsers: { increment: 1 },
+                    totalStakes: { increment: stake },
+                  }
+                : {
+                    totalStakes: { increment: stake },
+                  },
+          });
+        }, 2);
+        break;
 
-        break;
       default:
-        break;
+        throw new Error(`Unknown tournament type: ${name}`);
     }
   }
 }
