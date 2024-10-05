@@ -459,7 +459,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_2_HOURS)
   async rewardAndRefreshSportTournament() {
     const currentTime = new Date(new Date().toUTCString());
 
