@@ -464,7 +464,7 @@ export class SportsService {
 
         const earnings = _sum?.earning ?? new Decimal(0);
 
-        return { ...l, earnings: earnings.toNumber() };
+        return { ...l, earnings: earnings.toNumber() / 10 };
       }),
     );
 
