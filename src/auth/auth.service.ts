@@ -231,6 +231,24 @@ export class AuthService {
     delete currentGameTournament?.totalStakes;
     delete currentSportTournament?.totalStakes;
 
+    if (currentGameTournament) {
+      const stakes = await this.prisma.round.aggregate({
+        where: { gameTournamentId: currentGameTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalGameStakes = stakes._sum?.stake;
+    }
+
+    if (currentSportTournament) {
+      const stakes = await this.prisma.sportBet.aggregate({
+        where: { sportTournamentId: currentSportTournament.id },
+        _sum: { stake: true },
+      });
+
+      totalSportStakes = stakes._sum.stake;
+    }
+
     const gameTournament = {
       ...currentGameTournament,
       totalStakes: undefined,
