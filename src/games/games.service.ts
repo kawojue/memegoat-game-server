@@ -65,7 +65,7 @@ export class GamesService {
 
         const earnings = _sum?.earning ?? new Decimal(0);
 
-        return { ...l, earnings: this.misc.getStxAmount(earnings.toNumber()) };
+        return { ...l, earnings: earnings.toNumber() };
       }),
     );
 
