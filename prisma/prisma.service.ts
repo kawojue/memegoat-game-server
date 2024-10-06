@@ -57,60 +57,68 @@ export class PrismaService
     name: 'sport' | 'game',
     {
       id,
-      userId,
       stake,
+      userId,
     }: {
       id: string;
       stake: number;
       userId: string;
     },
   ) {
+    const user = await this.user.findUnique({
+      where: { id: userId },
+    });
+
     switch (name) {
       case 'sport':
         await this.retryTransaction(async () => {
-          const sportBet = await this.sportBet.findFirst({
-            where: {
-              userId,
-              sportTournamentId: id,
-            },
-          });
+          if (user) {
+            const sportBetsCount = await this.sportBet.count({
+              where: {
+                userId: user.id,
+                sportTournamentId: id,
+              },
+            });
 
-          await this.sportTournament.update({
-            where: { id },
-            data:
-              sportBet === null
-                ? {
-                    uniqueUsers: { increment: 1 },
-                    totalStakes: { increment: stake },
-                  }
-                : {
-                    totalStakes: { increment: stake },
-                  },
-          });
+            await this.sportTournament.update({
+              where: { id },
+              data:
+                sportBetsCount === 0
+                  ? {
+                      uniqueUsers: { increment: 1 },
+                      totalStakes: { increment: stake },
+                    }
+                  : {
+                      totalStakes: { increment: stake },
+                    },
+            });
+          }
         }, 2);
         break;
 
       case 'game':
         await this.retryTransaction(async () => {
-          const gameRound = await this.round.findFirst({
-            where: {
-              userId,
-              gameTournamentId: id,
-            },
-          });
+          if (user) {
+            const gameRoundsCount = await this.round.count({
+              where: {
+                userId: user.id,
+                gameTournamentId: id,
+              },
+            });
 
-          await this.tournament.update({
-            where: { id },
-            data:
-              gameRound === null
-                ? {
-                    uniqueUsers: { increment: 1 },
-                    totalStakes: { increment: stake },
-                  }
-                : {
-                    totalStakes: { increment: stake },
-                  },
-          });
+            await this.tournament.update({
+              where: { id },
+              data:
+                gameRoundsCount === 0
+                  ? {
+                      uniqueUsers: { increment: 1 },
+                      totalStakes: { increment: stake },
+                    }
+                  : {
+                      totalStakes: { increment: stake },
+                    },
+            });
+          }
         }, 2);
         break;
 
