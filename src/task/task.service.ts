@@ -675,10 +675,10 @@ export class TaskService {
       }),
     );
 
-    for (const tx of allTxData) {
-      await this.tournamentReward.storeTournamentRewards(tx, 2);
-      await new Promise((resolve) => setTimeout(resolve, 3600));
-    }
+    // for (const tx of allTxData) {
+    //   await this.tournamentReward.storeTournamentRewards(tx, 2);
+    //   await new Promise((resolve) => setTimeout(resolve, 3600));
+    // }
 
     const refreshedTime = new Date(new Date().toUTCString());
     let currentTournament = await this.prisma.sportTournament.findFirst({
