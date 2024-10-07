@@ -459,7 +459,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_2_HOURS)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async rewardAndRefreshSportTournament() {
     const currentTime = new Date(new Date().toUTCString());
 
@@ -628,7 +628,7 @@ export class TaskService {
                   userId: user.id,
                   earning: userEarnings.dividedBy(ticketPrice).toString(),
                   points: user.totalPoints,
-                  gameTournamentId: tournament.id,
+                  sportTournamentId: tournament.id,
                   claimed: 'DEFAULT',
                   type: 'SPORT',
                   totalTournamentPoints: totalPointsForPickedUsers,
