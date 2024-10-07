@@ -628,7 +628,7 @@ export class TaskService {
                   userId: user.id,
                   earning: userEarnings.dividedBy(ticketPrice).toString(),
                   points: user.totalPoints,
-                  gameTournamentId: tournament.id,
+                  sportTournamentId: tournament.id,
                   claimed: 'DEFAULT',
                   type: 'SPORT',
                   totalTournamentPoints: totalPointsForPickedUsers,
