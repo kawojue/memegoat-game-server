@@ -262,173 +262,171 @@ export class TaskService {
 
     const allTxData: txData[] = [];
 
-    await Promise.all(
-      tournamentsToProcess.map(async (tournament) => {
-        await this.prisma.retryTransaction(async () => {
-          await this.prisma.tournament.update({
-            where: { id: tournament.id },
-            data: { paused: true },
-          });
+    for (const tournament of tournamentsToProcess) {
+      await this.prisma.retryTransaction(async () => {
+        await this.prisma.tournament.update({
+          where: { id: tournament.id },
+          data: { paused: true },
+        });
 
-          const leaderboard = await this.prisma.user.findMany({
-            where: { active: true },
-            select: {
-              id: true,
-              address: true,
-              rounds: {
-                where: { gameTournamentId: tournament.id },
-                select: { stake: true, point: true },
-              },
+        const leaderboard = await this.prisma.user.findMany({
+          where: { active: true },
+          select: {
+            id: true,
+            address: true,
+            rounds: {
+              where: { gameTournamentId: tournament.id },
+              select: { stake: true, point: true },
             },
-          });
+          },
+        });
 
-          const {
-            _sum: { stake: totalTournamentStakes },
-          } = await this.prisma.round.aggregate({
-            where: { gameTournamentId: tournament.id },
-            _sum: { stake: true },
-          });
+        const {
+          _sum: { stake: totalTournamentStakes },
+        } = await this.prisma.round.aggregate({
+          where: { gameTournamentId: tournament.id },
+          _sum: { stake: true },
+        });
 
-          const groupRoundsByUser = await this.prisma.round.groupBy({
-            where: { gameTournamentId: tournament.id },
-            by: ['userId'],
-          });
+        const groupRoundsByUser = await this.prisma.round.groupBy({
+          where: { gameTournamentId: tournament.id },
+          by: ['userId'],
+        });
 
-          const leaderboardWithPoints = leaderboard.map((user) => {
-            const totalPoints = user.rounds.reduce(
-              (acc, round) => acc + (round?.point || 0),
-              0,
-            );
-            return { ...user, totalPoints };
-          });
-
-          const sortedLeaderboard = leaderboardWithPoints.sort(
-            (a, b) => b.totalPoints - a.totalPoints,
-          );
-
-          const participatedUsers = groupRoundsByUser.length;
-
-          const numberOfUsersToReward =
-            this.calculateNumberOfUsersToReward(participatedUsers);
-
-          let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
-          const lastRewardedPoints =
-            usersToReward[numberOfUsersToReward - 1]?.totalPoints;
-
-          usersToReward = sortedLeaderboard.filter(
-            (user, index) =>
-              index < numberOfUsersToReward ||
-              user.totalPoints === lastRewardedPoints,
-          );
-
-          if (usersToReward.length === 0) {
-            return;
-          }
-
-          const totalPointsForPickedUsers = usersToReward.reduce(
-            (acc, user) => acc + user.totalPoints,
+        const leaderboardWithPoints = leaderboard.map((user) => {
+          const totalPoints = user.rounds.reduce(
+            (acc, round) => acc + (round?.point || 0),
             0,
           );
+          return { ...user, totalPoints };
+        });
 
-          const ticketRecord = await this.prisma.ticketRecords.findFirst({
-            where: { rolloverRatio: 0 },
-            orderBy: { createdAt: 'desc' },
-          });
+        const sortedLeaderboard = leaderboardWithPoints.sort(
+          (a, b) => b.totalPoints - a.totalPoints,
+        );
 
-          let rolloverTickets = 0;
-          let rolloverRatio = 0;
-          let totalSold = 0;
-          let totalFree = 0;
+        const participatedUsers = groupRoundsByUser.length;
 
-          if (ticketRecord) {
-            if (ticketRecord.lastId) {
-              const prevRecord = await this.prisma.ticketRecords.findUnique({
-                where: { id: ticketRecord.lastId },
-              });
-              if (prevRecord) {
-                rolloverRatio = prevRecord.rolloverRatio;
-                rolloverTickets = prevRecord.rolloverTickets;
-              }
+        const numberOfUsersToReward =
+          this.calculateNumberOfUsersToReward(participatedUsers);
+
+        let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+        const lastRewardedPoints =
+          usersToReward[numberOfUsersToReward - 1]?.totalPoints;
+
+        usersToReward = sortedLeaderboard.filter(
+          (user, index) =>
+            index < numberOfUsersToReward ||
+            user.totalPoints === lastRewardedPoints,
+        );
+
+        if (usersToReward.length === 0) {
+          return;
+        }
+
+        const totalPointsForPickedUsers = usersToReward.reduce(
+          (acc, user) => acc + user.totalPoints,
+          0,
+        );
+
+        const ticketRecord = await this.prisma.ticketRecords.findFirst({
+          where: { rolloverRatio: 0 },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        let rolloverTickets = 0;
+        let rolloverRatio = 0;
+        let totalSold = 0;
+        let totalFree = 0;
+
+        if (ticketRecord) {
+          if (ticketRecord.lastId) {
+            const prevRecord = await this.prisma.ticketRecords.findUnique({
+              where: { id: ticketRecord.lastId },
+            });
+            if (prevRecord) {
+              rolloverRatio = prevRecord.rolloverRatio;
+              rolloverTickets = prevRecord.rolloverTickets;
             }
-            totalFree = ticketRecord.freeTickets;
-            totalSold = ticketRecord.boughtTickets;
           }
+          totalFree = ticketRecord.freeTickets;
+          totalSold = ticketRecord.boughtTickets;
+        }
 
-          const payableRecord = calculatePayableTickets(
-            { rolloverTickets, rolloverRatio },
-            {
-              totalTicketsUsed: totalTournamentStakes,
-              totalFreeTickets: totalFree,
-              totalTicketsBought: totalSold,
-            },
-          );
+        const payableRecord = calculatePayableTickets(
+          { rolloverTickets, rolloverRatio },
+          {
+            totalTicketsUsed: totalTournamentStakes,
+            totalFreeTickets: totalFree,
+            totalTicketsBought: totalSold,
+          },
+        );
 
-          await this.prisma.ticketRecords.update({
-            where: { id: ticketRecord.id },
-            data: {
-              usedTickets: totalTournamentStakes,
-              payableTickets: payableRecord.payableTickets,
-              rolloverRatio: payableRecord.rolloverRatio * 1e6,
-              rolloverTickets: payableRecord.rolloverTickets,
-            },
-          });
+        await this.prisma.ticketRecords.update({
+          where: { id: ticketRecord.id },
+          data: {
+            usedTickets: totalTournamentStakes,
+            payableTickets: payableRecord.payableTickets,
+            rolloverRatio: payableRecord.rolloverRatio * 1e6,
+            rolloverTickets: payableRecord.rolloverTickets,
+          },
+        });
 
-          await this.prisma.ticketRecords.create({
-            data: { lastId: ticketRecord.id },
-          });
+        await this.prisma.ticketRecords.create({
+          data: { lastId: ticketRecord.id },
+        });
 
-          const rewardData: RewardData[] = [];
-          const ticketPrice = new BigNumber(env.hiro.ticketPrice);
+        const rewardData: RewardData[] = [];
+        const ticketPrice = new BigNumber(env.hiro.ticketPrice);
 
-          const remaining = new BigNumber(payableRecord.payableTickets)
-            .multipliedBy(ticketPrice)
-            .multipliedBy(new BigNumber('97.95'))
-            .div(new BigNumber('100'));
+        const remaining = new BigNumber(payableRecord.payableTickets)
+          .multipliedBy(ticketPrice)
+          .multipliedBy(new BigNumber('97.95'))
+          .div(new BigNumber('100'));
 
-          await Promise.all(
-            usersToReward.map(async (user) => {
-              const userProportion = new BigNumber(user.totalPoints).div(
-                new BigNumber(totalPointsForPickedUsers),
-              );
+        await Promise.all(
+          usersToReward.map(async (user) => {
+            const userProportion = new BigNumber(user.totalPoints).div(
+              new BigNumber(totalPointsForPickedUsers),
+            );
 
-              const userEarnings = remaining.multipliedBy(userProportion);
+            const userEarnings = remaining.multipliedBy(userProportion);
 
-              await this.prisma.reward.create({
-                data: {
-                  userId: user.id,
-                  earning: userEarnings.dividedBy(ticketPrice).toString(),
-                  points: user.totalPoints,
-                  gameTournamentId: tournament.id,
-                  claimed: 'DEFAULT',
-                  type: 'GAME',
-                  totalTournamentPoints: totalPointsForPickedUsers,
-                },
-              });
+            await this.prisma.reward.create({
+              data: {
+                userId: user.id,
+                earning: userEarnings.dividedBy(ticketPrice).toString(),
+                points: user.totalPoints,
+                gameTournamentId: tournament.id,
+                claimed: 'DEFAULT',
+                type: 'GAME',
+                totalTournamentPoints: totalPointsForPickedUsers,
+              },
+            });
 
-              rewardData.push({
-                addr: user.address,
-                amount: userEarnings.toNumber(),
-              });
-            }),
-          );
+            rewardData.push({
+              addr: user.address,
+              amount: userEarnings.toNumber(),
+            });
+          }),
+        );
 
-          allTxData.push({
-            rewardData,
-            totalTicketsUsed: payableRecord.payableTickets,
-            totalNoOfPlayers: participatedUsers,
-            tournamentId: tournament.id,
-          });
+        allTxData.push({
+          rewardData,
+          totalTicketsUsed: payableRecord.payableTickets,
+          totalNoOfPlayers: participatedUsers,
+          tournamentId: tournament.id,
+        });
 
-          await this.prisma.tournament.update({
-            where: { id: tournament.id },
-            data: {
-              disbursed: true,
-              numberOfUsersRewarded: usersToReward.length,
-            },
-          });
-        }, 2);
-      }),
-    );
+        await this.prisma.tournament.update({
+          where: { id: tournament.id },
+          data: {
+            disbursed: true,
+            numberOfUsersRewarded: usersToReward.length,
+          },
+        });
+      }, 2);
+    }
 
     for (const tx of allTxData) {
       await this.tournamentReward.storeTournamentRewards(tx, 1);
@@ -479,201 +477,199 @@ export class TaskService {
 
     const allTxData: txData[] = [];
 
-    await Promise.all(
-      tournamentsToProcess.map(async (tournament) => {
-        await this.prisma.retryTransaction(async () => {
-          await this.prisma.sportTournament.update({
-            where: { id: tournament.id },
-            data: { paused: true },
-          });
+    for (const tournament of tournamentsToProcess) {
+      await this.prisma.retryTransaction(async () => {
+        await this.prisma.sportTournament.update({
+          where: { id: tournament.id },
+          data: { paused: true },
+        });
 
-          const whereClause: Prisma.SportBetWhereInput = {
-            disbursed: false,
-            status: 'FINISHED',
-            outcome: { in: ['WIN', 'LOSE'] },
-            sportTournamentId: tournament.id,
-          };
+        const whereClause: Prisma.SportBetWhereInput = {
+          disbursed: false,
+          status: 'FINISHED',
+          outcome: { in: ['WIN', 'LOSE'] },
+          sportTournamentId: tournament.id,
+        };
 
-          const betsAggregate = await this.prisma.sportBet.aggregate({
-            where: whereClause,
-            _sum: { stake: true },
-          });
+        const betsAggregate = await this.prisma.sportBet.aggregate({
+          where: whereClause,
+          _sum: { stake: true },
+        });
 
-          const leaderboard = await this.prisma.user.findMany({
-            where: { active: true },
-            select: {
-              id: true,
-              address: true,
-              sportBets: {
-                where: whereClause,
-                select: {
-                  id: true,
-                  sportRound: {
-                    select: { point: true },
-                  },
+        const leaderboard = await this.prisma.user.findMany({
+          where: { active: true },
+          select: {
+            id: true,
+            address: true,
+            sportBets: {
+              where: whereClause,
+              select: {
+                id: true,
+                sportRound: {
+                  select: { point: true },
                 },
               },
             },
-          });
+          },
+        });
 
-          const groupBetsBy = await this.prisma.sportBet.groupBy({
-            where: whereClause,
-            by: ['userId'],
-          });
+        const groupBetsBy = await this.prisma.sportBet.groupBy({
+          where: whereClause,
+          by: ['userId'],
+        });
 
-          let totalTournamentPoints = 0;
-          const leaderboardWithPoints = leaderboard.map((user) => {
-            const totalPoints = user.sportBets.reduce(
-              (acc, bet) => acc + (bet.sportRound?.point || 0),
-              0,
-            );
-            totalTournamentPoints += totalPoints;
-            return { ...user, totalPoints };
-          });
-
-          const sortedLeaderboard = leaderboardWithPoints.sort(
-            (a, b) => b.totalPoints - a.totalPoints,
-          );
-
-          const participatedUsers = groupBetsBy.length;
-
-          const numberOfUsersToReward =
-            this.calculateNumberOfUsersToReward(participatedUsers);
-
-          let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
-          const lastRewardedPoints =
-            usersToReward[numberOfUsersToReward - 1]?.totalPoints;
-
-          usersToReward = sortedLeaderboard.filter(
-            (user, index) =>
-              index < numberOfUsersToReward ||
-              user.totalPoints === lastRewardedPoints,
-          );
-
-          const totalPointsForPickedUsers = usersToReward.reduce(
-            (acc, user) => acc + user.totalPoints,
+        let totalTournamentPoints = 0;
+        const leaderboardWithPoints = leaderboard.map((user) => {
+          const totalPoints = user.sportBets.reduce(
+            (acc, bet) => acc + (bet.sportRound?.point || 0),
             0,
           );
-
-          const ticketRecord = await this.prisma.ticketRecords.findFirst({
-            where: { rolloverRatio: 0 },
-            orderBy: { createdAt: 'desc' },
-          });
-
-          let rolloverTickets = 0;
-          let rolloverRatio = 0;
-          let totalSold = 0;
-          let totalFree = 0;
-
-          if (ticketRecord) {
-            if (ticketRecord.lastId) {
-              const prevRecord = await this.prisma.ticketRecords.findUnique({
-                where: { id: ticketRecord.lastId },
-              });
-              if (prevRecord) {
-                rolloverRatio = prevRecord.rolloverRatio;
-                rolloverTickets = prevRecord.rolloverTickets;
-              }
-            }
-            totalFree = ticketRecord.freeTickets;
-            totalSold = ticketRecord.boughtTickets;
-          }
-
-          const totalStakes = betsAggregate._sum.stake;
-          const payableRecord = calculatePayableTickets(
-            {
-              rolloverTickets,
-              rolloverRatio,
-            },
-            {
-              totalTicketsUsed: totalStakes,
-              totalFreeTickets: totalFree,
-              totalTicketsBought: totalSold,
-            },
-          );
-
-          await this.prisma.ticketRecords.update({
-            where: { id: ticketRecord.id },
-            data: {
-              usedTickets: totalStakes,
-              payableTickets: payableRecord.payableTickets,
-              rolloverRatio: payableRecord.rolloverRatio * 1e6,
-              rolloverTickets: payableRecord.rolloverTickets,
-            },
-          });
-
-          await this.prisma.ticketRecords.create({
-            data: {
-              lastId: ticketRecord.id,
-            },
-          });
-
-          const rewardData: RewardData[] = [];
-          const ticketPrice = new BigNumber(env.hiro.ticketPrice);
-          const remaining = new BigNumber(payableRecord.payableTickets)
-            .multipliedBy(ticketPrice)
-            .multipliedBy(new BigNumber('97.95'))
-            .div(new BigNumber('100'));
-
-          await Promise.all(
-            usersToReward.map(async (user) => {
-              const userProportion = new BigNumber(user.totalPoints).div(
-                new BigNumber(totalPointsForPickedUsers),
-              );
-
-              const userEarnings = remaining.multipliedBy(userProportion);
-
-              await this.prisma.reward.create({
-                data: {
-                  userId: user.id,
-                  earning: userEarnings.dividedBy(ticketPrice).toString(),
-                  points: user.totalPoints,
-                  sportTournamentId: tournament.id,
-                  claimed: 'DEFAULT',
-                  type: 'SPORT',
-                  totalTournamentPoints: totalPointsForPickedUsers,
-                },
-              });
-
-              rewardData.push({
-                addr: user.address,
-                amount: userEarnings.toNumber(),
-              });
-            }),
-          );
-
-          allTxData.push({
-            rewardData,
-            totalTicketsUsed: payableRecord.payableTickets,
-            totalNoOfPlayers: participatedUsers,
-            tournamentId: tournament.id,
-          });
-
-          const sportBetIds = leaderboard.flatMap((user) =>
-            user.sportBets.map((bet) => bet.id),
-          );
-
-          if (sportBetIds.length > 0) {
-            await this.prisma.sportBet.updateMany({
-              where: {
-                id: { in: sportBetIds },
-              },
-              data: { disbursed: true },
-            });
-          }
-
-          await this.prisma.sportTournament.update({
-            where: { id: tournament.id },
-            data: {
-              totalStakes,
-              paused: false,
-              uniqueUsers: participatedUsers,
-              numberOfUsersRewarded: { increment: usersToReward.length },
-            },
-          });
+          totalTournamentPoints += totalPoints;
+          return { ...user, totalPoints };
         });
-      }),
-    );
+
+        const sortedLeaderboard = leaderboardWithPoints.sort(
+          (a, b) => b.totalPoints - a.totalPoints,
+        );
+
+        const participatedUsers = groupBetsBy.length;
+
+        const numberOfUsersToReward =
+          this.calculateNumberOfUsersToReward(participatedUsers);
+
+        let usersToReward = sortedLeaderboard.slice(0, numberOfUsersToReward);
+        const lastRewardedPoints =
+          usersToReward[numberOfUsersToReward - 1]?.totalPoints;
+
+        usersToReward = sortedLeaderboard.filter(
+          (user, index) =>
+            index < numberOfUsersToReward ||
+            user.totalPoints === lastRewardedPoints,
+        );
+
+        const totalPointsForPickedUsers = usersToReward.reduce(
+          (acc, user) => acc + user.totalPoints,
+          0,
+        );
+
+        const ticketRecord = await this.prisma.ticketRecords.findFirst({
+          where: { rolloverRatio: 0 },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        let rolloverTickets = 0;
+        let rolloverRatio = 0;
+        let totalSold = 0;
+        let totalFree = 0;
+
+        if (ticketRecord) {
+          if (ticketRecord.lastId) {
+            const prevRecord = await this.prisma.ticketRecords.findUnique({
+              where: { id: ticketRecord.lastId },
+            });
+            if (prevRecord) {
+              rolloverRatio = prevRecord.rolloverRatio;
+              rolloverTickets = prevRecord.rolloverTickets;
+            }
+          }
+          totalFree = ticketRecord.freeTickets;
+          totalSold = ticketRecord.boughtTickets;
+        }
+
+        const totalStakes = betsAggregate._sum.stake;
+        const payableRecord = calculatePayableTickets(
+          {
+            rolloverTickets,
+            rolloverRatio,
+          },
+          {
+            totalTicketsUsed: totalStakes,
+            totalFreeTickets: totalFree,
+            totalTicketsBought: totalSold,
+          },
+        );
+
+        await this.prisma.ticketRecords.update({
+          where: { id: ticketRecord.id },
+          data: {
+            usedTickets: totalStakes,
+            payableTickets: payableRecord.payableTickets,
+            rolloverRatio: payableRecord.rolloverRatio * 1e6,
+            rolloverTickets: payableRecord.rolloverTickets,
+          },
+        });
+
+        await this.prisma.ticketRecords.create({
+          data: {
+            lastId: ticketRecord.id,
+          },
+        });
+
+        const rewardData: RewardData[] = [];
+        const ticketPrice = new BigNumber(env.hiro.ticketPrice);
+        const remaining = new BigNumber(payableRecord.payableTickets)
+          .multipliedBy(ticketPrice)
+          .multipliedBy(new BigNumber('97.95'))
+          .div(new BigNumber('100'));
+
+        await Promise.all(
+          usersToReward.map(async (user) => {
+            const userProportion = new BigNumber(user.totalPoints).div(
+              new BigNumber(totalPointsForPickedUsers),
+            );
+
+            const userEarnings = remaining.multipliedBy(userProportion);
+
+            await this.prisma.reward.create({
+              data: {
+                userId: user.id,
+                earning: userEarnings.dividedBy(ticketPrice).toString(),
+                points: user.totalPoints,
+                sportTournamentId: tournament.id,
+                claimed: 'DEFAULT',
+                type: 'SPORT',
+                totalTournamentPoints: totalPointsForPickedUsers,
+              },
+            });
+
+            rewardData.push({
+              addr: user.address,
+              amount: userEarnings.toNumber(),
+            });
+          }),
+        );
+
+        allTxData.push({
+          rewardData,
+          totalTicketsUsed: payableRecord.payableTickets,
+          totalNoOfPlayers: participatedUsers,
+          tournamentId: tournament.id,
+        });
+
+        const sportBetIds = leaderboard.flatMap((user) =>
+          user.sportBets.map((bet) => bet.id),
+        );
+
+        if (sportBetIds.length > 0) {
+          await this.prisma.sportBet.updateMany({
+            where: {
+              id: { in: sportBetIds },
+            },
+            data: { disbursed: true },
+          });
+        }
+
+        await this.prisma.sportTournament.update({
+          where: { id: tournament.id },
+          data: {
+            totalStakes,
+            paused: false,
+            uniqueUsers: participatedUsers,
+            numberOfUsersRewarded: usersToReward.length,
+          },
+        });
+      });
+    }
 
     // for (const tx of allTxData) {
     //   await this.tournamentReward.storeTournamentRewards(tx, 2);
