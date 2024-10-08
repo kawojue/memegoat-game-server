@@ -281,12 +281,12 @@ export class TaskService {
           },
         });
 
-        const {
-          _sum: { stake: totalTournamentStakes },
-        } = await this.prisma.round.aggregate({
+        const { _sum } = await this.prisma.round.aggregate({
           where: { gameTournamentId: tournament.id },
           _sum: { stake: true },
         });
+
+        const totalTournamentStakes = _sum?.stake ?? 0;
 
         const groupRoundsByUser = await this.prisma.round.groupBy({
           where: { gameTournamentId: tournament.id },
@@ -576,7 +576,7 @@ export class TaskService {
           totalSold = ticketRecord.boughtTickets;
         }
 
-        const totalStakes = betsAggregate._sum.stake;
+        const totalStakes = betsAggregate._sum?.stake ?? 0;
         const payableRecord = calculatePayableTickets(
           {
             rolloverTickets,
@@ -671,10 +671,10 @@ export class TaskService {
       });
     }
 
-    // for (const tx of allTxData) {
-    //   await this.tournamentReward.storeTournamentRewards(tx, 2);
-    //   await new Promise((resolve) => setTimeout(resolve, 3600));
-    // }
+    for (const tx of allTxData) {
+      await this.tournamentReward.storeTournamentRewards(tx, 2);
+      await new Promise((resolve) => setTimeout(resolve, 3600));
+    }
 
     const refreshedTime = new Date(new Date().toUTCString());
     let currentTournament = await this.prisma.sportTournament.findFirst({
