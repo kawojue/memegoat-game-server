@@ -364,7 +364,9 @@ export class TaskService {
               where: { id: ticketRecord.id },
               data: {
                 usedTickets: totalTournamentStakes,
-                payableTickets: payableRecord.payableTickets,
+                payableTickets: Number(
+                  new BigNumber(payableRecord.payableTickets).toFixed(0),
+                ),
                 rolloverRatio: payableRecord.rolloverRatio * 1e6,
                 rolloverTickets: payableRecord.rolloverTickets,
               },
@@ -601,7 +603,9 @@ export class TaskService {
               where: { id: ticketRecord.id },
               data: {
                 usedTickets: totalStakes,
-                payableTickets: payableRecord.payableTickets,
+                payableTickets: Number(
+                  new BigNumber(payableRecord.payableTickets).toFixed(0),
+                ),
                 rolloverRatio: payableRecord.rolloverRatio * 1e6,
                 rolloverTickets: payableRecord.rolloverTickets,
               },

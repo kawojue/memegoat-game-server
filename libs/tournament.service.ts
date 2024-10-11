@@ -62,7 +62,7 @@ export class TournamentService {
         new BigNumber(data.totalTicketsUsed).toFixed(0),
       )
         .multipliedBy(new BigNumber(Number(env.hiro.ticketPrice)))
-        .multipliedBy(new BigNumber(2))
+        .multipliedBy(new BigNumber(2.05))
         .dividedBy(new BigNumber(100))
         .toFixed(0);
 
@@ -102,7 +102,7 @@ export class TournamentService {
             ),
           }),
         ],
-        fee: 500000n,
+        fee: 200000n,
         senderKey: account.stxPrivateKey,
         validateWithAbi: true,
         network: networkData.network,
