@@ -29,17 +29,17 @@ export class TournamentService {
       network: StacksTestnet | StacksMainnet;
     }
   > = {
-      testnet: {
-        txVersion: TransactionVersion.Testnet,
-        network: new StacksTestnet(),
-      },
-      mainnet: {
-        txVersion: TransactionVersion.Mainnet,
-        network: new StacksMainnet(),
-      },
-    };
+    testnet: {
+      txVersion: TransactionVersion.Testnet,
+      network: new StacksTestnet(),
+    },
+    mainnet: {
+      txVersion: TransactionVersion.Mainnet,
+      network: new StacksMainnet(),
+    },
+  };
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async storeTournamentRewards(data: txData, tourId: number) {
     try {
@@ -58,13 +58,15 @@ export class TournamentService {
         transactionVersion: networkData.txVersion,
       });
       const postConditionCode = FungibleConditionCode.LessEqual;
-      const postConditionAmount = new BigNumber(data.totalTicketsUsed)
+      const postConditionAmount = new BigNumber(
+        new BigNumber(data.totalTicketsUsed).toFixed(0),
+      )
         .multipliedBy(new BigNumber(Number(env.hiro.ticketPrice)))
-        .multipliedBy(new BigNumber(0.02))
+        .multipliedBy(new BigNumber(2))
+        .dividedBy(new BigNumber(100))
         .toFixed(0);
 
       // get percentage for treasury
-
       const ca = splitCA(env.hiro.contractId);
       const postConditions = [
         makeContractSTXPostCondition(
@@ -125,7 +127,7 @@ export class TournamentService {
         },
       });
     } catch (err) {
-      throw err
+      throw err;
     }
   }
 
