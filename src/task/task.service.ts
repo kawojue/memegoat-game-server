@@ -438,8 +438,6 @@ export class TaskService {
     }
 
     const refreshedTime = new Date(new Date().toUTCString());
-    refreshedTime.setUTCHours(0, 0, 0, 0);
-
     let currentTournament = await this.prisma.tournament.findFirst({
       where: {
         start: { lte: refreshedTime },
@@ -454,9 +452,7 @@ export class TaskService {
     if (!currentTournament) {
       const start = refreshedTime;
       const end = new Date(start);
-
       end.setUTCDate(start.getUTCDate() + 3);
-      end.setUTCHours(0, 0, 0, 0);
 
       currentTournament = await this.prisma.tournament.create({
         data: { start, end },
@@ -693,7 +689,6 @@ export class TaskService {
     }
 
     const refreshedTime = new Date(new Date().toUTCString());
-    refreshedTime.setUTCHours(0, 0, 0, 0);
 
     let currentTournament = await this.prisma.sportTournament.findFirst({
       where: {
@@ -707,9 +702,7 @@ export class TaskService {
     if (!currentTournament) {
       const start = refreshedTime;
       const end = new Date(start);
-
       end.setUTCDate(start.getUTCDate() + 7);
-      end.setUTCHours(0, 0, 0, 0);
 
       currentTournament = await this.prisma.sportTournament.create({
         data: { start, end },
