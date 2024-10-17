@@ -37,6 +37,7 @@ export class PrismaService
     return await this.tournament.findFirst({
       where: {
         paused: false,
+        disbursed: false,
         start: { lte: new Date(new Date().toUTCString()) },
         end: { gte: new Date(new Date().toUTCString()) },
       },
@@ -47,6 +48,7 @@ export class PrismaService
     return await this.sportTournament.findFirst({
       where: {
         paused: false,
+        disbursed: false,
         start: { lte: new Date(new Date().toUTCString()) },
         end: { gte: new Date(new Date().toUTCString()) },
       },

@@ -692,6 +692,7 @@ export class TaskService {
 
     let currentTournament = await this.prisma.sportTournament.findFirst({
       where: {
+        disbursed: false,
         start: { lte: refreshedTime },
         end: { gte: refreshedTime },
       },
