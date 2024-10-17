@@ -201,14 +201,6 @@ export class RealtimeGateway
     await this.realtimeService.updateStat(sub, win, stake, point);
 
     client.emit('coin-flip-result', { ...round, win, outcome });
-
-    if (savedRound) {
-      await this.prisma.tournamentArg('game', {
-        stake,
-        userId: sub,
-        id: currentTournament.id,
-      });
-    }
   }
 
   @SubscribeMessage('dice-roll')
@@ -301,14 +293,6 @@ export class RealtimeGateway
     await this.realtimeService.updateStat(sub, win, stake, point);
 
     client.emit('dice-roll-result', { ...round, win, rolls });
-
-    if (savedRound) {
-      await this.prisma.tournamentArg('game', {
-        stake,
-        userId: sub,
-        id: currentTournament.id,
-      });
-    }
   }
 
   @SubscribeMessage('roulette-spin')
@@ -409,14 +393,6 @@ export class RealtimeGateway
     await this.realtimeService.updateStat(sub, win, stake, point);
 
     client.emit('roulette-spin-result', { ...round, win, outcome, result });
-
-    if (savedRound) {
-      await this.prisma.tournamentArg('game', {
-        stake,
-        userId: sub,
-        id: currentTournament.id,
-      });
-    }
   }
 
   @SubscribeMessage('start-blackjack')
@@ -604,12 +580,6 @@ export class RealtimeGateway
     });
 
     client.emit('blindbox-started', { boardSize: 4, tickets });
-
-    await this.prisma.tournamentArg('game', {
-      userId: sub,
-      stake: tickets,
-      id: currentTournament.id,
-    });
   }
 
   @SubscribeMessage('select-box')
@@ -807,14 +777,6 @@ export class RealtimeGateway
     client.emit('lottery-data', { round });
 
     client.broadcast.emit('new-lottery-round', { round });
-
-    if (round) {
-      await this.prisma.tournamentArg('game', {
-        stake,
-        userId: sub,
-        id: currentTournament.id,
-      });
-    }
   }
 
   @SubscribeMessage('get-latest-lottery-rounds')
@@ -1025,11 +987,6 @@ export class RealtimeGateway
       });
 
       if (stat) {
-        await this.prisma.tournamentArg('game', {
-          userId: sub,
-          stake: game.stake,
-          id: game.currentTournamentId,
-        });
         this.spaceInvaderGames.delete(sub);
       }
     }

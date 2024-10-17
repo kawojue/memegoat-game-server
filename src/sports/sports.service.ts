@@ -236,12 +236,6 @@ export class SportsService {
           tickets: { decrement: stake },
         },
       });
-
-      await this.prisma.tournamentArg('sport', {
-        stake,
-        userId,
-        id: currentTournament.id,
-      });
     }
 
     return bet;
@@ -379,12 +373,6 @@ export class SportsService {
         data: {
           tickets: { decrement: stake },
         },
-      });
-
-      await this.prisma.tournamentArg('sport', {
-        stake,
-        userId,
-        id: currentTournament.id,
       });
     }
 

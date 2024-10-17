@@ -235,7 +235,9 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    timeZone: 'UTC',
+  })
   async rewardAndRefreshGameTournament() {
     const currentTime = new Date(new Date().toUTCString());
 
@@ -445,9 +447,7 @@ export class TaskService {
       },
     });
 
-    if (currentTournament && currentTournament.paused) {
-      return;
-    }
+    if (currentTournament && currentTournament.paused) return;
 
     if (!currentTournament) {
       const start = refreshedTime;
@@ -460,7 +460,9 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    timeZone: 'UTC',
+  })
   async rewardAndRefreshSportTournament() {
     const currentTime = new Date(new Date().toUTCString());
 
@@ -670,9 +672,7 @@ export class TaskService {
             await this.prisma.sportTournament.update({
               where: { id: tournament.id },
               data: {
-                totalStakes,
-                paused: false,
-                uniqueUsers: participatedUsers,
+                disbursed: true,
                 numberOfUsersRewarded: usersToReward.length,
               },
             });
@@ -710,23 +710,6 @@ export class TaskService {
     }
 
     if (currentTournament) {
-      const betsToTransfer = await this.prisma.sportBet.findMany({
-        where: {
-          disbursed: false,
-          outcome: 'NOT_DECIDED',
-          status: { in: ['NOT_STARTED', 'ONGOING'] },
-        },
-      });
-
-      const totalStakesToTransfer = betsToTransfer.reduce(
-        (acc, bet) => acc + bet.stake,
-        0,
-      );
-
-      const uniqueUsersToTransfer = new Set(
-        betsToTransfer.map((bet) => bet.userId),
-      ).size;
-
       await this.prisma.sportBet.updateMany({
         where: {
           outcome: 'NOT_DECIDED',
@@ -735,14 +718,6 @@ export class TaskService {
         data: {
           sportTournamentId: currentTournament.id,
           updatedAt: new Date(),
-        },
-      });
-
-      await this.prisma.sportTournament.update({
-        where: { id: currentTournament.id },
-        data: {
-          totalStakes: { increment: totalStakesToTransfer },
-          uniqueUsers: { increment: uniqueUsersToTransfer },
         },
       });
     }

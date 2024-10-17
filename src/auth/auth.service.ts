@@ -225,11 +225,8 @@ export class AuthService {
     let currentGameTournament = await this.prisma.currentGameTournament();
     let currentSportTournament = await this.prisma.currentSportTournament();
 
-    let totalGameStakes = currentGameTournament?.totalStakes || 0;
-    let totalSportStakes = currentSportTournament?.totalStakes || 0;
-
-    delete currentGameTournament?.totalStakes;
-    delete currentSportTournament?.totalStakes;
+    let totalGameStakes = 0;
+    let totalSportStakes = 0;
 
     if (currentGameTournament) {
       const stakes = await this.prisma.round.aggregate({

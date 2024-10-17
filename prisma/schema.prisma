@@ -29,8 +29,6 @@ model Tournament {
   title                 String?
   start                 DateTime
   end                   DateTime
-  totalStakes           Int      @default(0)
-  uniqueUsers           Int      @default(0)
   paused                Boolean  @default(false)
   disbursed             Boolean? @default(false)
   numberOfUsersRewarded Int      @default(0)
@@ -39,7 +37,6 @@ model Tournament {
   rewards     Reward[]
   Transaction Transaction[]
 
-  @@index([totalStakes])
   @@index([start, end])
 }
 
@@ -49,15 +46,13 @@ model SportTournament {
   title                 String?
   start                 DateTime
   end                   DateTime
-  totalStakes           Int      @default(0)
-  uniqueUsers           Int      @default(0)
+  disbursed             Boolean? @default(false)
   paused                Boolean  @default(false)
   numberOfUsersRewarded Int      @default(0)
 
   rewards Reward[]
   bets    SportBet[]
 
-  @@index([totalStakes])
   @@index([start, end])
 }
 

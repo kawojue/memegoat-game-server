@@ -86,9 +86,9 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     ),
                   ).toNumber();
 
-                  const twentyPercent = (20 / 100) * tickets
+                  const twentyPercent = (20 / 100) * tickets;
 
-                  const accredited = twentyPercent + tickets
+                  const accredited = twentyPercent + tickets;
 
                   amount = accredited * env.hiro.ticketPrice;
 
@@ -106,7 +106,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                       where: { id: ticketRecord.id },
                       data: {
                         boughtTickets: { increment: tickets },
-                        freeTickets: { increment: Math.round(twentyPercent) }
+                        freeTickets: { increment: Math.round(twentyPercent) },
                       },
                     });
                   } else {
@@ -123,7 +123,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                   await prisma.reward.update({
                     where: {
                       id: tx.id,
-                      userId: tx.userId
+                      userId: tx.userId,
                     },
                     data: { claimed: 'SUCCESSFUL' },
                   });
@@ -178,7 +178,7 @@ export class TransactionsQueueProcessor extends WorkerHost {
                     ...txMeta,
                   },
                 });
-              })
+              });
 
               break;
             }

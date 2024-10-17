@@ -1,8 +1,8 @@
+import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 import { Cl, cvToValue } from '@stacks/transactions';
+import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 
 @Injectable()
 export class ContractService {
