@@ -235,7 +235,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+  @Cron(CronExpression.EVERY_2_HOURS, {
     timeZone: 'UTC',
   })
   async rewardAndRefreshGameTournament() {
@@ -460,7 +460,7 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+  @Cron(CronExpression.EVERY_HOUR, {
     timeZone: 'UTC',
   })
   async rewardAndRefreshSportTournament() {
